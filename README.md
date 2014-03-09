@@ -16,13 +16,14 @@ A word of caution though. This project is in its infacy yet, and as the original
 To reprogram the STC-1000, make sure to UNPLUG (not just power off) STC-1000. Connect the necessary wires to the Arduino (see image),  download the sketch and suitible HEX file. Upload the sketch using Arduino IDE. Connect with a serial terminal emulator (115200 bps). I use CuteCom under GNU/Linux. It allows to set a delay between characters, set 1 or 2ms. Send 'u', you will be prompted to send the HEX file. Send the file. Done.
 
 Connection diagram
-| Arduino       | STC-1000      |
-| ------------- |---------------|
-| 9             | ICSPCLK       |
-| 8             | ICSPDAT       |
-| GND           | GND           |
-| 5v            | VDD           |
-| 3             | nMCLR         |
+
+| Arduino | STC1000   |
+|---------|-----------|
+| 9       | ICSPCLK   |
+| 8       | ICSPDAT   |
+| GND     | GND       |
+| 5V      | VDD       |
+| 3       | nMCLR     |
 
 
 ![alt text](https://raw.github.com/matsstaff/stc1000p/master/stc1000_ICSP.jpg "STC-1000 connection header")
