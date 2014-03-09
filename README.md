@@ -31,5 +31,7 @@ Close up of my development STC-1000 that shows where the pins are located. Note 
 
 The idea for the Arduino sketch came from [here](http://forum.arduino.cc/index.php?topic=92929.0), but was completely rewritten.
 
+Oh yeah, the internal piezo buzzer is connected to the ICSPDAT line, so during upload it will make a little noise. Kind of reminds me of the olden days with dialup connections :)
+
 To modify the firmware, you will need a fresh installation of SDCC and GPUTILS. The source is pretty well commented. The MCU is pretty darn small and especially RAM is scarce. So you need to be very careful when programming. Avoid (especially nested) function calls, minimize global and static variables. Read the SDCC manual and PIC16F1828 datasheets. 
 
