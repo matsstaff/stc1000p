@@ -1,4 +1,5 @@
-stc1000-
+stc1000+
 ========
 
-Firmware mod and uploader for STC-1000 dual stage thermostat
+Firmware mod and Arduino based uploader for STC-1000 dual stage thermostat.
+
