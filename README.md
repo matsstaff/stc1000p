@@ -11,9 +11,9 @@ The goal of this project is twofold
 
 The first goal is achieved by using an Arduino UNO with a sketch to act as a programmer, and the second by using the SDCC compiler and GPUTILS. 
 
-A word of caution though. This project is in its infacy yet, and as the original firmware is protected, there is no way to restore the original functionality. And I assume no responsibilities.
+A word of caution though. This project is in its infancy yet, and as the original firmware is protected, there is no way to restore the original functionality. And I assume no responsibilities.
 
-To reprogram the STC-1000, make sure to UNPLUG (not just power off) STC-1000. Connect the necessary wires to the Arduino (see image),  download the sketch and suitible HEX file. Upload the sketch using Arduino IDE. Connect with a serial terminal emulator (115200 bps). I use CuteCom under GNU/Linux. It allows to set a delay between characters, set 1 or 2ms. Send 'u', you will be prompted to send the HEX file. Send the file. Done.
+To reprogram the STC-1000, make sure to UNPLUG (not just power off) STC-1000. Connect the necessary wires to the Arduino (see image),  download the sketch and suitible HEX file. Upload the sketch using Arduino IDE. Connect with a serial terminal emulator (115200 bps). I use CuteCom under GNU/Linux. It allows to set a delay between characters, set 1 or 2ms (if your terminal emulator dont support this, you could try to lower the bps considerably in the sketch). Send 'u', you will be prompted to send the HEX file. Send the file. Done.
 
 Connection diagram
 
@@ -27,8 +27,11 @@ Connection diagram
 
 
 ![alt text](https://raw.github.com/matsstaff/stc1000p/master/stc1000_ICSP.jpg "STC-1000 connection header")
+Close up of my development STC-1000 that shows where the pins are located. Note that the pin header was added, and is not included.
 
 The idea for the Arduino sketch came from [here](http://forum.arduino.cc/index.php?topic=92929.0), but was completely rewritten.
+
+Oh yeah, the internal piezo buzzer is connected to the ICSPDAT line, so during upload it will make a little noise. Kind of reminds me of the olden days with dialup connections :)
 
 To modify the firmware, you will need a fresh installation of SDCC and GPUTILS. The source is pretty well commented. The MCU is pretty darn small and especially RAM is scarce. So you need to be very careful when programming. Avoid (especially nested) function calls, minimize global and static variables. Read the SDCC manual and PIC16F1828 datasheets. 
 
