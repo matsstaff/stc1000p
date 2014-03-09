@@ -13,7 +13,7 @@ The first goal is achieved by using an Arduino UNO with a sketch to act as a pro
 
 A word of caution though. This project is in its infacy yet, and as the original firmware is protected, there is no way to restore the original functionality. And I assume no responsibilities.
 
-To reprogram the STC-1000, make sure to UNPLUG (not just power off) STC-1000. Connect the necessary wires to the Arduino (see image),  download the sketch and suitible HEX file. Upload the sketch using Arduino IDE. Connect with a serial terminal emulator (115200 bps). I use CuteCom under GNU/Linux. It allows to set a delay between characters, set 1 or 2ms. Send 'u', you will be prompted to send the HEX file. Send the file. Done.
+To reprogram the STC-1000, make sure to UNPLUG (not just power off) STC-1000. Connect the necessary wires to the Arduino (see image),  download the sketch and suitible HEX file. Upload the sketch using Arduino IDE. Connect with a serial terminal emulator (115200 bps). I use CuteCom under GNU/Linux. It allows to set a delay between characters, set 1 or 2ms (if your terminal emulator dont support this, you could try to lower the bps considerably in the sketch). Send 'u', you will be prompted to send the HEX file. Send the file. Done.
 
 Connection diagram
 
