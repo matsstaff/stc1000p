@@ -27,6 +27,7 @@ Connection diagram
 
 
 ![alt text](https://raw.github.com/matsstaff/stc1000p/master/stc1000_ICSP.jpg "STC-1000 connection header")
+Close up of my development STC-1000 that shows where the pins are located. Note that the pin header was added, and is not included.
 
 The idea for the Arduino sketch came from [here](http://forum.arduino.cc/index.php?topic=92929.0), but was completely rewritten.
 
