@@ -389,14 +389,14 @@ static void temperature_control(int temperature){
 		}
 	} else {
 		int hysteresis = eeprom_read_config(EEADR_HYSTERESIS);
-		if (temperature >= setpoint + hysteresis) {
+		if (temperature > setpoint + hysteresis) {
 			if (cooling_delay) {
 				led_e = led_e ^ (1<<7); // Flash to indicate cooling delay
 				led_e = led_e | (1<<3);
 			} else {
 				RA4 = 1;
 			}
-		} else if (temperature <= setpoint - hysteresis) {
+		} else if (temperature < setpoint - hysteresis) {
 			if (heating_delay) {
 				led_e = led_e ^ (1<<3); // Flash to indicate heating delay
 				led_e = led_e | (1<<7);
