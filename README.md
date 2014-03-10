@@ -16,7 +16,9 @@ A word of caution though. This project is in its infancy yet, and as the origina
 Uploading new firmware
 ======================
 
-To reprogram the STC-1000, make sure to **UNPLUG** (not just power off) STC-1000. Connect the necessary wires to the Arduino (see image and table below). 
+To reprogram the STC-1000, download the sketch and open it with the Arduino IDE.
+Upload the sketch using Arduino IDE to the Arduino. 
+Make sure to **UNPLUG** (not just power off) STC-1000. Connect the necessary wires to the Arduino (see image and table below). 
 
 Connection diagram
 
@@ -28,13 +30,12 @@ Connection diagram
 | 5V      | VDD       | Optionally connect via a diode for protection |
 | 3       | nMCLR     | |
 
-The resistors and diode are optional and really should not be needed, but would be nice to include if you would build a shield or a more professional programmer.
+The resistors and diode are optional and really should not be needed, but would be nice to include if you would build a shield or a more professional programmer. Note, that you should upload the sketch BEFORE making the connections, as I have no idea what is running on the Arduino previously. The resistors will protect your Arduino and STC-1000 in the case this happens.
 
 ![alt text](https://raw.github.com/matsstaff/stc1000p/master/stc1000_ICSP.jpg "STC-1000 connection header")
 Close up of my development STC-1000 that shows where the pins are located. Note that the pin header was added, and is not included with the STC-1000.
 
-Download the sketch and open it with the Arduino IDE.
-Upload the sketch using Arduino IDE. Connect with a the Arduino IDE serial monitor (Ctrl+Shift+M), select '115200 baud' and 'No line ending'. 
+Connect with a the Arduino IDE serial monitor (Ctrl+Shift+M), select '115200 baud' and 'No line ending'. 
 Place cursor in the top field of the serial monitor, type 'd' (that is a single d, not the apostrophes) and send.
 If all is connected correctly you should be greeted with 'STC-1000 detected.', if not check wiring and settings. If it passed, you can send 'a' to upload Celsius version or 'f' for Fahrenheit version. Uploading takes approx 20 seconds and during that time the STC-1000 will make some noise, due to how the hardware was designed. That is perfectly normal.
 After flashing new firmware, EEPROM settings are wiped and you'll need to set values using the buttons (see User Manual).
