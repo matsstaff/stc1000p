@@ -13,27 +13,35 @@ The first goal is achieved by using an Arduino UNO with a sketch to act as a pro
 
 A word of caution though. This project is in its infancy yet, and as the original firmware is protected, there is no way to restore the original functionality. And I assume no responsibilities.
 
-To reprogram the STC-1000, make sure to **UNPLUG** (not just power off) STC-1000. Connect the necessary wires to the Arduino (see image),  download the sketch and suitible HEX file. Upload the sketch using Arduino IDE. Connect with a serial terminal emulator (115200 bps). I use CuteCom under GNU/Linux. It allows to set a delay between characters, set 1 or 2ms (if your terminal emulator dont support this, you could try to lower the bps considerably in the sketch). Send 'u', you will be prompted to send the HEX file. Send the file. Done.
+Uploading new firmware
+======================
+
+To reprogram the STC-1000, make sure to **UNPLUG** (not just power off) STC-1000. Connect the necessary wires to the Arduino (see image and table below). 
 
 Connection diagram
 
 | Arduino | STC1000   | Notes |
 |---------|-----------|-------|
 | 9       | ICSPCLK   | Optionally connect via a ~1k resistor for protection | 
-| 8       | ICSPDAT   | This really should be connected via a ~1k resistor for protection |
+| 8       | ICSPDAT   | Optionally connect via a ~1k resistor for protection |
 | GND     | GND       | |
 | 5V      | VDD       | Optionally connect via a diode for protection |
 | 3       | nMCLR     | |
 
+The resistors and diode are optional and really should not be needed, but would be nice to include if you would build a shield or a more professional programmer.
 
 ![alt text](https://raw.github.com/matsstaff/stc1000p/master/stc1000_ICSP.jpg "STC-1000 connection header")
-Close up of my development STC-1000 that shows where the pins are located. Note that the pin header was added, and is not included.
+Close up of my development STC-1000 that shows where the pins are located. Note that the pin header was added, and is not included with the STC-1000.
+
+Download the sketch and open it with the Arduino IDE.
+Upload the sketch using Arduino IDE. Connect with a the Arduino IDE serial monitor (Ctrl+Shift+M), select '115200 baud' and 'No line ending'. 
+Place cursor in the top field of the serial monitor, type 'd' (that is a single d, not the apostrophes) and send.
+If all is connected correctly you should be greeted with 'STC-1000 detected.', if not check wiring and settings. If it passed, you can send 'a' to upload Celsius version or 'f' for Fahrenheit version. Uploading takes approx 20 seconds and during that time the STC-1000 will make some noise, due to how the hardware was designed. That is perfectly normal.
+After flashing new firmware, EEPROM settings are wiped and you'll need to set values using the buttons (see User Manual).
 
 The idea for the Arduino sketch came from [here](http://forum.arduino.cc/index.php?topic=92929.0), but was completely rewritten.
 
-Oh yeah, the internal piezo buzzer is connected to the ICSPDAT line, so during upload it will make a little noise. Kind of reminds me of the olden days with dialup connections :)
-
-To modify the firmware, you will need a fresh installation of SDCC and GPUTILS. The source is pretty well commented. The MCU is pretty darn small and especially RAM is scarce. So you need to be very careful when programming. Avoid (especially nested) function calls, minimize global and static variables. Read the SDCC manual and PIC16F1828 datasheets. 
+To modify the firmware yourself, you will need a fresh installation of SDCC and GPUTILS. The source is pretty well commented. The MCU is pretty darn small and especially RAM is scarce. So you need to be very careful when programming. Avoid (especially nested) function calls, minimize global and static variables. Read the SDCC manual and PIC16F1828 datasheets. 
 
 User Manual
 ===========
