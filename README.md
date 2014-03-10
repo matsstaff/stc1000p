@@ -17,13 +17,13 @@ To reprogram the STC-1000, make sure to **UNPLUG** (not just power off) STC-1000
 
 Connection diagram
 
-| Arduino | STC1000   |
-|---------|-----------|
-| 9       | ICSPCLK   |
-| 8       | ICSPDAT   |
-| GND     | GND       |
-| 5V      | VDD       |
-| 3       | nMCLR     |
+| Arduino | STC1000   | Notes |
+|---------|-----------|-------|
+| 9       | ICSPCLK   | Optionally connect via a ~1k resistor for protection | 
+| 8       | ICSPDAT   | This really should be connected via a ~1k resistor for protection |
+| GND     | GND       | |
+| 5V      | VDD       | Optionally connect via a diode for protection |
+| 3       | nMCLR     | |
 
 
 ![alt text](https://raw.github.com/matsstaff/stc1000p/master/stc1000_ICSP.jpg "STC-1000 connection header")
