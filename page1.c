@@ -311,9 +311,15 @@ unsigned char button_menu_fsm(){
 			config_value = check_config_value(config_value, menu_item, config_item);
 			state = state_show_config_value;
 		} else if(BTN_RELEASED(BTN_S)){
-			if(menu_item == 6 && config_item == 6){ // When setting runmode, clear current step & duration
+			if(menu_item == 6 && config_item == 6){ // When setting runmode th, clear current step & duration
 				eeprom_write_config(117, 0);
 				eeprom_write_config(118, 0);
+				if(config_value < 6){
+					eeprom_write_config(116, eeprom_read_config(19*config_value));
+					if(eeprom_read_config(19*config_value+1) == 0){
+						config_value = 6;
+					}
+				}
 			}
 			eeprom_write_config(menu_item*19 + config_item, config_value);
 			state=state_show_config_item;
