@@ -74,13 +74,13 @@ unsigned int __at _CONFIG2 __CONFIG2 = 0x3AFF;
 
 /* Temperature lookup table  */
 #ifdef FAHRENHEIT
-const int ad_lookup[32] = { -508, -286, -139, -26, 68, 161, 226, 294, 360, 421,
+const int ad_lookup[32] = { 0, -508, -286, -139, -26, 68, 161, 226, 294, 360, 421,
 		482, 540, 597, 655, 712, 770, 829, 891, 954, 1020, 1090, 1168, 1243,
 		1332, 1431, 1544, 1679, 1855, 2057, 2372, 2957 };
 #else  // CELSIUS
 const int ad_lookup[32] = {0, -460, -337, -255, -192, -140, -87, -53, -14, 22,
 	56, 90, 122, 154, 186, 218, 250, 283, 317, 352, 389, 428, 471, 513, 562,
-	617, 680, 755, 853, 965, 1140, 1465};
+	617, 680, 755, 853, 965, 1140, 1465 };
 #endif
 
 /* LED character lookup table (0-15), includes hex */
@@ -274,9 +274,10 @@ static int read_temperature(){
 		// Start new conversion
 		ADGO = 1;
 
-		// Alarm on sensor error
-		if(adresult > 1000 || adresult < 64){
+		// Alarm on sensor error (AD result out of range)
+		if(adresult >= 992 || adresult < 32){
 			RA0 = 1;
+			// TODO Probably should return 'magic' error value here
 		} else {
 			RA0 = 0;
 		}
