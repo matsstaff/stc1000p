@@ -16,7 +16,7 @@ A word of caution though. This project is in its infancy yet, and as the origina
 Uploading new firmware
 ======================
 
-To reprogram the STC-1000, download the sketch and open it with the Arduino IDE.
+To reprogram the STC-1000, download the sketch (picprog.ino, this is the only file you need unless you're a developer) and open it with the Arduino IDE.
 Upload the sketch using Arduino IDE to the Arduino. 
 Make sure to **UNPLUG** (not just power off) STC-1000. Connect the necessary wires to the Arduino (see image and table below). 
 
