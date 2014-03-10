@@ -59,7 +59,6 @@ will switch to thermostat mode (i.e. stop any running profile, setpoint will not
 
 The way that STC-1000+ is implemented, the profile will automatically set 'SP' when a new step is reached in the profile. 
 That means when running a profile, 'SP' is NOT preserved.
-Every hour, 'dh' (and in next step is reached also 'St') is updated with new value. That means in case of a power outage, 
-STC-1000+ will pick up (to within the hour) from where it left off.
+Every hour, 'dh' (and if next step is reached, also 'St') is updated with new value(s). That means in case of a power outage, STC-1000+ will pick up (to within the hour) from where it left off.
 
 
