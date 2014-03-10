@@ -31,11 +31,10 @@ dh0|Set duration 0|0 to 999 hours
 dh8|Set duration 8|0 to 999 hours
 SP9|Set setpoint 9|\-40.0 to 140C or \-40.0 to 250F
 
-When running the programmed profile SP0 will be the initial setpoint, it will be held for dh0 hours. After that SP1 will
-be used as setpoint for dh1 hours. The profile will stop running when a duration (dh) of 0 hours OR last step is 
-reached (consider dh9 implicitly 0).
+When running the programmed profile, SP0 will be the initial setpoint, it will be held for dh0 hours. After that SP1 will be used as setpoint for dh1 hours. The profile will stop running when a duration (dh) of 0 hours OR last step is 
+reached (consider 'dh9' implicitly 0).
 When the profile has ended, STC-1000+ will automatically switch to thermostat mode with the last reached setpoint. 
-(So I guess you could also consider a dh value of 0 as infinite hours).
+(So I guess you could also consider a 'dh' value of 0 as infinite hours).
 
 Settings menu has the following items
 
