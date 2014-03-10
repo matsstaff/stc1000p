@@ -312,8 +312,8 @@ unsigned char button_menu_fsm(){
 			state = state_show_config_value;
 		} else if(BTN_RELEASED(BTN_S)){
 			if(menu_item == 6 && config_item == 6){ // When setting runmode, clear current step & duration
+				eeprom_write_config(117, 0);
 				eeprom_write_config(118, 0);
-				eeprom_write_config(119, 0);
 			}
 			eeprom_write_config(menu_item*19 + config_item, config_value);
 			state=state_show_config_item;
