@@ -1,7 +1,7 @@
 User Manual
 ===========
 
-Note, after initial 
+Note, after upload, the EEPROM is wiped. And the user needs to set values in the menu manually.
 
 By default current temperature is displayed in C or F, depending on which firmware is used.
 Pressing the 'S' button enters the menu. Pressing button 'up' and 'down' scrolls through the menu items. 
