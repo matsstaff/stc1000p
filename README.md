@@ -18,7 +18,7 @@ Uploading new firmware
 
 To reprogram the STC-1000, download the sketch (picprog.ino, this is the only file you need unless you're a developer) and open it with the Arduino IDE.
 Upload the sketch using Arduino IDE to the Arduino. 
-Make sure to **UNPLUG** (not just power off) STC-1000. Connect the necessary wires to the Arduino (see image and table below). 
+Make sure to **UNPLUG** (not just power off) STC-1000. Connect the necessary wires to the Arduino (see images and table below). 
 
 Connection diagram
 
@@ -32,7 +32,22 @@ Connection diagram
 
 The resistors and diode are optional and really should not be needed, but would be nice to include if you would build a shield or a more professional programmer. Note, that you should upload the sketch BEFORE making the connections, as I have no idea what is running on the Arduino previously. The resistors will protect your Arduino and STC-1000 in the case this happens.
 
-![alt text](https://raw.github.com/matsstaff/stc1000p/master/stc1000_ICSP.jpg "STC-1000 connection header")
+The sticker needs to be cut or removed.
+![alt text](http://i62.tinypic.com/2rf3ts5.jpg "Cut the sticker")
+
+Lift the tabs with a small screwdriver or your fingernails.
+![alt text](http://i60.tinypic.com/b9j7gm.jpg "Lift tab and pull board out")
+
+Locate the programming header. This is where the connections needs to be made to the Arduino. It is best to solder a pin header for easy access, but soldering wires directly will work. If you can't solder I guess you could use hot glue or tape or something to make a temporary connection.
+
+![alt text](http://oi60.tinypic.com/35bcrau.jpg "Locate programming header")
+
+It may be easier to access the header from the bottom of the board.
+![alt text](http://i57.tinypic.com/2ew05f8.jpg "Might be easier to access from the bottom")
+
+This is my development setup for reference. Sorry for the crappy picture quality.
+![alt text](http://i62.tinypic.com/11ue2rd.jpg "Example setup")
+
 Close up of my development STC-1000 that shows where the pins are located. Note that the pin header was added, and is not included with the STC-1000.
 
 Connect with a the Arduino IDE serial monitor (Ctrl+Shift+M), select '115200 baud' and 'No line ending'. 
