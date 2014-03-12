@@ -18,7 +18,8 @@ Uploading new firmware
 
 To reprogram the STC-1000, download the sketch (picprog.ino, this is the only file you need unless you're a developer) and open it with the Arduino IDE.
 Upload the sketch using Arduino IDE to the Arduino. 
-Make sure to **UNPLUG** (not just power off) STC-1000. Connect the necessary wires to the Arduino (see images and table below). 
+Make sure to **UNPLUG** (not just power off) STC-1000. Also, be sure to **have the sensor connected**, otherwise the STC-1000 will set off the alarm when you connect the wires.
+Connect the necessary wires to the Arduino (see images and table below). 
 
 Connection diagram
 
@@ -38,7 +39,7 @@ The sticker needs to be cut or removed.
 Lift the tabs with a small screwdriver or your fingernails.
 ![alt text](http://i60.tinypic.com/b9j7gm.jpg "Lift tab and pull board out")
 
-Locate the programming header. This is where the connections needs to be made to the Arduino. It is best to solder a pin header for easy access, but soldering wires directly will work. If you can't solder I guess you could use hot glue or tape or something to make a temporary connection.
+Locate the programming header. This is where the connections needs to be made to the Arduino. It is best to solder a pin header for easy access, but soldering wires directly will work. If you go the pinheader route, I have found it easies to use a desoldering vacuum pump, to suck out the solder. Then you can fitting the header is quite easy. If you can't solder I guess you could use hot glue or tape or something to make a temporary connection.
 
 ![alt text](http://oi60.tinypic.com/35bcrau.jpg "Locate programming header")
 
