@@ -41,10 +41,10 @@ Lift the tabs with a small screwdriver or your fingernails.
 
 Locate the programming header. This is where the connections needs to be made to the Arduino. It is best to solder a pin header for easy access, but soldering wires directly will work. If you go the pinheader route, I have found it easies to use a desoldering vacuum pump, to suck out the solder. Then you can fitting the header is quite easy. If you can't solder I guess you could use hot glue or tape or something to make a temporary connection.
 
-![alt text](http://oi60.tinypic.com/35bcrau.jpg "Locate programming header")
+![alt text](http://i61.tinypic.com/213j1v7.jpg "Locate programming header")
 
 It may be easier to access the header from the bottom of the board.
-![alt text](http://i57.tinypic.com/2ew05f8.jpg "Might be easier to access from the bottom")
+![alt text](http://i60.tinypic.com/k970o7.jpg "Might be easier to access from the bottom")
 
 This is my development setup for reference. Sorry for the crappy picture quality.
 ![alt text](http://i62.tinypic.com/11ue2rd.jpg "Example setup")
