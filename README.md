@@ -117,6 +117,7 @@ Setpoint, well... The desired temperature to keep.
 Current profile step, allows 'jumping' in the profile.
 Current profile duration in the step, allows 'jumping' in the profile. Step and duration are updated automatically when 
 running the profile, but can also be set manually at any time. (Note at the time of writing, updating current step will not take effect until next step/duration calculation occurs, which might be at most one hour).
+Cooling and heating delay is the minimum 'off time' for each relay. To spare the compressor, relays.
 Run mode, selecting 'Pr0' to 'Pr5' will start the corresponding profile running from step 0, duration 0. Selecting 'th' 
 will switch to thermostat mode (i.e. stop any running profile, setpoint will not change from this).
 
