@@ -91,9 +91,11 @@ unsigned const char led_lookup[16] = { 0x3, 0xb7, 0xd, 0x25, 0xb1, 0x61, 0x41,
 /* Global variables to hold LED data (for multiplexing purposes) */
 unsigned char led_e=0xff, led_10, led_1, led_01;
 
-/* Declare functions used from Page 1 */
-extern unsigned char button_menu_fsm();
+int temperature=0;
 
+/* Declare functions used from Page 1 */
+extern void button_menu_fsm();
+extern unsigned char state;
 
 /* Functions.
  * Note: Functions used from other page cannot be static, but functions
@@ -219,54 +221,11 @@ void value_to_led(int value, unsigned char decimal) {
 #define int_to_led(v)			value_to_led(v, 0);
 #define temperature_to_led(v)	value_to_led(v, 1);
 
-#if FILTER_AD
-static int read_temperature(){
-	static int ad_acc, ad_min, ad_max, temperature=0;
-	static char adcount=0;
-
-	if (!ADGO) { // Remove check? According to data sheet ~10us
-		unsigned int adresult = (ADRESH << 8) | ADRESL;
-
-		ADGO = 1; // ADCON0bits.ADGO = 1;
-
-		if(adcount == 0){
-			ad_acc = 0;
-			ad_max = 0x0;
-			ad_min = 0x3FF;
-		}
-
-		ad_max = (adresult > ad_max) ? adresult : ad_max;
-		ad_min = (adresult < ad_min) ? adresult : ad_min;
-		ad_acc += adresult;
-		adcount++;
-
-		if(adcount == 10){
-			unsigned char i;
-			adcount=0;
-			ad_acc -= ad_min;
-			ad_acc -= ad_max;
-			adresult = (ad_acc >> 3);
-			temperature = 0;
-			for (i = 0; i < 32; i++) {
-				if((adresult & 0x1f) <= i){
-					temperature += ad_lookup[((adresult >> 5) & 0x1f)];
-				} else {
-					temperature += ad_lookup[((adresult >> 5) & 0x1f) + 1];
-				}
-			}
-			temperature = (temperature >> 5) + eeprom_read_config(EEADR_TEMP_CORRECTION);
-		}
-	}
-	return temperature;
-}
-#else
-
 /* Read AD, linearize result and convert to temperature.
- * arguments: nose
- * returns: current temperature
+ * arguments: none
+ * returns: nothing
  */
-static int read_temperature(){
-	int temperature=0;
+static void read_temperature(){
 
 	if (!ADGO) { // This check should never fail!
 		unsigned int adresult = (ADRESH << 8) | ADRESL;
@@ -294,9 +253,7 @@ static int read_temperature(){
 		// Divide by 32 and add temperature correction
 		temperature = (temperature >> 5) + eeprom_read_config(EEADR_TEMP_CORRECTION);
 	}
-	return temperature;
 }
-#endif
 
 /* Thermostat
  * Handles profile and outputs based on temperature.
@@ -304,7 +261,7 @@ static int read_temperature(){
  * arguments: current temperature
  * returns: nothing
  */
-static void temperature_control(int temperature){
+static void temperature_control(){
 	static unsigned int cooling_delay = 300;	 // Initial cooling delay
 	static unsigned char heating_delay = 180; // Just to spare the relay a bit
 	static unsigned int millisx60=0;
@@ -315,6 +272,11 @@ static void temperature_control(int temperature){
 	// Close enough to 1s for our purposes.
 	if(++millisx60 & 0xf){
 		return;
+	}
+
+	// Show temperature if menu is idle
+	if(state==0){
+		temperature_to_led(temperature);
 	}
 
 	mode = eeprom_read_config(EEADR_RUN_MODE);
@@ -518,16 +480,13 @@ void main(void) __naked {
 
 
 		if(TMR4IF){
-			int temperature;
+
+			// Read buttons and handle menu
+			button_menu_fsm();
 
 			// Temperature control
-			temperature = read_temperature();
-			temperature_control(temperature);
-
-			// Check buttons and handle menu OR display temperature if idle
-			if(button_menu_fsm() == 0){
-				temperature_to_led(temperature);
-			}
+			read_temperature();
+			temperature_control();
 
 			// Reset timer flag
 			TMR4IF = 0;

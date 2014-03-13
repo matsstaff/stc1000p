@@ -35,11 +35,41 @@
 #define TEMP_CORR_MIN	(-25)
 #endif
 
-//#define TEST_EEPROM_UPLOAD
-#ifdef TEST_EEPROM_UPLOAD
+/* Initial EEPROM data */
+#ifdef FAHRENHEIT
 __code const int __at(0xF000) eedata[] = {
-		999, 24, 200, 192, 250, 48, 2, 0
+		600, 24, 620, 24, 640, 24, 660, 24, 680, 144, 770, 48, 400, 0, 0, 0, 0, 0, 0, // Pr0 (SP0, dh0, ..., dh8, SP9)
+		600, 24, 620, 24, 640, 24, 660, 24, 680, 144, 770, 48, 400, 0, 0, 0, 0, 0, 0, // Pr0 (SP0, dh0, ..., dh8, SP9)
+		600, 24, 620, 24, 640, 24, 660, 24, 680, 144, 770, 48, 400, 0, 0, 0, 0, 0, 0, // Pr0 (SP0, dh0, ..., dh8, SP9)
+		600, 24, 620, 24, 640, 24, 660, 24, 680, 144, 770, 48, 400, 0, 0, 0, 0, 0, 0, // Pr0 (SP0, dh0, ..., dh8, SP9)
+		600, 24, 620, 24, 640, 24, 660, 24, 680, 144, 770, 48, 400, 0, 0, 0, 0, 0, 0, // Pr0 (SP0, dh0, ..., dh8, SP9)
+		600, 24, 620, 24, 640, 24, 660, 24, 680, 144, 770, 48, 400, 0, 0, 0, 0, 0, 0, // Pr0 (SP0, dh0, ..., dh8, SP9)
+		10, // Hysteresis (temperature * 10 that is 5 = 0.5)
+		0, // Temp correction (temperature * 10)
+		680, // Setpoint (temperature * 10)
+		0, // Current step (0-8)
+		0, // Current step duration (0-999 hours)
+		15, // Cooling delay (0-60 minutes)
+		2, // Heating delay,
+		6 // Run mode (0-5 running profile 0-5, 6 = thermostat mode)
 };
+#else // CELSIUS
+	__code const int __at(0xF000) eedata[] = {
+			160, 24, 170, 24, 180, 24, 190, 24, 200, 144, 250, 48, 40, 0, 0, 0, 0, 0, 0, // Pr0 (SP0, dh0, ..., dh8, SP9)
+			160, 24, 170, 24, 180, 24, 190, 24, 200, 144, 250, 48, 40, 0, 0, 0, 0, 0, 0, // Pr1 (SP0, dh0, ..., dh8, SP9)
+			160, 24, 170, 24, 180, 24, 190, 24, 200, 144, 250, 48, 40, 0, 0, 0, 0, 0, 0, // Pr2 (SP0, dh0, ..., dh8, SP9)
+			160, 24, 170, 24, 180, 24, 190, 24, 200, 144, 250, 48, 40, 0, 0, 0, 0, 0, 0, // Pr3 (SP0, dh0, ..., dh8, SP9)
+			160, 24, 170, 24, 180, 24, 190, 24, 200, 144, 250, 48, 40, 0, 0, 0, 0, 0, 0, // Pr4 (SP0, dh0, ..., dh8, SP9)
+			160, 24, 170, 24, 180, 24, 190, 24, 200, 144, 250, 48, 40, 0, 0, 0, 0, 0, 0, // Pr5 (SP0, dh0, ..., dh8, SP9)
+			5, // Hysteresis (temperature * 10 that is 5 = 0.5)
+			0, // Temp correction (temperature * 10)
+			200, // Setpoint (temperature * 10)
+			0, // Current step (0-8)
+			0, // Current step duration (0-999 hours)
+			15, // Cooling delay (0-60 minutes)
+			2, // Heating delay,
+			6 // Run mode (0-5 running profile 0-5, 6 = thermostat mode)
+	};
 #endif
 
 /* Declare functions and variables used from Page 0 */
@@ -80,6 +110,8 @@ enum menu_states {
 	state_up_pressed,
 	state_down_pressed,
 };
+
+unsigned char state=state_idle;
 
 /* Helpers to constrain user input  */
 #define RANGE(x,min,max)	(((x)>(max))?(min):((x)<(min))?(max):(x));
@@ -125,8 +157,8 @@ static int check_config_value(int config_value, unsigned char menu_item, unsigne
  * arguments: none
  * returns: 0 if idle or non zero if menu is active
  */
-unsigned char button_menu_fsm(){
-	static unsigned char state=state_idle, menu_item=0, config_item=0, countdown=0;
+void button_menu_fsm(){
+	static unsigned char menu_item=0, config_item=0, countdown=0;
 	static int config_value;
 	static unsigned char _buttons = 0;
 	unsigned char _trisc, _portb;
@@ -268,6 +300,9 @@ unsigned char button_menu_fsm(){
 				config_item = (config_item >= 18) ? 0 : config_item+1;
 			} else {
 				config_item = (config_item >= 7) ? 0 : config_item+1;
+				if(config_item == 3 && (unsigned char)eeprom_read_config(121) >= 6){
+					config_item = 5;
+				}
 			}
 			state = state_show_config_item;
 		} else if(BTN_RELEASED(BTN_DOWN)){
@@ -275,6 +310,9 @@ unsigned char button_menu_fsm(){
 				config_item = (config_item <= 0) ? 18 : config_item-1;
 			} else {
 				config_item = (config_item <= 0) ? 7 : config_item-1;
+				if(config_item == 4 && (unsigned char)eeprom_read_config(121) >= 6){
+					config_item = 2;
+				}
 			}
 			state = state_show_config_item;
 		} else if(BTN_RELEASED(BTN_S)){
@@ -297,7 +335,7 @@ unsigned char button_menu_fsm(){
 			} else if (config_item < 7){
 				int_to_led(config_value);
 			} else {
-				if(config_value==7){
+				if(config_value==6){
 					led_10=0xc9; // t
 					led_1=0xd1;	// h
 					led_01 = 0xff;
@@ -347,7 +385,4 @@ unsigned char button_menu_fsm(){
 	default:
 		state=state_idle;
 	}
-
-	return state;
-
 }
