@@ -111,7 +111,6 @@ enum menu_states {
 	state_down_pressed,
 };
 
-unsigned char state=state_idle;
 
 /* Helpers to constrain user input  */
 #define RANGE(x,min,max)	(((x)>(max))?(min):((x)<(min))?(max):(x));
@@ -157,7 +156,8 @@ static int check_config_value(int config_value, unsigned char menu_item, unsigne
  * arguments: none
  * returns: 0 if idle or non zero if menu is active
  */
-void button_menu_fsm(){
+unsigned char button_menu_fsm(){
+	static unsigned char state=state_idle;
 	static unsigned char menu_item=0, config_item=0, countdown=0;
 	static int config_value;
 	static unsigned char _buttons = 0;
@@ -385,4 +385,6 @@ void button_menu_fsm(){
 	default:
 		state=state_idle;
 	}
+
+	return state;
 }

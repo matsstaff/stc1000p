@@ -94,8 +94,7 @@ unsigned char led_e=0xff, led_10, led_1, led_01;
 int temperature=0;
 
 /* Declare functions used from Page 1 */
-extern void button_menu_fsm();
-extern unsigned char state;
+extern unsigned char button_menu_fsm();
 
 /* Functions.
  * Note: Functions used from other page cannot be static, but functions
@@ -261,7 +260,7 @@ static void read_temperature(){
  * arguments: current temperature
  * returns: nothing
  */
-static void temperature_control(){
+static void temperature_control(unsigned char state){
 	static unsigned int cooling_delay = 300;	 // Initial cooling delay
 	static unsigned char heating_delay = 180; // Just to spare the relay a bit
 	static unsigned int millisx60=0;
@@ -481,12 +480,10 @@ void main(void) __naked {
 
 		if(TMR4IF){
 
-			// Read buttons and handle menu
-			button_menu_fsm();
 
 			// Temperature control
 			read_temperature();
-			temperature_control();
+			temperature_control(button_menu_fsm());
 
 			// Reset timer flag
 			TMR4IF = 0;
