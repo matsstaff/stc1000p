@@ -111,7 +111,10 @@ static int check_config_value(int config_value, unsigned char menu_item, unsigne
 		case 5: // Cooling delay
 			config_value = RANGE(config_value, 0, 60);
 			break;
-		case 6: // Run mode
+		case 6: // Heating delay
+			config_value = RANGE(config_value, 0, 4);
+			break;
+		case 7: // Run mode
 			config_value = RANGE(config_value, 0, 6);
 			break;
 		}
@@ -242,7 +245,11 @@ unsigned char button_menu_fsm(){
 				led_10 = 0xcd; // c
 				led_1 = 0x85; // d
 				break;
-			case 6:
+			case 6: // Heating delay
+				led_10 = 0xd1; // h
+				led_1 = 0x85; // d
+				break;
+			case 7:
 				led_10 = 0xdd; // r
 				led_1 = 0xd5; // n
 				break;
@@ -260,14 +267,14 @@ unsigned char button_menu_fsm(){
 			if(menu_item < 6){
 				config_item = (config_item >= 18) ? 0 : config_item+1;
 			} else {
-				config_item = (config_item >= 6) ? 0 : config_item+1;
+				config_item = (config_item >= 7) ? 0 : config_item+1;
 			}
 			state = state_show_config_item;
 		} else if(BTN_RELEASED(BTN_DOWN)){
 			if(menu_item < 6){
 				config_item = (config_item <= 0) ? 18 : config_item-1;
 			} else {
-				config_item = (config_item <= 0) ? 6 : config_item-1;
+				config_item = (config_item <= 0) ? 7 : config_item-1;
 			}
 			state = state_show_config_item;
 		} else if(BTN_RELEASED(BTN_S)){
@@ -287,10 +294,10 @@ unsigned char button_menu_fsm(){
 		} else if(menu_item == 6){
 			if(config_item < 3){
 				temperature_to_led(config_value);
-			} else if (config_item < 6){
+			} else if (config_item < 7){
 				int_to_led(config_value);
 			} else {
-				if(config_value==6){
+				if(config_value==7){
 					led_10=0xc9; // t
 					led_1=0xd1;	// h
 					led_01 = 0xff;
@@ -319,7 +326,7 @@ unsigned char button_menu_fsm(){
 			state = state_show_config_value;
 		} else if(BTN_RELEASED(BTN_S)){
 			if(menu_item == 6){
-				if(config_item == 6){
+				if(config_item == 7){
 					// When setting runmode, clear current step & duration
 					eeprom_write_config(117, 0);
 					eeprom_write_config(118, 0);

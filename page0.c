@@ -63,7 +63,8 @@
 #define EEADR_CURRENT_STEP						117
 #define EEADR_CURRENT_STEP_DURATION				118
 #define EEADR_COOLING_DELAY						119
-#define EEADR_RUN_MODE							120
+#define EEADR_HEATING_DELAY						120
+#define EEADR_RUN_MODE							121
 
 /* Defines */
 #define ClrWdt() { __asm CLRWDT __endasm; }
@@ -384,7 +385,7 @@ static void temperature_control(int temperature){
 		led_e = led_e & ~(1<<3);
 		led_e = led_e | (1<<7);
 		if (temperature >= setpoint) {
-			heating_delay = 180;
+			heating_delay  = eeprom_read_config(EEADR_HEATING_DELAY) * 60;
 			RA5 = 0;
 		}
 	} else {
