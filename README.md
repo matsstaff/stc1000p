@@ -108,6 +108,7 @@ SP|Set setpoint|\-40 to 140C or \-40 to 250F
 St|Set current profile step|0 to 8
 dh|Set current profile duration|0 to 999 hours
 cd|Set cooling delay|0 to 60 minutes
+hd|Set heating delay|0 to 4 minutes
 rn|Set run mode|'Pr0' to 'Pr5' and 'th'
 
 Hysteresis, is the allowable temperature range around the setpoint in which no cooling or heating will occur.
@@ -115,7 +116,7 @@ Temperature correction, will be added to the read temperature, allows the user t
 Setpoint, well... The desired temperature to keep.
 Current profile step, allows 'jumping' in the profile.
 Current profile duration in the step, allows 'jumping' in the profile. Step and duration are updated automatically when 
-running the profile, but can also be set manually at any time.
+running the profile, but can also be set manually at any time. (Note at the time of writing, updating current step will not take effect until next step/duration calculation occurs, which might be at most one hour).
 Run mode, selecting 'Pr0' to 'Pr5' will start the corresponding profile running from step 0, duration 0. Selecting 'th' 
 will switch to thermostat mode (i.e. stop any running profile, setpoint will not change from this).
 
