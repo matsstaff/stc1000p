@@ -78,7 +78,7 @@ const int ad_lookup[32] = { 0, -508, -286, -139, -26, 68, 161, 226, 294, 360, 42
 		482, 540, 597, 655, 712, 770, 829, 891, 954, 1020, 1090, 1168, 1243,
 		1332, 1431, 1544, 1679, 1855, 2057, 2372, 2957 };
 #else  // CELSIUS
-const int ad_lookup[32] = {0, -460, -337, -255, -192, -140, -87, -53, -14, 22,
+const int ad_lookup[32] = { 0, -460, -337, -255, -192, -140, -87, -53, -14, 22,
 	56, 90, 122, 154, 186, 218, 250, 283, 317, 352, 389, 428, 471, 513, 562,
 	617, 680, 755, 853, 965, 1140, 1465 };
 #endif
@@ -203,7 +203,7 @@ void value_to_led(int value, unsigned char decimal) {
 	} else {
 		led_10 = 0xff; // Turn off led if zero (lose leading zeros)
 	}
-	if(value >= 10 || decimal){ // If decimal, we want 1 leading zero
+	if(value >= 10 || decimal || led_10!=0xff){ // If decimal, we want 1 leading zero
 		for(i=0; value >= 10; i++){
 			value -= 10;
 		}

@@ -35,6 +35,13 @@
 #define TEMP_CORR_MIN	(-25)
 #endif
 
+//#define TEST_EEPROM_UPLOAD
+#ifdef TEST_EEPROM_UPLOAD
+__code const int __at(0xF000) eedata[] = {
+		999, 24, 200, 192, 250, 48, 2, 0
+};
+#endif
+
 /* Declare functions and variables used from Page 0 */
 extern unsigned char led_e, led_10, led_1, led_01;
 extern unsigned const char led_lookup[16];
@@ -117,7 +124,7 @@ static int check_config_value(int config_value, unsigned char menu_item, unsigne
  */
 unsigned char button_menu_fsm(){
 	static unsigned char state=state_idle, menu_item=0, config_item=0, countdown=0;
-	static unsigned int config_value;
+	static int config_value;
 	static unsigned char _buttons = 0;
 	unsigned char _trisc, _portb;
 
@@ -303,21 +310,26 @@ unsigned char button_menu_fsm(){
 		} else if(BTN_RELEASED(BTN_PWR)){
 			state = state_show_config_item;
 		} else if(BTN_RELEASED(BTN_UP) || BTN_HELD(BTN_UP)) {
-			config_value++;
+			config_value = ((config_value >= 1000) || (config_value < -1000)) ? (config_value + 10) : (config_value + 1);
 			config_value = check_config_value(config_value, menu_item, config_item);
 			state = state_show_config_value;
 		} else if(BTN_RELEASED(BTN_DOWN) || BTN_HELD(BTN_DOWN)) {
-			config_value--;
+			config_value = ((config_value > 1000) || (config_value <= -1000)) ? (config_value - 10) : (config_value - 1);
 			config_value = check_config_value(config_value, menu_item, config_item);
 			state = state_show_config_value;
 		} else if(BTN_RELEASED(BTN_S)){
-			if(menu_item == 6 && config_item == 6){ // When setting runmode th, clear current step & duration
-				eeprom_write_config(117, 0);
-				eeprom_write_config(118, 0);
-				if(config_value < 6){
-					eeprom_write_config(116, eeprom_read_config(19*config_value));
-					if(eeprom_read_config(19*config_value+1) == 0){
-						config_value = 6;
+			if(menu_item == 6){
+				if(config_item == 6){
+					// When setting runmode, clear current step & duration
+					eeprom_write_config(117, 0);
+					eeprom_write_config(118, 0);
+					if(config_value < 6){
+						// Set intial value for SP
+						eeprom_write_config(116, eeprom_read_config(19*config_value));
+						// Hack in case inital step duration is '0'
+						if(eeprom_read_config(19*config_value+1) == 0){
+							config_value = 6;
+						}
 					}
 				}
 			}
