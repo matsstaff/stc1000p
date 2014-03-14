@@ -35,9 +35,10 @@
 #define BTN_HELD(btn)		((_buttons & (btn)) == (btn))
 #define BTN_RELEASED(btn)	((_buttons & (btn)) == ((btn) & 0x0f))
 
-//#define ITEM_TO_ADDRESS(_mi, _ci)	(((_mi)<<4) + ((_mi)<<1) + (_mi) + (_ci))
-#define ITEM_TO_ADDRESS(_mi, _ci)	((_mi)*19 + (_ci))
+/* Help to convert menu item number and config item number to an EEPROM config address */
+#define ITEM_TO_ADDRESS(mi, ci)	((mi)*19 + (ci))
 
+/* Button/menu FSM state */
 unsigned char state=state_idle;
 
 /* States for the menu FSM */
@@ -100,7 +101,7 @@ static int check_config_value(int config_value, unsigned char config_address){
 }
 /* This is the button input and menu handling function.
  * arguments: none
- * returns: 0 if idle or non zero if menu is active
+ * returns: nothing
  */
 void button_menu_fsm(){
 	static unsigned char menu_item=0, config_item=0, countdown=0;

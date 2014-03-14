@@ -1,5 +1,5 @@
 CC=sdcc
-CFLAGS_C=--use-non-free -mpic14 -p16f1828 --opt-code-size --no-pcode-opt --stack-size 12
+CFLAGS_C=--use-non-free -mpic14 -p16f1828 --opt-code-size --no-pcode-opt --stack-size 16
 CFLAGS_F=$(CFLAGS_C) -DFAHRENHEIT
 DEPS = stc1000p.h
 OBJ_C = page0_c.o page1_c.o eepromdata_c.o

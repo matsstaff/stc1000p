@@ -38,7 +38,7 @@
  *
  * Schematic of the bit numbers for the display LED's. Useful if custom characters are needed.
  *
- *	         * 7       --------    *    --------       * C
+ *           * 7       --------    *    --------       * C
  *                    /   7   /    1   /   7   /       5 2
  *                 2 /       / 6    2 /       / 6    ----
  *                   -------          -------     2 / 7 / 6
@@ -65,18 +65,13 @@ unsigned int __at _CONFIG2 __CONFIG2 = 0x3AFF;
 
 /* Temperature lookup table  */
 #ifdef FAHRENHEIT
-const int ad_lookup[32] = { 0, -508, -286, -139, -26, 68, 161, 226, 294, 360, 421,
-		482, 540, 597, 655, 712, 770, 829, 891, 954, 1020, 1090, 1168, 1243,
-		1332, 1431, 1544, 1679, 1855, 2057, 2372, 2957 };
+const int ad_lookup[32] = { 0, -526, -322, -171, -51, 47, 132, 210, 280, 348, 412, 473, 534, 592, 653, 711, 770, 829, 892, 958, 1024, 1096, 1171, 1253, 1343, 1443, 1558, 1693, 1862, 2075, 2390, 2840 };
 #else  // CELSIUS
-const int ad_lookup[32] = { 0, -460, -337, -255, -192, -140, -87, -53, -14, 22,
-	56, 90, 122, 154, 186, 218, 250, 283, 317, 352, 389, 428, 471, 513, 562,
-	617, 680, 755, 853, 965, 1140, 1465 };
+const int ad_lookup[32] = { 0, -470, -357, -273, -206, -152, -104, -61, -22, 16, 51, 85, 119, 151, 185, 217, 250, 283, 318, 354, 391, 431, 473, 519, 568, 624, 688, 763, 857, 975, 1150, 1400 };
 #endif
 
 /* LED character lookup table (0-15), includes hex */
-unsigned const char led_lookup[16] = { 0x3, 0xb7, 0xd, 0x25, 0xb1, 0x61, 0x41,
-		0x37, 0x1, 0x21, 0x5, 0xc1, 0xcd, 0x85, 0x9, 0x59 };
+unsigned const char led_lookup[16] = { 0x3, 0xb7, 0xd, 0x25, 0xb1, 0x61, 0x41, 0x37, 0x1, 0x21, 0x5, 0xc1, 0xcd, 0x85, 0x9, 0x59 };
 
 /* Global variables to hold LED data (for multiplexing purposes) */
 unsigned char led_e=0xff, led_10, led_1, led_01;
@@ -235,8 +230,8 @@ static void update_profile(){
 }
 
 static void temperature_control(){
-	static unsigned int cooling_delay = 300;	 // Initial cooling delay
-	static unsigned char heating_delay = 180; // Just to spare the relay a bit
+	static unsigned int cooling_delay = 300;  // Initial cooling delay (secs)
+	static unsigned char heating_delay = 180; // Initial heating delay (secs)
 	int setpoint;
 
 	setpoint = eeprom_read_config(EEADR_SETPOINT);
@@ -397,9 +392,12 @@ void main(void) __naked {
 			// Start new conversion
 			ADGO = 1;
 
+			// Handle button press and menu
+			button_menu_fsm();
+
 			// Only run every 16th time called, that is 16x60ms = 960ms
 			// Close enough to 1s for our purposes.
-			if(++millisx60 & 0xf){
+			if((++millisx60 & 0xf) == 0){
 
 				temperature >>= 4; // Divide by 16 to get back to a regular AD value
 
@@ -425,9 +423,6 @@ void main(void) __naked {
 					// Divide by 32 and add temperature correction, now temperature actually is temperature (x10)
 					temperature = (temp_t >> 5) + eeprom_read_config(EEADR_TEMP_CORRECTION);
 				}
-
-				// Handle button press and menu
-				button_menu_fsm();
 
 				// Update running profile every hour (if there is one)
 				// and handle reset of millis x60 counter
