@@ -1,3 +1,4 @@
+#test
 CC=sdcc
 CFLAGS_C=--use-non-free -mpic14 -p16f1828 --opt-code-size --no-pcode-opt
 CFLAGS_F=$(CFLAGS_C) -DFAHRENHEIT
