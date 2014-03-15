@@ -1,0 +1,64 @@
+/*
+ * STC1000+, improved firmware and Arduino based firmware uploader for the STC-1000 dual stage thermostat.
+ *
+ * Copyright 2014 Mats Staffansson
+ *
+ * This file is part of STC1000+.
+ *
+ * STC1000+ is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * STC1000+ is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with STC1000+.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+#ifndef __STC1000P_H__
+#define __STC1000P_H__
+
+/* Define limits for temperatures */
+#ifdef FAHRENHEIT
+#define TEMP_MAX		(2500)
+#define TEMP_MIN		(-400)
+#define TEMP_CORR_MAX	(50)
+#define TEMP_CORR_MIN	(-50)
+#else  // CELSIUS
+#define TEMP_MAX		(1400)
+#define TEMP_MIN		(-400)
+#define TEMP_CORR_MAX	(25)
+#define TEMP_CORR_MIN	(-25)
+#endif
+
+/* Defines for EEPROM config addresses */
+#define EEADR_PROFILE_SETPOINT(profile, step)	(profile*19 + step*2)
+#define EEADR_PROFILE_DURATION(profile, step)	(profile*19 + step*2 + 1)
+#define EEADR_HYSTERESIS						114
+#define EEADR_TEMP_CORRECTION					115
+#define EEADR_SETPOINT							116
+#define EEADR_CURRENT_STEP						117
+#define EEADR_CURRENT_STEP_DURATION				118
+#define EEADR_COOLING_DELAY						119
+#define EEADR_HEATING_DELAY						120
+#define EEADR_RUN_MODE							121
+
+/* Declare functions and variables from Page 0 */
+extern unsigned char led_e, led_10, led_1, led_01;
+extern unsigned const char led_lookup[16];
+
+extern unsigned int eeprom_read_config(unsigned char eeprom_address);
+extern void eeprom_write_config(unsigned char eeprom_address,unsigned int data);
+extern void value_to_led(int value, unsigned char decimal);
+#define int_to_led(v)			value_to_led(v, 0);
+#define temperature_to_led(v)	value_to_led(v, 1);
+
+/* Declare functions and variables from Page 1 */
+extern void button_menu_fsm();
+
+#endif // __STC1000P_H__

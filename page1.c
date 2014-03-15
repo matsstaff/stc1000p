@@ -22,65 +22,7 @@
 
 #define __16f1828
 #include "pic14/pic16f1828.h"
-
-#ifdef FAHRENHEIT
-#define TEMP_MAX		(2500)
-#define TEMP_MIN		(-400)
-#define TEMP_CORR_MAX	(50)
-#define TEMP_CORR_MIN	(-50)
-#else  // CELSIUS
-#define TEMP_MAX		(1400)
-#define TEMP_MIN		(-400)
-#define TEMP_CORR_MAX	(25)
-#define TEMP_CORR_MIN	(-25)
-#endif
-
-/* Initial EEPROM data */
-#ifdef FAHRENHEIT
-__code const int __at(0xF000) eedata[] = {
-		600, 24, 620, 24, 640, 24, 660, 24, 680, 144, 770, 48, 400, 0, 0, 0, 0, 0, 0, // Pr0 (SP0, dh0, ..., dh8, SP9)
-		600, 24, 620, 24, 640, 24, 660, 24, 680, 144, 770, 48, 400, 0, 0, 0, 0, 0, 0, // Pr0 (SP0, dh0, ..., dh8, SP9)
-		600, 24, 620, 24, 640, 24, 660, 24, 680, 144, 770, 48, 400, 0, 0, 0, 0, 0, 0, // Pr0 (SP0, dh0, ..., dh8, SP9)
-		600, 24, 620, 24, 640, 24, 660, 24, 680, 144, 770, 48, 400, 0, 0, 0, 0, 0, 0, // Pr0 (SP0, dh0, ..., dh8, SP9)
-		600, 24, 620, 24, 640, 24, 660, 24, 680, 144, 770, 48, 400, 0, 0, 0, 0, 0, 0, // Pr0 (SP0, dh0, ..., dh8, SP9)
-		600, 24, 620, 24, 640, 24, 660, 24, 680, 144, 770, 48, 400, 0, 0, 0, 0, 0, 0, // Pr0 (SP0, dh0, ..., dh8, SP9)
-		10, // Hysteresis (temperature * 10 that is 5 = 0.5)
-		0, // Temp correction (temperature * 10)
-		680, // Setpoint (temperature * 10)
-		0, // Current step (0-8)
-		0, // Current step duration (0-999 hours)
-		15, // Cooling delay (0-60 minutes)
-		2, // Heating delay,
-		6 // Run mode (0-5 running profile 0-5, 6 = thermostat mode)
-};
-#else // CELSIUS
-	__code const int __at(0xF000) eedata[] = {
-			160, 24, 170, 24, 180, 24, 190, 24, 200, 144, 250, 48, 40, 0, 0, 0, 0, 0, 0, // Pr0 (SP0, dh0, ..., dh8, SP9)
-			160, 24, 170, 24, 180, 24, 190, 24, 200, 144, 250, 48, 40, 0, 0, 0, 0, 0, 0, // Pr1 (SP0, dh0, ..., dh8, SP9)
-			160, 24, 170, 24, 180, 24, 190, 24, 200, 144, 250, 48, 40, 0, 0, 0, 0, 0, 0, // Pr2 (SP0, dh0, ..., dh8, SP9)
-			160, 24, 170, 24, 180, 24, 190, 24, 200, 144, 250, 48, 40, 0, 0, 0, 0, 0, 0, // Pr3 (SP0, dh0, ..., dh8, SP9)
-			160, 24, 170, 24, 180, 24, 190, 24, 200, 144, 250, 48, 40, 0, 0, 0, 0, 0, 0, // Pr4 (SP0, dh0, ..., dh8, SP9)
-			160, 24, 170, 24, 180, 24, 190, 24, 200, 144, 250, 48, 40, 0, 0, 0, 0, 0, 0, // Pr5 (SP0, dh0, ..., dh8, SP9)
-			5, // Hysteresis (temperature * 10 that is 5 = 0.5)
-			0, // Temp correction (temperature * 10)
-			200, // Setpoint (temperature * 10)
-			0, // Current step (0-8)
-			0, // Current step duration (0-999 hours)
-			15, // Cooling delay (0-60 minutes)
-			2, // Heating delay,
-			6 // Run mode (0-5 running profile 0-5, 6 = thermostat mode)
-	};
-#endif
-
-/* Declare functions and variables used from Page 0 */
-extern unsigned char led_e, led_10, led_1, led_01;
-extern unsigned const char led_lookup[16];
-
-extern unsigned int eeprom_read_config(unsigned char eeprom_address);
-extern void eeprom_write_config(unsigned char eeprom_address,unsigned int data);
-extern void value_to_led(int value, unsigned char decimal);
-#define int_to_led(v)			value_to_led(v, 0);
-#define temperature_to_led(v)	value_to_led(v, 1);
+#include "stc1000p.h"
 
 /* Helpful defines to handle buttons */
 #define BTN_PWR			0x88
@@ -92,6 +34,9 @@ extern void value_to_led(int value, unsigned char decimal);
 #define BTN_PRESSED(btn)	((_buttons & (btn)) == ((btn) & 0xf0))
 #define BTN_HELD(btn)		((_buttons & (btn)) == (btn))
 #define BTN_RELEASED(btn)	((_buttons & (btn)) == ((btn) & 0x0f))
+
+/* Help to convert menu item number and config item number to an EEPROM config address */
+#define ITEM_TO_ADDRESS(mi, ci)	((mi)*19 + (ci))
 
 /* States for the menu FSM */
 enum menu_states {
@@ -111,41 +56,40 @@ enum menu_states {
 	state_down_pressed,
 };
 
-
 /* Helpers to constrain user input  */
 #define RANGE(x,min,max)	(((x)>(max))?(min):((x)<(min))?(max):(x));
 
-static int check_config_value(int config_value, unsigned char menu_item, unsigned char config_item){
-	if(menu_item < 6){
-		if(config_item & 0x1){
+static int check_config_value(int config_value, unsigned char config_address){
+	if(config_address < EEADR_PROFILE_SETPOINT(6,0)){
+		if(config_address & 0x1){
 			config_value = RANGE(config_value, 0, 999);
 		} else {
 			config_value = RANGE(config_value, TEMP_MIN, TEMP_MAX);
 		}
 	} else {
-		switch(config_item){
-		case 0: // Hysteresis
+		switch(config_address){
+		case EEADR_HYSTERESIS: // Hysteresis
 			config_value = RANGE(config_value, 0, TEMP_CORR_MAX);
 			break;
-		case 1: // Temp correction
+		case EEADR_TEMP_CORRECTION: // Temp correction
 			config_value = RANGE(config_value, TEMP_CORR_MIN, TEMP_CORR_MAX);
 			break;
-		case 2: // Setpoint
+		case EEADR_SETPOINT: // Setpoint
 			config_value = RANGE(config_value, TEMP_MIN, TEMP_MAX);
 			break;
-		case 3: // Current step
+		case EEADR_CURRENT_STEP: // Current step
 			config_value = RANGE(config_value, 0, 8);
 			break;
-		case 4: // Current duration
+		case EEADR_CURRENT_STEP_DURATION: // Current duration
 			config_value = RANGE(config_value, 0, 999);
 			break;
-		case 5: // Cooling delay
+		case EEADR_COOLING_DELAY: // Cooling delay
 			config_value = RANGE(config_value, 0, 60);
 			break;
-		case 6: // Heating delay
+		case EEADR_HEATING_DELAY: // Heating delay
 			config_value = RANGE(config_value, 0, 4);
 			break;
-		case 7: // Run mode
+		case EEADR_RUN_MODE: // Run mode
 			config_value = RANGE(config_value, 0, 6);
 			break;
 		}
@@ -154,9 +98,9 @@ static int check_config_value(int config_value, unsigned char menu_item, unsigne
 }
 /* This is the button input and menu handling function.
  * arguments: none
- * returns: 0 if idle or non zero if menu is active
+ * returns: nothing
  */
-unsigned char button_menu_fsm(){
+void button_menu_fsm(){
 	static unsigned char state=state_idle;
 	static unsigned char menu_item=0, config_item=0, countdown=0;
 	static int config_value;
@@ -300,7 +244,7 @@ unsigned char button_menu_fsm(){
 				config_item = (config_item >= 18) ? 0 : config_item+1;
 			} else {
 				config_item = (config_item >= 7) ? 0 : config_item+1;
-				if(config_item == 3 && (unsigned char)eeprom_read_config(121) >= 6){
+				if(config_item == 3 && (unsigned char)eeprom_read_config(EEADR_RUN_MODE) >= 6){
 					config_item = 5;
 				}
 			}
@@ -310,14 +254,14 @@ unsigned char button_menu_fsm(){
 				config_item = (config_item <= 0) ? 18 : config_item-1;
 			} else {
 				config_item = (config_item <= 0) ? 7 : config_item-1;
-				if(config_item == 4 && (unsigned char)eeprom_read_config(121) >= 6){
+				if(config_item == 4 && (unsigned char)eeprom_read_config(EEADR_RUN_MODE) >= 6){
 					config_item = 2;
 				}
 			}
 			state = state_show_config_item;
 		} else if(BTN_RELEASED(BTN_S)){
-			config_value = eeprom_read_config(menu_item*19 + config_item);
-			config_value = check_config_value(config_value, menu_item, config_item);
+			config_value = eeprom_read_config(ITEM_TO_ADDRESS(menu_item, config_item));
+			config_value = check_config_value(config_value, ITEM_TO_ADDRESS(menu_item, config_item));
 			countdown = 200;
 			state = state_show_config_value;
 		}
@@ -356,29 +300,29 @@ unsigned char button_menu_fsm(){
 			state = state_show_config_item;
 		} else if(BTN_RELEASED(BTN_UP) || BTN_HELD(BTN_UP)) {
 			config_value = ((config_value >= 1000) || (config_value < -1000)) ? (config_value + 10) : (config_value + 1);
-			config_value = check_config_value(config_value, menu_item, config_item);
+			config_value = check_config_value(config_value, ITEM_TO_ADDRESS(menu_item, config_item));
 			state = state_show_config_value;
 		} else if(BTN_RELEASED(BTN_DOWN) || BTN_HELD(BTN_DOWN)) {
 			config_value = ((config_value > 1000) || (config_value <= -1000)) ? (config_value - 10) : (config_value - 1);
-			config_value = check_config_value(config_value, menu_item, config_item);
+			config_value = check_config_value(config_value, ITEM_TO_ADDRESS(menu_item, config_item));
 			state = state_show_config_value;
 		} else if(BTN_RELEASED(BTN_S)){
 			if(menu_item == 6){
 				if(config_item == 7){
 					// When setting runmode, clear current step & duration
-					eeprom_write_config(117, 0);
-					eeprom_write_config(118, 0);
+					eeprom_write_config(EEADR_CURRENT_STEP, 0);
+					eeprom_write_config(EEADR_CURRENT_STEP_DURATION, 0);
 					if(config_value < 6){
 						// Set intial value for SP
-						eeprom_write_config(116, eeprom_read_config(19*config_value));
+						eeprom_write_config(EEADR_SETPOINT, eeprom_read_config(EEADR_PROFILE_SETPOINT(config_value, 0)));
 						// Hack in case inital step duration is '0'
-						if(eeprom_read_config(19*config_value+1) == 0){
+						if(eeprom_read_config(EEADR_PROFILE_DURATION(config_value, 0)) == 0){
 							config_value = 6;
 						}
 					}
 				}
 			}
-			eeprom_write_config(menu_item*19 + config_item, config_value);
+			eeprom_write_config(ITEM_TO_ADDRESS(menu_item, config_item), config_value);
 			state=state_show_config_item;
 		}
 		break;
@@ -386,5 +330,9 @@ unsigned char button_menu_fsm(){
 		state=state_idle;
 	}
 
-	return state;
+	/* This is last resort...
+	 * Start using unused registers for general purpose
+	 * Use TMR1GE to flag if display should show temperatuer or not */
+	TMR1GE = (state == 0);
+
 }

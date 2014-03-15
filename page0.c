@@ -38,7 +38,7 @@
  *
  * Schematic of the bit numbers for the display LED's. Useful if custom characters are needed.
  *
- *	         * 7       --------    *    --------       * C
+ *           * 7       --------    *    --------       * C
  *                    /   7   /    1   /   7   /       5 2
  *                 2 /       / 6    2 /       / 6    ----
  *                   -------          -------     2 / 7 / 6
@@ -54,17 +54,7 @@
 
 #define __16f1828
 #include "pic14/pic16f1828.h"
-
-#define EEADR_PROFILE_SETPOINT(profile, step)	(profile*19 + step*2)
-#define EEADR_PROFILE_DURATION(profile, step)	(profile*19 + step*2 + 1)
-#define EEADR_HYSTERESIS						114
-#define EEADR_TEMP_CORRECTION					115
-#define EEADR_SETPOINT							116
-#define EEADR_CURRENT_STEP						117
-#define EEADR_CURRENT_STEP_DURATION				118
-#define EEADR_COOLING_DELAY						119
-#define EEADR_HEATING_DELAY						120
-#define EEADR_RUN_MODE							121
+#include "stc1000p.h"
 
 /* Defines */
 #define ClrWdt() { __asm CLRWDT __endasm; }
@@ -75,26 +65,17 @@ unsigned int __at _CONFIG2 __CONFIG2 = 0x3AFF;
 
 /* Temperature lookup table  */
 #ifdef FAHRENHEIT
-const int ad_lookup[32] = { 0, -508, -286, -139, -26, 68, 161, 226, 294, 360, 421,
-		482, 540, 597, 655, 712, 770, 829, 891, 954, 1020, 1090, 1168, 1243,
-		1332, 1431, 1544, 1679, 1855, 2057, 2372, 2957 };
+const int ad_lookup[32] = { 0, -526, -322, -171, -51, 47, 132, 210, 280, 348, 412, 473, 534, 592, 653, 711, 770, 829, 892, 958, 1024, 1096, 1171, 1253, 1343, 1443, 1558, 1693, 1862, 2075, 2390, 2840 };
 #else  // CELSIUS
-const int ad_lookup[32] = { 0, -460, -337, -255, -192, -140, -87, -53, -14, 22,
-	56, 90, 122, 154, 186, 218, 250, 283, 317, 352, 389, 428, 471, 513, 562,
-	617, 680, 755, 853, 965, 1140, 1465 };
+const int ad_lookup[32] = { 0, -470, -357, -273, -206, -152, -104, -61, -22, 16, 51, 85, 119, 151, 185, 217, 250, 283, 318, 354, 391, 431, 473, 519, 568, 624, 688, 763, 857, 975, 1150, 1400 };
 #endif
 
 /* LED character lookup table (0-15), includes hex */
-unsigned const char led_lookup[16] = { 0x3, 0xb7, 0xd, 0x25, 0xb1, 0x61, 0x41,
-		0x37, 0x1, 0x21, 0x5, 0xc1, 0xcd, 0x85, 0x9, 0x59 };
+unsigned const char led_lookup[16] = { 0x3, 0xb7, 0xd, 0x25, 0xb1, 0x61, 0x41, 0x37, 0x1, 0x21, 0x5, 0xc1, 0xcd, 0x85, 0x9, 0x59 };
 
 /* Global variables to hold LED data (for multiplexing purposes) */
 unsigned char led_e=0xff, led_10, led_1, led_01;
-
 int temperature=0;
-
-/* Declare functions used from Page 1 */
-extern unsigned char button_menu_fsm();
 
 /* Functions.
  * Note: Functions used from other page cannot be static, but functions
@@ -216,67 +197,9 @@ void value_to_led(int value, unsigned char decimal) {
 	led_01 = led_lookup[value];
 }
 
-// Define shortcuts to display LED data. Makes code a bit clearer.
-#define int_to_led(v)			value_to_led(v, 0);
-#define temperature_to_led(v)	value_to_led(v, 1);
 
-/* Read AD, linearize result and convert to temperature.
- * arguments: none
- * returns: nothing
- */
-static void read_temperature(){
-
-	if (!ADGO) { // This check should never fail!
-		unsigned int adresult = (ADRESH << 8) | ADRESL;
-		unsigned char i;
-
-		// Start new conversion
-		ADGO = 1;
-
-		// Alarm on sensor error (AD result out of range)
-		if(adresult >= 992 || adresult < 32){
-			RA0 = 1;
-			// TODO Probably should return 'magic' error value here
-		} else {
-			RA0 = 0;
-		}
-
-		// Interpolate between lookup table points
-		for (i = 0; i < 32; i++) {
-			if((adresult & 0x1f) <= i){
-				temperature += ad_lookup[((adresult >> 5) & 0x1f)];
-			} else {
-				temperature += ad_lookup[((adresult >> 5) & 0x1f) + 1];
-			}
-		}
-		// Divide by 32 and add temperature correction
-		temperature = (temperature >> 5) + eeprom_read_config(EEADR_TEMP_CORRECTION);
-	}
-}
-
-/* Thermostat
- * Handles profile and outputs based on temperature.
- * Called every 60ms.
- * arguments: current temperature
- * returns: nothing
- */
-static void temperature_control(unsigned char state){
-	static unsigned int cooling_delay = 300;	 // Initial cooling delay
-	static unsigned char heating_delay = 180; // Just to spare the relay a bit
-	static unsigned int millisx60=0;
+static void update_profile(){
 	unsigned char mode;
-	int setpoint;
-
-	// Only run every 16th time called, that is 16x60ms = 960ms
-	// Close enough to 1s for our purposes.
-	if(++millisx60 & 0xf){
-		return;
-	}
-
-	// Show temperature if menu is idle
-	if(state==0){
-		temperature_to_led(temperature);
-	}
 
 	mode = eeprom_read_config(EEADR_RUN_MODE);
 
@@ -284,50 +207,32 @@ static void temperature_control(unsigned char state){
 		unsigned char eestep;
 		unsigned int eehours;
 
-		// Indicate profile mode
-		led_e = led_e & ~(1<<6);
-
 		// Load step and duration
 		eestep = eeprom_read_config(EEADR_CURRENT_STEP);
-		eestep = eestep > 8 ? 8 : eestep;
+		eestep = eestep > 8 ? 8 : eestep;	// sanity check
 		eehours = eeprom_read_config(EEADR_CURRENT_STEP_DURATION);
 
-		// Has it has struck the hour? If so update profile data
-		if (millisx60 >= 60000) {
-			millisx60 = 0;
-			eehours++;
-			if (eehours >= eeprom_read_config(EEADR_PROFILE_DURATION(mode, eestep))) {
-				eestep++;
-				eehours = 0;
+		eehours++;  // TODO Maybe increment conditionally to be able to call this function outside of on one hour marks?
+		if (eehours >= eeprom_read_config(EEADR_PROFILE_DURATION(mode, eestep))) {
+			eestep++;
+			eehours = 0;
 				// Is this the last step? Update settings and switch to thermostat mode.
-				if (eestep == 9	|| eeprom_read_config(EEADR_PROFILE_DURATION(mode, eestep)) == 0) {
-					eeprom_write_config(EEADR_SETPOINT,	eeprom_read_config(EEADR_PROFILE_SETPOINT(mode, eestep)));
-					eeprom_write_config(EEADR_RUN_MODE, 6);
-					return; // Fastest way out...
-				}
-				eeprom_write_config(EEADR_CURRENT_STEP, eestep);
-#ifndef PROFILE_RAMPING
-				eeprom_write_config(EEADR_SETPOINT, eeprom_read_config(EEADR_PROFILE_SETPOINT(mode, eestep)));
+			if (eestep == 9	|| eeprom_read_config(EEADR_PROFILE_DURATION(mode, eestep)) == 0) {
+				eeprom_write_config(EEADR_SETPOINT,	eeprom_read_config(EEADR_PROFILE_SETPOINT(mode, eestep)));
+				eeprom_write_config(EEADR_RUN_MODE, 6);
+				return; // Fastest way out...
 			}
-#else
-			}
-			{
-				unsigned int eedur = eeprom_read_config(EEADR_PROFILE_DURATION(mode, eestep));
-				int sp1 = eeprom_read_config(EEADR_PROFILE_SETPOINT(mode, eestep));
-				int sp2 = eeprom_read_config(EEADR_PROFILE_SETPOINT(mode, eestep + 1));
-				unsigned int t = (eedur - eehours);
-				int sp = ((long) sp1 * t + (long) sp2 * eehours) / eedur;
-
-				eeprom_write_config(EEADR_SETPOINT, sp);
-			}
-#endif
-			eeprom_write_config(EEADR_CURRENT_STEP_DURATION, eehours);
+			eeprom_write_config(EEADR_CURRENT_STEP, eestep);
+			eeprom_write_config(EEADR_SETPOINT, eeprom_read_config(EEADR_PROFILE_SETPOINT(mode, eestep)));
 		}
-	} else {
-		led_e = led_e | (1<<6);
-		// Reset counter if switch to profile mode is made
-		millisx60 = 0;
+		eeprom_write_config(EEADR_CURRENT_STEP_DURATION, eehours);
 	}
+}
+
+static void temperature_control(){
+	static unsigned int cooling_delay = 300;  // Initial cooling delay (secs)
+	static unsigned char heating_delay = 180; // Initial heating delay (secs)
+	int setpoint;
 
 	setpoint = eeprom_read_config(EEADR_SETPOINT);
 
@@ -471,6 +376,7 @@ static void interrupt_service_routine(void) __interrupt 0 {
  * Main entry point.
  */
 void main(void) __naked {
+	unsigned int millisx60=0;
 
 	init();
 
@@ -480,10 +386,73 @@ void main(void) __naked {
 
 		if(TMR4IF){
 
+			// Read and accumulate AD value, note at this point temperature variable is not temp, but AD acc
+			temperature += (ADRESH << 8) | ADRESL;
 
-			// Temperature control
-			read_temperature();
-			temperature_control(button_menu_fsm());
+			// Start new conversion
+			ADGO = 1;
+
+			// Handle button press and menu
+			button_menu_fsm();
+
+			// Only run every 16th time called, that is 16x60ms = 960ms
+			// Close enough to 1s for our purposes.
+			if((++millisx60 & 0xf) == 0){
+
+				temperature >>= 4; // Divide by 16 to get back to a regular AD value
+
+#ifdef WHY_WONT_THIS_WORK
+				// Alarm on sensor error (AD result out of range)
+				if(temperature >= 992 || temperature < 32){
+					RA0 = 1;
+				} else {
+					RA0 = 0;
+				}
+#endif
+				// Interpolate between lookup table points
+				{
+					unsigned char i;
+					unsigned temp_t = 0;
+					for (i = 0; i < 32; i++) {
+						if((temperature & 0x1f) <= i){
+							temp_t += ad_lookup[((temperature >> 5) & 0x1f)];
+						} else {
+							temp_t += ad_lookup[((temperature >> 5) & 0x1f) + 1];
+						}
+					}
+
+					// Divide by 32 and add temperature correction, now temperature actually is temperature (x10)
+					temperature = (temp_t >> 5) + eeprom_read_config(EEADR_TEMP_CORRECTION);
+				}
+
+				// Update running profile every hour (if there is one)
+				// and handle reset of millis x60 counter
+				if(((unsigned char)eeprom_read_config(EEADR_RUN_MODE)) < 6){
+					// Indicate profile mode
+					led_e = led_e & ~(1<<6);
+					// Update profile every hour
+					if(millisx60 == 60000){
+						update_profile();
+						millisx60 = 0;
+					}
+				} else {
+					led_e = led_e | (1<<6);
+					millisx60 = 0;
+				}
+
+				// Run thermostat
+				temperature_control();
+
+				// Show temperature if menu is idle
+				if(TMR1GE){
+					temperature_to_led(temperature);
+				}
+
+				// Reset temperature for A/D acc
+				temperature = 0;
+
+			} // End 1 sec section
+
 
 			// Reset timer flag
 			TMR4IF = 0;
