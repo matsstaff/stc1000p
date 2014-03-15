@@ -39,8 +39,6 @@
 /* Defines for EEPROM config addresses */
 #define EEADR_PROFILE_SETPOINT(profile, step)	(profile*19 + step*2)
 #define EEADR_PROFILE_DURATION(profile, step)	(profile*19 + step*2 + 1)
-//#define EEADR_PROFILE_SETPOINT(profile, step)	(((profile)<<4) + ((profile)<<1) + (profile) + ((step)<<1))
-//#define EEADR_PROFILE_DURATION(profile, step)	(((profile)<<4) + ((profile)<<1) + (profile) + ((step)<<1))
 #define EEADR_HYSTERESIS						114
 #define EEADR_TEMP_CORRECTION					115
 #define EEADR_SETPOINT							116
@@ -62,6 +60,5 @@ extern void value_to_led(int value, unsigned char decimal);
 
 /* Declare functions and variables from Page 1 */
 extern void button_menu_fsm();
-extern unsigned char state;
 
 #endif // __STC1000P_H__

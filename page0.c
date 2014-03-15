@@ -401,13 +401,14 @@ void main(void) __naked {
 
 				temperature >>= 4; // Divide by 16 to get back to a regular AD value
 
+#ifdef WHY_WONT_THIS_WORK
 				// Alarm on sensor error (AD result out of range)
 				if(temperature >= 992 || temperature < 32){
 					RA0 = 1;
 				} else {
 					RA0 = 0;
 				}
-
+#endif
 				// Interpolate between lookup table points
 				{
 					unsigned char i;
@@ -443,7 +444,7 @@ void main(void) __naked {
 				temperature_control();
 
 				// Show temperature if menu is idle
-				if(state==0){
+				if(TMR1GE){
 					temperature_to_led(temperature);
 				}
 

@@ -38,9 +38,6 @@
 /* Help to convert menu item number and config item number to an EEPROM config address */
 #define ITEM_TO_ADDRESS(mi, ci)	((mi)*19 + (ci))
 
-/* Button/menu FSM state */
-unsigned char state=state_idle;
-
 /* States for the menu FSM */
 enum menu_states {
 	state_idle = 0,
@@ -104,6 +101,7 @@ static int check_config_value(int config_value, unsigned char config_address){
  * returns: nothing
  */
 void button_menu_fsm(){
+	static unsigned char state=state_idle;
 	static unsigned char menu_item=0, config_item=0, countdown=0;
 	static int config_value;
 	static unsigned char _buttons = 0;
@@ -331,4 +329,10 @@ void button_menu_fsm(){
 	default:
 		state=state_idle;
 	}
+
+	/* This is last resort...
+	 * Start using unused registers for general purpose
+	 * Use TMR1GE to flag if display should show temperatuer or not */
+	TMR1GE = (state == 0);
+
 }
