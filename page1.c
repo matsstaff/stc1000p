@@ -31,9 +31,9 @@
 #define BTN_DOWN		0x11
 
 #define BTN_IDLE(btn)		((_buttons & (btn)) == 0x00)
-#define BTN_PRESSED(btn)	((_buttons & (btn)) == ((btn) & 0xf0))
+#define BTN_PRESSED(btn)	((_buttons & (btn)) == ((btn) & 0x0f))
 #define BTN_HELD(btn)		((_buttons & (btn)) == (btn))
-#define BTN_RELEASED(btn)	((_buttons & (btn)) == ((btn) & 0x0f))
+#define BTN_RELEASED(btn)	((_buttons & (btn)) == ((btn) & 0xf0))
 
 /* Help to convert menu item number and config item number to an EEPROM config address */
 #define ITEM_TO_ADDRESS(mi, ci)	((mi)*19 + (ci))
@@ -43,7 +43,9 @@ enum menu_states {
 	state_idle = 0,
 	state_power_down_wait,
 	state_power_down_pre_off,
-	state_power_down,
+//	state_power_down,
+
+	state_show_sp,
 
 	state_show_menu_item,
 	state_set_menu_item,
@@ -135,24 +137,30 @@ void button_menu_fsm(){
 
 	switch(state){
 	case state_idle:
-		if(BTN_HELD(BTN_PWR)){
+		if(BTN_PRESSED(BTN_PWR)){
 			countdown = 100; // 5 sec
 			state = state_power_down_wait;
+		} else if(BTN_PRESSED(BTN_UP)){
+			state = state_show_sp;
 		} else if(BTN_RELEASED(BTN_S)){
 			state = state_show_menu_item;
 		}
 		break;
 
 	case state_power_down_wait:
-		if(countdown==0 && BTN_RELEASED(BTN_PWR)){
-			state = state_power_down;
+		if(countdown==0){
+			eeprom_write_config(EEADR_POWER_ON, !eeprom_read_config(EEADR_POWER_ON));
+			state = state_idle;
 		} else if(!BTN_HELD(BTN_PWR)){
 			state = state_idle;
 		}
 		break;
-	case state_power_down:
-		// TODO Sleep until pwr btn pressed again
-		state=state_idle;
+
+	case state_show_sp:
+		temperature_to_led(eeprom_read_config(EEADR_SETPOINT));
+		if(!BTN_HELD(BTN_UP)){
+			state=state_idle;
+		}
 		break;
 
 	case state_show_menu_item:
@@ -332,7 +340,7 @@ void button_menu_fsm(){
 
 	/* This is last resort...
 	 * Start using unused registers for general purpose
-	 * Use TMR1GE to flag if display should show temperatuer or not */
-	TMR1GE = (state == 0);
+	 * Use TMR1GE to flag if display should show temperature or not */
+	TMR1GE = (state==0);
 
 }

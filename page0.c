@@ -399,58 +399,65 @@ void main(void) __naked {
 			// Close enough to 1s for our purposes.
 			if((++millisx60 & 0xf) == 0){
 
-				temperature >>= 4; // Divide by 16 to get back to a regular AD value
+				if(eeprom_read_config(EEADR_POWER_ON)){ // Bypass regulation if power is 'off'
+
+					temperature >>= 4; // Divide by 16 to get back to a regular AD value
 
 #ifdef WHY_WONT_THIS_WORK
-				// Alarm on sensor error (AD result out of range)
-				if(temperature >= 992 || temperature < 32){
-					RA0 = 1;
-				} else {
-					RA0 = 0;
-				}
+					// Alarm on sensor error (AD result out of range)
+					if(temperature >= 992 || temperature < 32){
+						RA0 = 1;
+					} else {
+						RA0 = 0;
+					}
 #endif
-				// Interpolate between lookup table points
-				{
-					unsigned char i;
-					unsigned temp_t = 0;
-					for (i = 0; i < 32; i++) {
-						if((temperature & 0x1f) <= i){
-							temp_t += ad_lookup[((temperature >> 5) & 0x1f)];
-						} else {
-							temp_t += ad_lookup[((temperature >> 5) & 0x1f) + 1];
+					// Interpolate between lookup table points
+					{
+						unsigned char i;
+						unsigned temp_t = 0;
+						for (i = 0; i < 32; i++) {
+							if((temperature & 0x1f) <= i){
+								temp_t += ad_lookup[((temperature >> 5) & 0x1f)];
+							} else {
+								temp_t += ad_lookup[((temperature >> 5) & 0x1f) + 1];
+							}
 						}
+
+						// Divide by 32 and add temperature correction, now temperature actually is temperature (x10)
+						temperature = (temp_t >> 5) + eeprom_read_config(EEADR_TEMP_CORRECTION);
 					}
 
-					// Divide by 32 and add temperature correction, now temperature actually is temperature (x10)
-					temperature = (temp_t >> 5) + eeprom_read_config(EEADR_TEMP_CORRECTION);
-				}
-
-				// Update running profile every hour (if there is one)
-				// and handle reset of millis x60 counter
-				if(((unsigned char)eeprom_read_config(EEADR_RUN_MODE)) < 6){
-					// Indicate profile mode
-					led_e = led_e & ~(1<<6);
-					// Update profile every hour
-					if(millisx60 == 60000){
-						update_profile();
+					// Update running profile every hour (if there is one)
+					// and handle reset of millis x60 counter
+					if(((unsigned char)eeprom_read_config(EEADR_RUN_MODE)) < 6){
+						// Indicate profile mode
+						led_e = led_e & ~(1<<6);
+						// Update profile every hour
+						if(millisx60 == 60000){
+							update_profile();
+							millisx60 = 0;
+						}
+					} else {
+						led_e = led_e | (1<<6);
 						millisx60 = 0;
 					}
-				} else {
-					led_e = led_e | (1<<6);
-					millisx60 = 0;
+
+					// Run thermostat
+					temperature_control();
+
+					// Show temperature if menu is idle
+					if(TMR1GE){
+						temperature_to_led(temperature);
+					}
+
+					// Reset temperature for A/D acc
+					temperature = 0;
+
+				} else { // Power is 'off', disable outputs
+					led_e=led_10=led_1=led_01=0xff;
+					RA4 = 0;
+					RA5 = 0;
 				}
-
-				// Run thermostat
-				temperature_control();
-
-				// Show temperature if menu is idle
-				if(TMR1GE){
-					temperature_to_led(temperature);
-				}
-
-				// Reset temperature for A/D acc
-				temperature = 0;
-
 			} // End 1 sec section
 
 
