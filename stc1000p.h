@@ -47,7 +47,7 @@
 #define EEADR_COOLING_DELAY						119
 #define EEADR_HEATING_DELAY						120
 #define EEADR_RUN_MODE							121
-#define EEADR_POWER_ON							127
+#define EEADR_POWER_OFF							127
 
 /* Declare functions and variables from Page 0 */
 extern unsigned char led_e, led_10, led_1, led_01;

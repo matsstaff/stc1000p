@@ -135,10 +135,15 @@ void loop() {
       upload_hex_from_progmem(hex_celsius);
       break;
     case 'd':
-      if(verify_PIC16F1828_device()){
-      	Serial.println("STC-1000 detected.");
-      } else {
-      	Serial.println("STC-1000 NOT detected. Check wiring.");
+      {
+		unsigned int deviceid = get_device_id();
+		Serial.print("Device ID is: 0x");
+		Serial.println(deviceid, HEX);
+	    if((deviceid & 0x3FE0) == 0x27C0){
+	    	Serial.println("STC-1000 detected.");
+	    } else {
+	      	Serial.println("STC-1000 NOT detected. Check wiring.");
+	    }
       }
       break;
     case 'f':
@@ -616,7 +621,7 @@ void bulk_erase_device(){
 //  bulk_erase_data_memory();
 }
 
-boolean verify_PIC16F1828_device(){
+unsigned int get_device_id(){
   unsigned char i;
   unsigned int deviceid;
   
@@ -630,7 +635,7 @@ boolean verify_PIC16F1828_device(){
   
   p_exit();
   
-  return ((deviceid & 0x3FE0) == 0x27C0);
+  return deviceid;
   
 }
 

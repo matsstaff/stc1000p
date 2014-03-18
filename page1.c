@@ -149,7 +149,7 @@ void button_menu_fsm(){
 
 	case state_power_down_wait:
 		if(countdown==0){
-			eeprom_write_config(EEADR_POWER_ON, !eeprom_read_config(EEADR_POWER_ON));
+			eeprom_write_config(EEADR_POWER_OFF, !eeprom_read_config(EEADR_POWER_OFF));
 			state = state_idle;
 		} else if(!BTN_HELD(BTN_PWR)){
 			state = state_idle;
