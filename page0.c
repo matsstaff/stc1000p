@@ -74,7 +74,8 @@ const int ad_lookup[32] = { 0, -470, -357, -273, -206, -152, -104, -61, -22, 16,
 unsigned const char led_lookup[16] = { 0x3, 0xb7, 0xd, 0x25, 0xb1, 0x61, 0x41, 0x37, 0x1, 0x21, 0x5, 0xc1, 0xcd, 0x85, 0x9, 0x59 };
 
 /* Global variables to hold LED data (for multiplexing purposes) */
-unsigned char led_e=0xff, led_10, led_1, led_01;
+_led_e_bits led_e = {0xff};
+unsigned char led_10, led_1, led_01;
 int temperature=0;
 
 /* Functions.
@@ -165,15 +166,15 @@ void value_to_led(int value, unsigned char decimal) {
 
 	// Handle negative values
 	if (value < 0) {
-		led_e = led_e & ~(1 << 4);
+		led_e.e_negative = 0;
 		value = -value;
 	} else {
-		led_e = led_e | (1 << 4);
+		led_e.e_negative = 1;
 	}
 
 	// If temperature > 100 we must lose decimal...
 	if (value >= 1000) {
-		value = value / 10;
+		value = ((unsigned int) value) / 10;
 		decimal = 0;
 	}
 
@@ -236,20 +237,20 @@ static void temperature_control(){
 
 	setpoint = eeprom_read_config(EEADR_SETPOINT);
 
-	cooling_delay = (cooling_delay > 0) ? (cooling_delay - 1) : 0;
-	heating_delay = (heating_delay > 0) ? (heating_delay - 1) : 0;
+	cooling_delay -= (cooling_delay > 0) ? 1 : 0;
+	heating_delay -= (heating_delay > 0) ? 1 : 0;
+
+	// Set LED outputs
+	led_e.e_cool = !LATA4;
+	led_e.e_heat = !LATA5;
 
 	// This is the thermostat logic
 	if (LATA4) {
-		led_e = led_e & ~(1<<7);
-		led_e = led_e | (1<<3);
 		if (temperature <= setpoint) {
 			cooling_delay = eeprom_read_config(EEADR_COOLING_DELAY) * 60;
 			RA4 = 0;
 		}
 	} else if(LATA5) {
-		led_e = led_e & ~(1<<3);
-		led_e = led_e | (1<<7);
 		if (temperature >= setpoint) {
 			heating_delay  = eeprom_read_config(EEADR_HEATING_DELAY) * 60;
 			RA5 = 0;
@@ -258,20 +259,16 @@ static void temperature_control(){
 		int hysteresis = eeprom_read_config(EEADR_HYSTERESIS);
 		if (temperature > setpoint + hysteresis) {
 			if (cooling_delay) {
-				led_e = led_e ^ (1<<7); // Flash to indicate cooling delay
-				led_e = led_e | (1<<3);
+				led_e.e_cool = led_e.e_cool ^ (cooling_delay & 0x1); // Flash to indicate cooling delay
 			} else {
 				RA4 = 1;
 			}
 		} else if (temperature < setpoint - hysteresis) {
 			if (heating_delay) {
-				led_e = led_e ^ (1<<3); // Flash to indicate heating delay
-				led_e = led_e | (1<<7);
+				led_e.e_heat = led_e.e_heat ^ (heating_delay & 0x1); // Flash to indicate heating delay
 			} else {
 				RA5 = 1;
 			}
-		} else {
-			led_e = led_e | (1<<7) | (1<<3);
 		}
 	}
 }
@@ -360,7 +357,7 @@ static void interrupt_service_routine(void) __interrupt 0 {
 			PORTC = led_01;
 			break;
 			case 0x80:
-			PORTC = led_e;
+			PORTC = led_e.led_e;
 			break;
 		}
 
@@ -399,48 +396,46 @@ void main(void) __naked {
 			// Close enough to 1s for our purposes.
 			if((++millisx60 & 0xf) == 0){
 
-				if(eeprom_read_config(EEADR_POWER_ON)){ // Bypass regulation if power is 'off'
-
-					temperature >>= 4; // Divide by 16 to get back to a regular AD value
+				temperature >>= 4; // Divide by 16 to get back to a regular AD value
 
 #ifdef WHY_WONT_THIS_WORK
-					// Alarm on sensor error (AD result out of range)
-					if(temperature >= 992 || temperature < 32){
-						RA0 = 1;
-					} else {
-						RA0 = 0;
-					}
+				// Alarm on sensor error (AD result out of range)
+				RA0 = (temperature >= 992 || temperature < 32);
 #endif
-					// Interpolate between lookup table points
-					{
-						unsigned char i;
-						unsigned temp_t = 0;
-						for (i = 0; i < 32; i++) {
-							if((temperature & 0x1f) <= i){
-								temp_t += ad_lookup[((temperature >> 5) & 0x1f)];
-							} else {
-								temp_t += ad_lookup[((temperature >> 5) & 0x1f) + 1];
-							}
+				// Interpolate between lookup table points
+				{
+					unsigned char i;
+					unsigned temp = 0;
+					for (i = 0; i < 32; i++) {
+						if((temperature & 0x1f) <= i){
+							temp += ad_lookup[((temperature >> 5) & 0x1f)];
+						} else {
+							temp += ad_lookup[((temperature >> 5) & 0x1f) + 1];
 						}
-
-						// Divide by 32 and add temperature correction, now temperature actually is temperature (x10)
-						temperature = (temp_t >> 5) + eeprom_read_config(EEADR_TEMP_CORRECTION);
 					}
+
+					// Divide by 32 and add temperature correction, now temperature actually is temperature (x10)
+					temperature = (temp >> 5) + eeprom_read_config(EEADR_TEMP_CORRECTION);
+				}
+
+				if(eeprom_read_config(EEADR_POWER_ON) || LATA0){ // Bypass regulation if power is 'off' or alarm
 
 					// Update running profile every hour (if there is one)
 					// and handle reset of millis x60 counter
 					if(((unsigned char)eeprom_read_config(EEADR_RUN_MODE)) < 6){
 						// Indicate profile mode
-						led_e = led_e & ~(1<<6);
+						led_e.e_set = 0;
 						// Update profile every hour
 						if(millisx60 == 60000){
 							update_profile();
 							millisx60 = 0;
 						}
 					} else {
-						led_e = led_e | (1<<6);
+						led_e.e_set = 1;
 						millisx60 = 0;
 					}
+
+//					ClrWdt();
 
 					// Run thermostat
 					temperature_control();
@@ -450,14 +445,15 @@ void main(void) __naked {
 						temperature_to_led(temperature);
 					}
 
-					// Reset temperature for A/D acc
-					temperature = 0;
-
-				} else { // Power is 'off', disable outputs
-					led_e=led_10=led_1=led_01=0xff;
+				} else { // Power is 'off' or alarm, disable outputs
+					led_e.led_e = led_10 = led_1 = led_01 = 0xff;
 					RA4 = 0;
 					RA5 = 0;
 				}
+
+				// Reset temperature for A/D acc
+				temperature = 0;
+
 			} // End 1 sec section
 
 

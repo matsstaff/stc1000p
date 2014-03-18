@@ -50,7 +50,26 @@
 #define EEADR_POWER_ON							127
 
 /* Declare functions and variables from Page 0 */
-extern unsigned char led_e, led_10, led_1, led_01;
+
+typedef union
+{
+	unsigned char led_e;
+
+	struct
+	  {
+	  unsigned                      : 1;
+	  unsigned e_point              : 1;
+	  unsigned e_c                  : 1;
+	  unsigned e_heat               : 1;
+	  unsigned e_negative           : 1;
+	  unsigned e_deg                : 1;
+	  unsigned e_set                : 1;
+	  unsigned e_cool               : 1;
+	  };
+} _led_e_bits;
+
+extern _led_e_bits led_e;
+extern unsigned char led_10, led_1, led_01;
 extern unsigned const char led_lookup[16];
 
 extern unsigned int eeprom_read_config(unsigned char eeprom_address);
