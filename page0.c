@@ -399,7 +399,7 @@ void main(void) __naked {
 			// Close enough to 1s for our purposes.
 			if((++millisx60 & 0xf) == 0){
 
-				if(eeprom_read_config(EEADR_POWER_OFF)){ // Bypass regulation if power is 'off'
+				if(eeprom_read_config(EEADR_POWER_ON)){ // Bypass regulation if power is 'off'
 
 					temperature >>= 4; // Divide by 16 to get back to a regular AD value
 
