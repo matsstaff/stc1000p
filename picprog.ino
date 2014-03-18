@@ -618,7 +618,7 @@ void row_erase_program_memory(){
 void bulk_erase_device(){
   load_configuration(0);
   bulk_erase_program_memory();
-//  bulk_erase_data_memory();
+  bulk_erase_data_memory();
 }
 
 unsigned int get_device_id(){
