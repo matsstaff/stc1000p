@@ -102,15 +102,21 @@ static int check_config_value(int config_value, unsigned char config_address){
 	}
 	return config_value;
 }
+
+/* Due to a fault in SDCC, static local variables are not initialized
+ * properly, so the variables below were moved from button_menu_fsm()
+ * and made global.
+ */
+static unsigned char state=state_idle;
+static unsigned char menu_item=0, config_item=0, countdown=0;
+static int config_value;
+static unsigned char _buttons = 0;
+
 /* This is the button input and menu handling function.
  * arguments: none
  * returns: nothing
  */
 void button_menu_fsm(){
-	static unsigned char state=state_idle;
-	static unsigned char menu_item=0, config_item=0, countdown=0;
-	static int config_value;
-	static unsigned char _buttons = 0;
 	unsigned char _trisc, _portb;
 
 	// Disable interrups while reading buttons

@@ -76,7 +76,8 @@ unsigned const char led_lookup[16] = { 0x3, 0xb7, 0xd, 0x25, 0xb1, 0x61, 0x41, 0
 /* Global variables to hold LED data (for multiplexing purposes) */
 _led_e_bits led_e = {0xff};
 unsigned char led_10, led_1, led_01;
-int temperature=0;
+
+static int temperature=0;
 
 /* Functions.
  * Note: Functions used from other page cannot be static, but functions
@@ -230,9 +231,13 @@ static void update_profile(){
 	}
 }
 
+/* Due to a fault in SDCC, static local variables are not initialized
+ * properly, so the variables below were moved from temperature_control()
+ * and made global.
+ */
+static unsigned int cooling_delay = 60;  // Initial cooling delay (secs)
+static unsigned char heating_delay = 60; // Initial heating delay (secs)
 static void temperature_control(){
-	static unsigned int cooling_delay = 300;  // Initial cooling delay (secs)
-	static unsigned char heating_delay = 180; // Initial heating delay (secs)
 	int setpoint;
 
 	setpoint = eeprom_read_config(EEADR_SETPOINT);
