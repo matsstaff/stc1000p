@@ -242,8 +242,12 @@ static void temperature_control(){
 
 	setpoint = eeprom_read_config(EEADR_SETPOINT);
 
-	cooling_delay -= (cooling_delay > 0) ? 1 : 0;
-	heating_delay -= (heating_delay > 0) ? 1 : 0;
+	if(cooling_delay){
+		cooling_delay--;
+	}
+	if(heating_delay){
+		heating_delay--;
+	}
 
 	// Set LED outputs
 	led_e.e_cool = !LATA4;
