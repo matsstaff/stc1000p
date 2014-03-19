@@ -217,7 +217,8 @@ void button_menu_fsm(){
 			led_10 = 0x19; // P
 			led_1 = 0xdd; // r
 			led_01 = led_lookup[menu_item];
-		} else if(menu_item == 6) {
+		} else /* if(menu_item == 6) */ {
+			menu_item = 6;
 			led_10 = 0x61; // S
 			led_1 = 0x9; // e
 			led_01 = 0xc9;  // t
@@ -229,7 +230,7 @@ void button_menu_fsm(){
 		if(countdown==0 || BTN_RELEASED(BTN_PWR)){
 			state=state_idle;
 		} else if(BTN_RELEASED(BTN_UP)){
-			menu_item = (menu_item == 6) ? 0 : menu_item+1;
+			menu_item = (menu_item >= 6) ? 0 : menu_item+1;
 			state = state_show_menu_item;
 		} else if(BTN_RELEASED(BTN_DOWN)){
 			menu_item = (menu_item == 0) ? 6 : menu_item-1;
@@ -250,7 +251,7 @@ void button_menu_fsm(){
 				led_1 = 0x19; // P
 			}
 			led_01 = led_lookup[config_item >> 1];
-		} else if(menu_item == 6){
+		} else /* if(menu_item == 6) */{
 			led_01 = 0xff;
 			switch(config_item){
 			case 0: // hysteresis
@@ -307,9 +308,9 @@ void button_menu_fsm(){
 			state = state_show_config_item;
 		} else if(BTN_RELEASED(BTN_DOWN)){
 			if(menu_item < 6){
-				config_item = (config_item <= 0) ? 18 : config_item-1;
+				config_item = (config_item == 0) ? 18 : config_item-1;
 			} else {
-				config_item = (config_item <= 0) ? 7 : config_item-1;
+				config_item = (config_item == 0) ? 7 : config_item-1;
 				if(config_item == 4 && (unsigned char)eeprom_read_config(EEADR_RUN_MODE) >= 6){
 					config_item = 2;
 				}
