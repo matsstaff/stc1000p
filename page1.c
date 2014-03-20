@@ -31,9 +31,9 @@
 #define BTN_DOWN		0x11
 
 #define BTN_IDLE(btn)		((_buttons & (btn)) == 0x00)
-#define BTN_PRESSED(btn)	((_buttons & (btn)) == ((btn) & 0xf0))
+#define BTN_PRESSED(btn)	((_buttons & (btn)) == ((btn) & 0x0f))
 #define BTN_HELD(btn)		((_buttons & (btn)) == (btn))
-#define BTN_RELEASED(btn)	((_buttons & (btn)) == ((btn) & 0x0f))
+#define BTN_RELEASED(btn)	((_buttons & (btn)) == ((btn) & 0xf0))
 
 /* Help to convert menu item number and config item number to an EEPROM config address */
 #define ITEM_TO_ADDRESS(mi, ci)	((mi)*19 + (ci))
@@ -43,7 +43,13 @@ enum menu_states {
 	state_idle = 0,
 	state_power_down_wait,
 	state_power_down_pre_off,
-	state_power_down,
+//	state_power_down,
+
+	state_show_sp,
+
+	state_show_profile,
+	state_show_profile_st,
+	state_show_profile_dh,
 
 	state_show_menu_item,
 	state_set_menu_item,
@@ -96,15 +102,21 @@ static int check_config_value(int config_value, unsigned char config_address){
 	}
 	return config_value;
 }
+
+/* Due to a fault in SDCC, static local variables are not initialized
+ * properly, so the variables below were moved from button_menu_fsm()
+ * and made global.
+ */
+static unsigned char state=state_idle;
+static unsigned char menu_item=0, config_item=0, countdown=0;
+static int config_value;
+static unsigned char _buttons = 0;
+
 /* This is the button input and menu handling function.
  * arguments: none
  * returns: nothing
  */
 void button_menu_fsm(){
-	static unsigned char state=state_idle;
-	static unsigned char menu_item=0, config_item=0, countdown=0;
-	static int config_value;
-	static unsigned char _buttons = 0;
 	unsigned char _trisc, _portb;
 
 	// Disable interrups while reading buttons
@@ -135,33 +147,84 @@ void button_menu_fsm(){
 
 	switch(state){
 	case state_idle:
-		if(BTN_HELD(BTN_PWR)){
+		if(BTN_PRESSED(BTN_PWR)){
 			countdown = 100; // 5 sec
 			state = state_power_down_wait;
+		} else if(BTN_PRESSED(BTN_UP)){
+			state = state_show_sp;
+		} else if(BTN_PRESSED(BTN_DOWN)){
+			countdown = 30; // 5 sec
+			state = state_show_profile;
 		} else if(BTN_RELEASED(BTN_S)){
 			state = state_show_menu_item;
 		}
 		break;
 
 	case state_power_down_wait:
-		if(countdown==0 && BTN_RELEASED(BTN_PWR)){
-			state = state_power_down;
+		if(countdown==0){
+			eeprom_write_config(EEADR_POWER_ON, !eeprom_read_config(EEADR_POWER_ON));
+			state = state_idle;
 		} else if(!BTN_HELD(BTN_PWR)){
 			state = state_idle;
 		}
 		break;
-	case state_power_down:
-		// TODO Sleep until pwr btn pressed again
-		state=state_idle;
+
+	case state_show_sp:
+		temperature_to_led(eeprom_read_config(EEADR_SETPOINT));
+		if(!BTN_HELD(BTN_UP)){
+			state=state_idle;
+		}
+		break;
+
+	case state_show_profile:
+		if((unsigned char)eeprom_read_config(EEADR_RUN_MODE)<6){
+			led_10 = 0x19; // P
+			led_1 = 0xdd; // r
+			led_01 = led_lookup[((unsigned char)eeprom_read_config(EEADR_RUN_MODE)) & 0xf];
+			if(countdown==0){
+				countdown=30;
+				state = state_show_profile_st;
+			}
+		} else {
+			led_10=0xc9; // t
+			led_1=0xd1;	// h
+			led_01 = 0xff;
+		}
+		if(!BTN_HELD(BTN_DOWN)){
+			state=state_idle;
+		}
+		break;
+
+	case state_show_profile_st:
+		int_to_led(eeprom_read_config(EEADR_CURRENT_STEP));
+		if(countdown==0){
+			countdown=30;
+			state = state_show_profile_dh;
+		}
+		if(!BTN_HELD(BTN_DOWN)){
+			state=state_idle;
+		}
+		break;
+
+	case state_show_profile_dh:
+		int_to_led(eeprom_read_config(EEADR_CURRENT_STEP_DURATION));
+		if(countdown==0){
+			countdown=30;
+			state = state_show_profile;
+		}
+		if(!BTN_HELD(BTN_DOWN)){
+			state=state_idle;
+		}
 		break;
 
 	case state_show_menu_item:
-		led_e |= (1<<4);
+		led_e.e_negative = 1;
 		if(menu_item < 6){
 			led_10 = 0x19; // P
 			led_1 = 0xdd; // r
 			led_01 = led_lookup[menu_item];
-		} else if(menu_item == 6) {
+		} else /* if(menu_item == 6) */ {
+			menu_item = 6;
 			led_10 = 0x61; // S
 			led_1 = 0x9; // e
 			led_01 = 0xc9;  // t
@@ -173,7 +236,7 @@ void button_menu_fsm(){
 		if(countdown==0 || BTN_RELEASED(BTN_PWR)){
 			state=state_idle;
 		} else if(BTN_RELEASED(BTN_UP)){
-			menu_item = (menu_item == 6) ? 0 : menu_item+1;
+			menu_item = (menu_item >= 6) ? 0 : menu_item+1;
 			state = state_show_menu_item;
 		} else if(BTN_RELEASED(BTN_DOWN)){
 			menu_item = (menu_item == 0) ? 6 : menu_item-1;
@@ -184,7 +247,7 @@ void button_menu_fsm(){
 		}
 		break;
 	case state_show_config_item:
-		led_e |= (1<<4);
+		led_e.e_negative = 1;
 		if(menu_item < 6){
 			if(config_item & 0x1) {
 				led_10 = 0x85; // d
@@ -194,7 +257,7 @@ void button_menu_fsm(){
 				led_1 = 0x19; // P
 			}
 			led_01 = led_lookup[config_item >> 1];
-		} else if(menu_item == 6){
+		} else /* if(menu_item == 6) */{
 			led_01 = 0xff;
 			switch(config_item){
 			case 0: // hysteresis
@@ -251,9 +314,9 @@ void button_menu_fsm(){
 			state = state_show_config_item;
 		} else if(BTN_RELEASED(BTN_DOWN)){
 			if(menu_item < 6){
-				config_item = (config_item <= 0) ? 18 : config_item-1;
+				config_item = (config_item == 0) ? 18 : config_item-1;
 			} else {
-				config_item = (config_item <= 0) ? 7 : config_item-1;
+				config_item = (config_item == 0) ? 7 : config_item-1;
 				if(config_item == 4 && (unsigned char)eeprom_read_config(EEADR_RUN_MODE) >= 6){
 					config_item = 2;
 				}
@@ -332,7 +395,7 @@ void button_menu_fsm(){
 
 	/* This is last resort...
 	 * Start using unused registers for general purpose
-	 * Use TMR1GE to flag if display should show temperatuer or not */
-	TMR1GE = (state == 0);
+	 * Use TMR1GE to flag if display should show temperature or not */
+	TMR1GE = (state==0);
 
 }
