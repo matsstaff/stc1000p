@@ -436,7 +436,7 @@ void main(void) __naked {
 					temperature = (temp >> 5) + eeprom_read_config(EEADR_TEMP_CORRECTION);
 				}
 
-				if(eeprom_read_config(EEADR_POWER_ON) || LATA0){ // Bypass regulation if power is 'off' or alarm
+				if(eeprom_read_config(EEADR_POWER_ON) && !LATA0){ // Bypass regulation if power is 'off' or alarm
 
 					// Update running profile every hour (if there is one)
 					// and handle reset of millis x60 counter
