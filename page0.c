@@ -340,6 +340,11 @@ static void init() {
 	// @4MHz, Timer 2 clock is FOSC/4 -> 1MHz prescale 1:16-> 62.5kHz, 250 and postscale 1:15 -> 16.66666 Hz or 60ms
 	PR4 = 250;
 
+	// Postscaler 1:15, Enable counter, prescaler 1:16
+	T6CON = 0b01110110;
+	// @4MHz, Timer 2 clock is FOSC/4 -> 1MHz prescale 1:16-> 62.5kHz, 250 and postscale 1:15 -> 16.66666 Hz or 60ms
+	PR6 = 250;
+
 	// Set PEIE (enable peripheral interrupts, that is for timer2) and GIE (enable global interrupts)
 	INTCON = 0b11000000;
 
@@ -399,6 +404,14 @@ void main(void) __naked {
 	//Loop forever
 	while (1) {
 
+		if(TMR6IF) {
+
+			// Handle button press and menu
+			button_menu_fsm();
+
+			// Reset timer flag
+			TMR6IF = 0;
+		}
 
 		if(TMR4IF){
 
@@ -407,9 +420,6 @@ void main(void) __naked {
 
 			// Start new conversion
 			ADGO = 1;
-
-			// Handle button press and menu
-			button_menu_fsm();
 
 			// Only run every 16th time called, that is 16x60ms = 960ms
 			// Close enough to 1s for our purposes.
@@ -462,7 +472,13 @@ void main(void) __naked {
 					}
 
 				} else { // Power is 'off' or alarm, disable outputs
-					led_e.led_e = led_10 = led_1 = led_01 = 0xff;
+					if(LATA0){
+						led_10 = 0x11; // A
+						led_1 = 0xcb; //L
+					} else {
+						led_10 = led_1 = 0xff;
+					}
+					led_e.led_e = led_01 = 0xff;
 					LATA4 = 0;
 					LATA5 = 0;
 				}
@@ -471,7 +487,6 @@ void main(void) __naked {
 				temperature = 0;
 
 			} // End 1 sec section
-
 
 			// Reset timer flag
 			TMR4IF = 0;
