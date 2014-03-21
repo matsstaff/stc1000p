@@ -368,14 +368,14 @@ void button_menu_fsm(){
 		} else if(BTN_RELEASED(BTN_UP) || BTN_HELD(BTN_UP)) {
 			config_value = ((config_value >= 1000) || (config_value < -1000)) ? (config_value + 10) : (config_value + 1);
 			config_value = check_config_value(config_value, ITEM_TO_ADDRESS(menu_item, config_item));
-			if(PR6 > 28){
+			if(PR6 > 34){
 				PR6-=4;
 			}
 			state = state_show_config_value;
 		} else if(BTN_RELEASED(BTN_DOWN) || BTN_HELD(BTN_DOWN)) {
 			config_value = ((config_value > 1000) || (config_value <= -1000)) ? (config_value - 10) : (config_value - 1);
 			config_value = check_config_value(config_value, ITEM_TO_ADDRESS(menu_item, config_item));
-			if(PR6 > 28){
+			if(PR6 > 34){
 				PR6-=4;
 			}
 			state = state_show_config_value;
