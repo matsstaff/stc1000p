@@ -173,6 +173,16 @@ void value_to_led(int value, unsigned char decimal) {
 		led_e.e_negative = 1;
 	}
 
+	// This assumes that only temperatures and all temperatures are decimal
+	if(decimal){
+		led_e.e_deg = 0;
+#ifdef FAHRENHEIT
+		led_e.e_c = 1;
+#else
+		led_e.e_c = 0;
+#endif // FAHRENHEIT
+	}
+
 	// If temperature > 100 we must lose decimal...
 	if (value >= 1000) {
 		value = ((unsigned int) value) / 10;
@@ -257,12 +267,12 @@ static void temperature_control(){
 	if (LATA4) {
 		if (temperature <= setpoint) {
 			cooling_delay = eeprom_read_config(EEADR_COOLING_DELAY) * 60;
-			RA4 = 0;
+			LATA4 = 0;
 		}
 	} else if(LATA5) {
 		if (temperature >= setpoint) {
 			heating_delay  = eeprom_read_config(EEADR_HEATING_DELAY) * 60;
-			RA5 = 0;
+			LATA5 = 0;
 		}
 	} else {
 		int hysteresis = eeprom_read_config(EEADR_HYSTERESIS);
@@ -270,13 +280,13 @@ static void temperature_control(){
 			if (cooling_delay) {
 				led_e.e_cool = led_e.e_cool ^ (cooling_delay & 0x1); // Flash to indicate cooling delay
 			} else {
-				RA4 = 1;
+				LATA4 = 1;
 			}
 		} else if (temperature < setpoint - hysteresis) {
 			if (heating_delay) {
 				led_e.e_heat = led_e.e_heat ^ (heating_delay & 0x1); // Flash to indicate heating delay
 			} else {
-				RA5 = 1;
+				LATA5 = 1;
 			}
 		}
 	}
@@ -293,11 +303,11 @@ static void init() {
 
 	// Heat, cool as output, Thermistor as input, piezo output
 	TRISA = 0b00001110;
-	PORTA = 0; // Drive relays and piezo low
+	LATA = 0; // Drive relays and piezo low
 
 	// LED Common anodes
 	TRISB = 0;
-	PORTB = 0;
+	LATB = 0;
 
 	// LED data (and buttons) output
 	TRISC = 0;
@@ -330,6 +340,11 @@ static void init() {
 	// @4MHz, Timer 2 clock is FOSC/4 -> 1MHz prescale 1:16-> 62.5kHz, 250 and postscale 1:15 -> 16.66666 Hz or 60ms
 	PR4 = 250;
 
+	// Postscaler 1:15, Enable counter, prescaler 1:16
+	T6CON = 0b01110110;
+	// @4MHz, Timer 2 clock is FOSC/4 -> 1MHz prescale 1:16-> 62.5kHz, 250 and postscale 1:15 -> 16.66666 Hz or 60ms
+	PR6 = 250;
+
 	// Set PEIE (enable peripheral interrupts, that is for timer2) and GIE (enable global interrupts)
 	INTCON = 0b11000000;
 
@@ -345,33 +360,33 @@ static void interrupt_service_routine(void) __interrupt 0 {
 	// Kind of excessive when it's the only enabled interrupt
 	// but is nice as reference if more interrupts should be needed
 	if (TMR2IF) {
-		unsigned char _portb = (LATB << 1);
+		unsigned char latb = (LATB << 1);
 
-		if(_portb == 0){
-			_portb = 0x10;
+		if(latb == 0){
+			latb = 0x10;
 		}
 
 		TRISC = 0; // Ensure LED data pins are outputs
-		PORTB = 0; // Disable LED's while switching
+		LATB = 0; // Disable LED's while switching
 
 		// Multiplex LED's every millisecond
-		switch(_portb) {
+		switch(latb) {
 			case 0x10:
-			PORTC = led_10;
+			LATC = led_10;
 			break;
 			case 0x20:
-			PORTC = led_1;
+			LATC = led_1;
 			break;
 			case 0x40:
-			PORTC = led_01;
+			LATC = led_01;
 			break;
 			case 0x80:
-			PORTC = led_e.led_e;
+			LATC = led_e.led_e;
 			break;
 		}
 
 		// Enable new LED
-		PORTB = _portb;
+		LATB = latb;
 
 		// Clear interrupt flag
 		TMR2IF = 0;
@@ -389,6 +404,14 @@ void main(void) __naked {
 	//Loop forever
 	while (1) {
 
+		if(TMR6IF) {
+
+			// Handle button press and menu
+			button_menu_fsm();
+
+			// Reset timer flag
+			TMR6IF = 0;
+		}
 
 		if(TMR4IF){
 
@@ -398,19 +421,15 @@ void main(void) __naked {
 			// Start new conversion
 			ADGO = 1;
 
-			// Handle button press and menu
-			button_menu_fsm();
-
 			// Only run every 16th time called, that is 16x60ms = 960ms
 			// Close enough to 1s for our purposes.
 			if((++millisx60 & 0xf) == 0){
 
 				temperature >>= 4; // Divide by 16 to get back to a regular AD value
 
-#ifdef WHY_WONT_THIS_WORK
 				// Alarm on sensor error (AD result out of range)
-				RA0 = (temperature >= 992 || temperature < 32);
-#endif
+				LATA0 = (temperature >= 992 || temperature < 32);
+
 				// Interpolate between lookup table points
 				{
 					unsigned char i;
@@ -427,7 +446,7 @@ void main(void) __naked {
 					temperature = (temp >> 5) + eeprom_read_config(EEADR_TEMP_CORRECTION);
 				}
 
-				if(eeprom_read_config(EEADR_POWER_ON) || LATA0){ // Bypass regulation if power is 'off' or alarm
+				if(eeprom_read_config(EEADR_POWER_ON) && !LATA0){ // Bypass regulation if power is 'off' or alarm
 
 					// Update running profile every hour (if there is one)
 					// and handle reset of millis x60 counter
@@ -444,8 +463,6 @@ void main(void) __naked {
 						millisx60 = 0;
 					}
 
-//					ClrWdt();
-
 					// Run thermostat
 					temperature_control();
 
@@ -455,16 +472,21 @@ void main(void) __naked {
 					}
 
 				} else { // Power is 'off' or alarm, disable outputs
-					led_e.led_e = led_10 = led_1 = led_01 = 0xff;
-					RA4 = 0;
-					RA5 = 0;
+					if(LATA0){
+						led_10 = 0x11; // A
+						led_1 = 0xcb; //L
+					} else {
+						led_10 = led_1 = 0xff;
+					}
+					led_e.led_e = led_01 = 0xff;
+					LATA4 = 0;
+					LATA5 = 0;
 				}
 
 				// Reset temperature for A/D acc
 				temperature = 0;
 
 			} // End 1 sec section
-
 
 			// Reset timer flag
 			TMR4IF = 0;

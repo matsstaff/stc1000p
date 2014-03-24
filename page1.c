@@ -117,16 +117,16 @@ static unsigned char _buttons = 0;
  * returns: nothing
  */
 void button_menu_fsm(){
-	unsigned char _trisc, _portb;
+	unsigned char trisc, latb;
 
 	// Disable interrups while reading buttons
 	GIE = 0;
 
 	// Save registers that interferes with LED's
-	_portb = PORTB;
-	_trisc = TRISC;
+	latb = LATB;
+	trisc = TRISC;
 
-	PORTB = 0b00000000; // Turn off LED's
+	LATB = 0b00000000; // Turn off LED's
 	TRISC = 0b11011000; // Enable input for buttons
 
 	_buttons = (_buttons << 1) | RC7; // pwr
@@ -135,8 +135,8 @@ void button_menu_fsm(){
 	_buttons = (_buttons << 1) | RC3; // down
 
 	// Restore registers
-	PORTB = _portb;
-	TRISC = _trisc;
+	LATB = latb;
+	TRISC = trisc;
 
 	// Reenable interrups
 	GIE = 1;
@@ -219,6 +219,8 @@ void button_menu_fsm(){
 
 	case state_show_menu_item:
 		led_e.e_negative = 1;
+		led_e.e_deg = 1;
+		led_e.e_c = 1;
 		if(menu_item < 6){
 			led_10 = 0x19; // P
 			led_1 = 0xdd; // r
@@ -248,6 +250,8 @@ void button_menu_fsm(){
 		break;
 	case state_show_config_item:
 		led_e.e_negative = 1;
+		led_e.e_deg = 1;
+		led_e.e_c = 1;
 		if(menu_item < 6){
 			if(config_item & 0x1) {
 				led_10 = 0x85; // d
@@ -364,10 +368,16 @@ void button_menu_fsm(){
 		} else if(BTN_RELEASED(BTN_UP) || BTN_HELD(BTN_UP)) {
 			config_value = ((config_value >= 1000) || (config_value < -1000)) ? (config_value + 10) : (config_value + 1);
 			config_value = check_config_value(config_value, ITEM_TO_ADDRESS(menu_item, config_item));
+			if(PR6 > 34){
+				PR6-=4;
+			}
 			state = state_show_config_value;
 		} else if(BTN_RELEASED(BTN_DOWN) || BTN_HELD(BTN_DOWN)) {
 			config_value = ((config_value > 1000) || (config_value <= -1000)) ? (config_value - 10) : (config_value - 1);
 			config_value = check_config_value(config_value, ITEM_TO_ADDRESS(menu_item, config_item));
+			if(PR6 > 34){
+				PR6-=4;
+			}
 			state = state_show_config_value;
 		} else if(BTN_RELEASED(BTN_S)){
 			if(menu_item == 6){
@@ -387,6 +397,8 @@ void button_menu_fsm(){
 			}
 			eeprom_write_config(ITEM_TO_ADDRESS(menu_item, config_item), config_value);
 			state=state_show_config_item;
+		} else {
+			PR6 = 250;
 		}
 		break;
 	default:
