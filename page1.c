@@ -150,13 +150,15 @@ void button_menu_fsm(){
 		if(BTN_PRESSED(BTN_PWR)){
 			countdown = 50; // 3 sec
 			state = state_power_down_wait;
-		} else if(BTN_PRESSED(BTN_UP)){
-			state = state_show_sp;
-		} else if(BTN_PRESSED(BTN_DOWN)){
-			countdown = 25; // 1,5 sec
-			state = state_show_profile;
-		} else if(BTN_RELEASED(BTN_S)){
-			state = state_show_menu_item;
+		} else if(eeprom_read_config(EEADR_POWER_ON)){
+			if (BTN_PRESSED(BTN_UP)) {
+				state = state_show_sp;
+			} else if (BTN_PRESSED(BTN_DOWN)) {
+				countdown = 25; // 1.5 sec
+				state = state_show_profile;
+			} else if (BTN_RELEASED(BTN_S)) {
+				state = state_show_menu_item;
+			}
 		}
 		break;
 
@@ -177,6 +179,8 @@ void button_menu_fsm(){
 		break;
 
 	case state_show_profile:
+		led_e.e_deg = 1;
+		led_e.e_c = 1;
 		if((unsigned char)eeprom_read_config(EEADR_RUN_MODE)<6){
 			led_10 = 0x19; // P
 			led_1 = 0xdd; // r
