@@ -148,12 +148,12 @@ void button_menu_fsm(){
 	switch(state){
 	case state_idle:
 		if(BTN_PRESSED(BTN_PWR)){
-			countdown = 100; // 5 sec
+			countdown = 50; // 3 sec
 			state = state_power_down_wait;
 		} else if(BTN_PRESSED(BTN_UP)){
 			state = state_show_sp;
 		} else if(BTN_PRESSED(BTN_DOWN)){
-			countdown = 30; // 5 sec
+			countdown = 25; // 1,5 sec
 			state = state_show_profile;
 		} else if(BTN_RELEASED(BTN_S)){
 			state = state_show_menu_item;
@@ -198,7 +198,7 @@ void button_menu_fsm(){
 	case state_show_profile_st:
 		int_to_led(eeprom_read_config(EEADR_CURRENT_STEP));
 		if(countdown==0){
-			countdown=30;
+			countdown=25;
 			state = state_show_profile_dh;
 		}
 		if(!BTN_HELD(BTN_DOWN)){
@@ -209,7 +209,7 @@ void button_menu_fsm(){
 	case state_show_profile_dh:
 		int_to_led(eeprom_read_config(EEADR_CURRENT_STEP_DURATION));
 		if(countdown==0){
-			countdown=30;
+			countdown=25;
 			state = state_show_profile;
 		}
 		if(!BTN_HELD(BTN_DOWN)){
