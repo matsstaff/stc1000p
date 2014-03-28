@@ -36,7 +36,7 @@
 			0, // Current step duration (0-999 hours)
 			5, // Cooling delay (0-60 minutes)
 			2, // Heating delay (0-4 minutes)
-			1, // Ramping
+			0, // Ramping
 			6 // Run mode (0-5 running profile 0-5, 6 = thermostat mode)
 };
 #else // CELSIUS
@@ -54,7 +54,7 @@
 			0, // Current step duration (0-999 hours)
 			5, // Cooling delay (0-60 minutes)
 			2, // Heating delay (0-4 minutes)
-			1, // Ramping
+			0, // Ramping
 			6 // Run mode (0-5 running profile 0-5, 6 = thermostat mode)
 	};
 #endif
