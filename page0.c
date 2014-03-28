@@ -236,7 +236,25 @@ static void update_profile(){
 			}
 			eeprom_write_config(EEADR_CURRENT_STEP, eestep);
 			eeprom_write_config(EEADR_SETPOINT, eeprom_read_config(EEADR_PROFILE_SETPOINT(mode, eestep)));
-		}
+        } else if(eeprom_read_config(EEADR_RAMPING)) {
+            unsigned int eedur = eeprom_read_config(EEADR_PROFILE_DURATION(mode, eestep));
+            int sp1 = eeprom_read_config(EEADR_PROFILE_SETPOINT(mode, eestep));
+            int sp2 = eeprom_read_config(EEADR_PROFILE_SETPOINT(mode, eestep + 1));
+            unsigned int t = eehours << 3;
+            int sp = 4;
+            unsigned char i;
+
+            for(i=0; i<8; i++){
+                if(t >= eedur){
+                    t -= eedur;
+                    sp += sp2;
+                } else {
+                    sp += sp1;
+                }
+            }
+            sp >>= 3;
+            eeprom_write_config(EEADR_SETPOINT, sp);
+        }
 		eeprom_write_config(EEADR_CURRENT_STEP_DURATION, eehours);
 	}
 }
