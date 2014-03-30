@@ -37,8 +37,8 @@
 #endif
 
 /* Defines for EEPROM config addresses */
-#define EEADR_PROFILE_SETPOINT(profile, step)	(profile*19 + step*2)
-#define EEADR_PROFILE_DURATION(profile, step)	(profile*19 + step*2 + 1)
+#define EEADR_PROFILE_SETPOINT(profile, step)	((profile)*19 + (step)*2)
+#define EEADR_PROFILE_DURATION(profile, step)	((profile)*19 + (step)*2 + 1)
 #define EEADR_HYSTERESIS						114
 #define EEADR_TEMP_CORRECTION					115
 #define EEADR_SETPOINT							116
