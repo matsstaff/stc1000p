@@ -211,33 +211,51 @@ void value_to_led(int value, unsigned char decimal) {
 
 
 static void update_profile(){
-	unsigned char mode;
+	unsigned char profile_no;
 
-	mode = eeprom_read_config(EEADR_RUN_MODE);
+	profile_no = eeprom_read_config(EEADR_RUN_MODE);
 
-	if (mode < 6) { // Running profile
-		unsigned char eestep;
-		unsigned int eehours;
+	if (profile_no < 6) { // Running profile
+		unsigned char curr_step;
+		unsigned int curr_dur;
 
 		// Load step and duration
-		eestep = eeprom_read_config(EEADR_CURRENT_STEP);
-		eestep = eestep > 8 ? 8 : eestep;	// sanity check
-		eehours = eeprom_read_config(EEADR_CURRENT_STEP_DURATION);
+		curr_step = eeprom_read_config(EEADR_CURRENT_STEP);
+		curr_step = curr_step > 8 ? 8 : curr_step;	// sanity check
+		curr_dur = eeprom_read_config(EEADR_CURRENT_STEP_DURATION);
 
-		eehours++;  // TODO Maybe increment conditionally to be able to call this function outside of on one hour marks?
-		if (eehours >= eeprom_read_config(EEADR_PROFILE_DURATION(mode, eestep))) {
-			eestep++;
-			eehours = 0;
+		curr_dur++;  // TODO Maybe increment conditionally to be able to call this function outside of on one hour marks?
+		if (curr_dur >= eeprom_read_config(EEADR_PROFILE_DURATION(profile_no, curr_step))) {
+			curr_step++;
+			curr_dur = 0;
 				// Is this the last step? Update settings and switch to thermostat mode.
-			if (eestep == 9	|| eeprom_read_config(EEADR_PROFILE_DURATION(mode, eestep)) == 0) {
-				eeprom_write_config(EEADR_SETPOINT,	eeprom_read_config(EEADR_PROFILE_SETPOINT(mode, eestep)));
+			if (curr_step == 9	|| eeprom_read_config(EEADR_PROFILE_DURATION(profile_no, curr_step)) == 0) {
+				eeprom_write_config(EEADR_SETPOINT,	eeprom_read_config(EEADR_PROFILE_SETPOINT(profile_no, curr_step)));
 				eeprom_write_config(EEADR_RUN_MODE, 6);
 				return; // Fastest way out...
 			}
-			eeprom_write_config(EEADR_CURRENT_STEP, eestep);
-			eeprom_write_config(EEADR_SETPOINT, eeprom_read_config(EEADR_PROFILE_SETPOINT(mode, eestep)));
+			eeprom_write_config(EEADR_CURRENT_STEP, curr_step);
+			eeprom_write_config(EEADR_SETPOINT, eeprom_read_config(EEADR_PROFILE_SETPOINT(profile_no, curr_step)));
+		} else if(eeprom_read_config(EEADR_RAMPING)) {
+			unsigned int step_dur = eeprom_read_config(EEADR_PROFILE_DURATION(profile_no, curr_step));
+			int sp1 = eeprom_read_config(EEADR_PROFILE_SETPOINT(profile_no, curr_step));
+			int sp2 = eeprom_read_config(EEADR_PROFILE_SETPOINT(profile_no, curr_step + 1));
+			unsigned int t = curr_dur << 3;
+			int sp = 4;
+			unsigned char i;
+
+			for (i = 0; i < 8; i++) {
+				if (t >= step_dur) {
+					t -= step_dur;
+					sp += sp2;
+				} else {
+					sp += sp1;
+				}
+			}
+			sp >>= 3;
+			eeprom_write_config(EEADR_SETPOINT, sp);
 		}
-		eeprom_write_config(EEADR_CURRENT_STEP_DURATION, eehours);
+		eeprom_write_config(EEADR_CURRENT_STEP_DURATION, curr_dur);
 	}
 }
 

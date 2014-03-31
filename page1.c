@@ -95,6 +95,9 @@ static int check_config_value(int config_value, unsigned char config_address){
 		case EEADR_HEATING_DELAY: // Heating delay
 			config_value = RANGE(config_value, 0, 4);
 			break;
+		case EEADR_RAMPING: // Ramping
+			config_value = RANGE(config_value, 0, 1);
+			break;
 		case EEADR_RUN_MODE: // Run mode
 			config_value = RANGE(config_value, 0, 6);
 			break;
@@ -296,7 +299,11 @@ void button_menu_fsm(){
 				led_10 = 0xd1; // h
 				led_1 = 0x85; // d
 				break;
-			case 7:
+			case 7: // Ramping
+				led_10 = 0xdd; // r
+				led_1 = 0x19; // P
+				break;
+			case 8:
 				led_10 = 0xdd; // r
 				led_1 = 0xd5; // n
 				break;
@@ -314,7 +321,7 @@ void button_menu_fsm(){
 			if(menu_item < 6){
 				config_item = (config_item >= 18) ? 0 : config_item+1;
 			} else {
-				config_item = (config_item >= 7) ? 0 : config_item+1;
+				config_item = (config_item >= 8) ? 0 : config_item+1;
 				if(config_item == 3 && (unsigned char)eeprom_read_config(EEADR_RUN_MODE) >= 6){
 					config_item = 5;
 				}
@@ -324,7 +331,7 @@ void button_menu_fsm(){
 			if(menu_item < 6){
 				config_item = (config_item == 0) ? 18 : config_item-1;
 			} else {
-				config_item = (config_item == 0) ? 7 : config_item-1;
+				config_item = (config_item == 0) ? 8 : config_item-1;
 				if(config_item == 4 && (unsigned char)eeprom_read_config(EEADR_RUN_MODE) >= 6){
 					config_item = 2;
 				}
@@ -347,7 +354,7 @@ void button_menu_fsm(){
 		} else if(menu_item == 6){
 			if(config_item < 3){
 				temperature_to_led(config_value);
-			} else if (config_item < 7){
+			} else if (config_item < 8){
 				int_to_led(config_value);
 			} else {
 				if(config_value==6){
@@ -385,7 +392,7 @@ void button_menu_fsm(){
 			state = state_show_config_value;
 		} else if(BTN_RELEASED(BTN_S)){
 			if(menu_item == 6){
-				if(config_item == 7){
+				if(config_item == 8){
 					// When setting runmode, clear current step & duration
 					eeprom_write_config(EEADR_CURRENT_STEP, 0);
 					eeprom_write_config(EEADR_CURRENT_STEP_DURATION, 0);
