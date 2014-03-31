@@ -41,9 +41,10 @@
 /* States for the menu FSM */
 enum menu_states {
 	state_idle = 0,
+
 	state_power_down_wait,
-	state_power_down_pre_off,
-//	state_power_down,
+
+	state_show_version,
 
 	state_show_sp,
 
@@ -153,8 +154,10 @@ void button_menu_fsm(){
 		if(BTN_PRESSED(BTN_PWR)){
 			countdown = 50; // 3 sec
 			state = state_power_down_wait;
-		} else if(eeprom_read_config(EEADR_POWER_ON)){
-			if (BTN_PRESSED(BTN_UP)) {
+		} else if(_buttons && eeprom_read_config(EEADR_POWER_ON)){
+			if (BTN_PRESSED(BTN_UP | BTN_DOWN)) {
+				state = state_show_version;
+			} else if (BTN_PRESSED(BTN_UP)) {
 				state = state_show_sp;
 			} else if (BTN_PRESSED(BTN_DOWN)) {
 				countdown = 25; // 1.5 sec
@@ -162,6 +165,16 @@ void button_menu_fsm(){
 			} else if (BTN_RELEASED(BTN_S)) {
 				state = state_show_menu_item;
 			}
+		}
+		break;
+
+	case state_show_version:
+		int_to_led(STC1000P_VERSION);
+		led_10 &= 0xfe;
+		led_e.e_deg = 1;
+		led_e.e_c = 1;
+		if(!BTN_HELD(BTN_UP | BTN_DOWN)){
+			state=state_idle;
 		}
 		break;
 
@@ -201,7 +214,6 @@ void button_menu_fsm(){
 			state=state_idle;
 		}
 		break;
-
 	case state_show_profile_st:
 		int_to_led(eeprom_read_config(EEADR_CURRENT_STEP));
 		if(countdown==0){
@@ -212,7 +224,6 @@ void button_menu_fsm(){
 			state=state_idle;
 		}
 		break;
-
 	case state_show_profile_dh:
 		int_to_led(eeprom_read_config(EEADR_CURRENT_STEP_DURATION));
 		if(countdown==0){

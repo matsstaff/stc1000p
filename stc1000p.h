@@ -23,6 +23,9 @@
 #ifndef __STC1000P_H__
 #define __STC1000P_H__
 
+/* Define STC-1000+ version number (XYY, X=major, YY=minor) */
+#define STC1000P_VERSION	10
+
 /* Define limits for temperatures */
 #ifdef FAHRENHEIT
 #define TEMP_MAX		(2500)
