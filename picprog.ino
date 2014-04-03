@@ -30,6 +30,12 @@
  *
  */
 
+/* Define STC-1000+ version number (XYY, X=major, YY=minor) and EEROM revision */
+#define STC1000P_MAGIC_F		0x192C
+#define STC1000P_MAGIC_C		0x26D3
+#define STC1000P_VERSION		11
+#define STC1000P_EEPROM_VERSION	10
+
 /* Pin configuration */
 #define ICSPCLK 9
 #define ICSPDAT 8 
@@ -89,21 +95,33 @@ void setup() {
 
   delay(2);
 
+  Serial.println("STC-1000+ firmware sketch.");
+  Serial.println("Copyright 2014 Mats Staffansson");
+  Serial.println("");
+  Serial.println("Send 'd' to check for STC-1000");
+
 #ifdef AUTOMATIC_UPLOAD
-  if((get_device_id() & 0x3FE0) == 0x27C0){
-    Serial.println("STC-1000 detected");
-    lvp_entry();
-    bulk_erase_device();
+  {
+	unsigned int magic, ver, deviceid;
+	get_device_id(&magic, &ver, &deviceid);
+
+	  if((deviceid & 0x3FE0) == 0x27C0){
+		Serial.println("STC-1000 detected");
+		lvp_entry();
+		bulk_erase_device();
 #ifdef FAHRENHEIT
-    upload_hex_from_progmem(hex_fahrenheit);
-    upload_hex_from_progmem(hex_eeprom_fahrenheit);
+		upload_hex_from_progmem(hex_fahrenheit);
+		upload_hex_from_progmem(hex_eeprom_fahrenheit);
 #else
-    upload_hex_from_progmem(hex_celsius);
-    upload_hex_from_progmem(hex_eeprom_celsius);
+		upload_hex_from_progmem(hex_celsius);
+		upload_hex_from_progmem(hex_eeprom_celsius);
 #endif
-    p_exit();
-  } else {
-    Serial.println("No STC-1000 detected");
+	    write_magic(STC1000P_MAGIC_F);
+        write_version(STC1000P_VERSION);
+		p_exit();
+	  } else {
+		  Serial.println("No STC-1000 detected");
+	  }
   }
 #endif
 
@@ -152,21 +170,60 @@ void loop() {
    	  bulk_erase_device();
       upload_hex_from_progmem(hex_celsius);
       upload_hex_from_progmem(hex_eeprom_celsius);
+      write_magic(STC1000P_MAGIC_C);
+      write_version(STC1000P_VERSION);
       p_exit();
       break;
     case 'b':
    	  lvp_entry();
+   	  load_configuration(0);
    	  bulk_erase_program_memory();
+   	  reset_address();
       upload_hex_from_progmem(hex_celsius);
+      write_magic(STC1000P_MAGIC_C);
+      write_version(STC1000P_VERSION);
       p_exit();
       break;
     case 'd':
       {
-		unsigned int deviceid = get_device_id();
+		unsigned int magic, ver, deviceid;
+		get_device_id(&magic, &ver, &deviceid);
 		Serial.print("Device ID is: 0x");
 		Serial.println(deviceid, HEX);
 	    if((deviceid & 0x3FE0) == 0x27C0){
 	    	Serial.println("STC-1000 detected.");
+	    	if(magic == STC1000P_MAGIC_C || magic == STC1000P_MAGIC_F){
+		    	Serial.print("STC-1000+ ");
+		    	if(magic == STC1000P_MAGIC_F){
+			    	Serial.print("Fahrenheit ");
+		    	} else {
+			    	Serial.print("Celsius ");
+		    	}
+		    	Serial.print("firmware with version ");
+		    	Serial.print(ver/100, DEC);
+		    	Serial.print(".");
+		    	Serial.print((ver%100)/10, DEC);
+		    	Serial.print((ver%10), DEC);
+		    	Serial.println(" detected.");
+		    	if(ver < STC1000P_EEPROM_VERSION){
+		    		Serial.println("EEPROM has changes, consider initializing EEPROM when flashing.");
+		    	}
+
+	    	} else {
+		    	Serial.println("No previous STC-1000+ firmware detected.");
+	    		Serial.println("Consider initializing EEPROM when flashing.");
+	    	}
+	    	Serial.print("Sketch has version ");
+	    	Serial.print(STC1000P_VERSION/100, DEC);
+	    	Serial.print(".");
+	    	Serial.print((STC1000P_VERSION%100)/10, DEC);
+	    	Serial.print((STC1000P_VERSION%10), DEC);
+	    	Serial.println("");
+	    	Serial.println("");
+	    	Serial.println("Send 'a' to upload Celsius version and initialize EEPROM data.");
+	    	Serial.println("Send 'b' to upload Celsius version (program memory only).");
+	    	Serial.println("Send 'f' to upload Fahrenheit version and initialize EEPROM data.");
+	    	Serial.println("Send 'g' to upload Fahrenheit version (program memory only).");
 	    } else {
 	      	Serial.println("STC-1000 NOT detected. Check wiring.");
 	    }
@@ -177,12 +234,18 @@ void loop() {
    	  bulk_erase_device();
       upload_hex_from_progmem(hex_fahrenheit);
       upload_hex_from_progmem(hex_eeprom_fahrenheit);
+      write_magic(STC1000P_MAGIC_F);
+      write_version(STC1000P_VERSION);
       p_exit();
       break;
     case 'g':
    	  lvp_entry();
+   	  load_configuration(0);
    	  bulk_erase_program_memory();
+   	  reset_address();
       upload_hex_from_progmem(hex_fahrenheit);
+      write_magic(STC1000P_MAGIC_F);
+      write_version(STC1000P_VERSION);
       p_exit();
       break;
     default:
@@ -597,25 +660,38 @@ void bulk_erase_device(){
   bulk_erase_data_memory();
 }
 
-unsigned int get_device_id(){
-  unsigned char i;
-  unsigned int deviceid;
-  
+void get_device_id( unsigned int *magic, unsigned int *version, unsigned int *deviceid){
   lvp_entry();
   load_configuration(0);
-  for(i=0;i<6;i++){
-    increment_address();
-  }
+  *magic = read_data_from_program_memory();
+  increment_address();
+  *version = read_data_from_program_memory();
+  increment_address();
 
-  deviceid = read_data_from_program_memory();
+  increment_address();
+  increment_address();
+  increment_address();
+  increment_address();
+
+  *deviceid = read_data_from_program_memory();
   
   p_exit();
-  
-  return deviceid;
-  
 }
 
+void write_magic(unsigned int data_word_out){
+	Serial.println("Writing magic.");
+	load_configuration(0);
+    load_data_for_program_memory(data_word_out);
+    begin_internally_timed_programming();
+}
 
+void write_version(unsigned int data_word_out){
+	Serial.println("Writing version.");
+	load_configuration(0);
+	increment_address();
+    load_data_for_program_memory(data_word_out);
+    begin_internally_timed_programming();
+}
 const char hex_celsius[] PROGMEM = {
    0x02,0x00,0x00,0x04,0x00,0x00,0xFA,
    0x10,0x00,0x00,0x00,0x00,0x00,0x85,0x31,0x48,0x2D,0xFF,0x34,0x8A,0x01,0x20,0x00,0x91,0x1C,0x41,0x28,0xD1,
@@ -873,7 +949,7 @@ const char hex_celsius[] PROGMEM = {
    0x10,0x11,0x70,0x00,0x30,0x05,0x20,0x00,0xC7,0x00,0x01,0x3A,0x03,0x1D,0xC5,0x28,0x19,0x30,0x21,0x00,0xA1,
    0x10,0x11,0x80,0x00,0xAF,0x00,0x04,0x30,0x21,0x00,0xAC,0x00,0xD1,0x2D,0x44,0x30,0x21,0x00,0x30,0x05,0xE7,
    0x10,0x11,0x90,0x00,0x20,0x00,0xC7,0x00,0x40,0x3A,0x03,0x1D,0xD1,0x2D,0x07,0x30,0x21,0x00,0xAC,0x00,0xCC,
-   0x10,0x11,0xA0,0x00,0xD1,0x2D,0x00,0x30,0xF6,0x00,0x0A,0x30,0xF7,0x00,0x00,0x30,0x84,0x31,0x13,0x24,0xCE,
+   0x10,0x11,0xA0,0x00,0xD1,0x2D,0x00,0x30,0xF6,0x00,0x0B,0x30,0xF7,0x00,0x00,0x30,0x84,0x31,0x13,0x24,0xCD,
    0x10,0x11,0xB0,0x00,0x88,0x31,0x21,0x00,0x27,0x10,0x21,0x00,0xAA,0x16,0x2A,0x15,0x33,0x30,0x21,0x00,0x7A,
    0x10,0x11,0xC0,0x00,0x30,0x05,0x20,0x00,0xC7,0x00,0x33,0x3A,0x03,0x19,0xD1,0x2D,0x21,0x00,0xAC,0x01,0xAE,
    0x10,0x11,0xD0,0x00,0xD1,0x2D,0x00,0x30,0x21,0x00,0x2F,0x04,0x03,0x1D,0x0A,0x29,0x7F,0x30,0x85,0x31,0xD5,
@@ -1366,7 +1442,7 @@ const char hex_fahrenheit[] PROGMEM = {
    0x10,0x11,0x70,0x00,0x30,0x05,0x20,0x00,0xC7,0x00,0x01,0x3A,0x03,0x1D,0xC5,0x28,0x19,0x30,0x21,0x00,0xA1,
    0x10,0x11,0x80,0x00,0xAF,0x00,0x04,0x30,0x21,0x00,0xAC,0x00,0xD1,0x2D,0x44,0x30,0x21,0x00,0x30,0x05,0xE7,
    0x10,0x11,0x90,0x00,0x20,0x00,0xC7,0x00,0x40,0x3A,0x03,0x1D,0xD1,0x2D,0x07,0x30,0x21,0x00,0xAC,0x00,0xCC,
-   0x10,0x11,0xA0,0x00,0xD1,0x2D,0x00,0x30,0xF6,0x00,0x0A,0x30,0xF7,0x00,0x00,0x30,0x84,0x31,0x13,0x24,0xCE,
+   0x10,0x11,0xA0,0x00,0xD1,0x2D,0x00,0x30,0xF6,0x00,0x0B,0x30,0xF7,0x00,0x00,0x30,0x84,0x31,0x13,0x24,0xCD,
    0x10,0x11,0xB0,0x00,0x88,0x31,0x21,0x00,0x27,0x10,0x21,0x00,0xAA,0x16,0x2A,0x15,0x33,0x30,0x21,0x00,0x7A,
    0x10,0x11,0xC0,0x00,0x30,0x05,0x20,0x00,0xC7,0x00,0x33,0x3A,0x03,0x19,0xD1,0x2D,0x21,0x00,0xAC,0x01,0xAE,
    0x10,0x11,0xD0,0x00,0xD1,0x2D,0x00,0x30,0x21,0x00,0x2F,0x04,0x03,0x1D,0x0A,0x29,0x7F,0x30,0x85,0x31,0xD5,

@@ -24,7 +24,9 @@
 #define __STC1000P_H__
 
 /* Define STC-1000+ version number (XYY, X=major, YY=minor) */
-#define STC1000P_VERSION	10
+/* Also, keep track of last version that has changes in EEPROM layout */
+#define STC1000P_VERSION		11
+#define STC1000P_EEPROM_VERSION	10
 
 /* Define limits for temperatures */
 #ifdef FAHRENHEIT
