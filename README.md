@@ -1,4 +1,4 @@
-stc1000+
+STC\-1000+
 ========
 
 Improved firmware for fermentation and Arduino based uploader for the STC-1000 dual stage thermostat.
