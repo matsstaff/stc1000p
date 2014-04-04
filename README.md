@@ -11,7 +11,7 @@ The goal of this project is twofold
 
 The first goal is achieved by using an Arduino UNO with a sketch to act as a programmer, and the second by using the SDCC compiler and GPUTILS. 
 
-A word of caution though. This project is in its infancy yet, and as the original firmware is protected, there is no way to restore the original functionality. And I assume no responsibilities.
+A word of caution though, as the original firmware is protected, there is no way to restore the original functionality. And I assume no responsibilities.
 
 Uploading new firmware
 ======================
@@ -63,8 +63,6 @@ To modify the firmware yourself, you will need a fresh installation of SDCC and 
 User Manual
 ===========
 
-Note, after upload, the EEPROM is wiped. And the user needs to set values in the menu manually.
-
 By default current temperature is displayed in C or F, depending on which firmware is used.
 Pressing the 'S' button enters the menu. Pressing button 'up' and 'down' scrolls through the menu items. 
 Button 'S' selects and 'power' button steps back or cancels current selection.
@@ -111,18 +109,24 @@ cd|Set cooling delay|0 to 60 minutes
 hd|Set heating delay|0 to 4 minutes
 rn|Set run mode|'Pr0' to 'Pr5' and 'th'
 
-Hysteresis, is the allowable temperature range around the setpoint in which no cooling or heating will occur.
-Temperature correction, will be added to the read temperature, allows the user to calibrate temperature reading.
-Setpoint, well... The desired temperature to keep.
-Current profile step, allows 'jumping' in the profile.
-Current profile duration in the step, allows 'jumping' in the profile. Step and duration are updated automatically when 
-running the profile, but can also be set manually at any time. (Note at the time of writing, updating current step will not take effect until next step/duration calculation occurs, which might be at most one hour).
-Cooling and heating delay is the minimum 'off time' for each relay. To spare the compressor, relays.
+Hysteresis, is the allowable temperature range around the setpoint where the thermostat will not change state. For example, if temperature os greater than setpoint + hysteresis AND the time passed since last cooling cycle is greater than cooling delay, then cooling relay will be engaged. Once the temperature reaches setpoint again, cooling relay will be disengaged.
+
+Temperature correction, will be added to the read temperature, allows the user to calibrate temperature reading. Calibrate around your working point. That means for fermentation, it is better to calibrate at room temperature against a reference thermometer than using ice water.
+
+Setpoint, well... The desired temperature to keep. The way STC\-1000+ firmware works, setpoint is always the value, the thermostat strives towards. Even when running a profile. What the profile does is simply setting the setpoint at given times.
+
+Current profile step and current profile duration, allows 'jumping' in the profile. Step and duration are updated automatically when running the profile, but can also be set manually at any time. Note that profile step and profile duration are the variables directly used to keep track of progress in a profile. Little or no validation is made of what values are entered. It is up to the user to know what he/she is doing by changing these values. Changing these values will not take effect until next point in profile is calculated, which could be as much as one hour.
+
+Cooling and heating delay is the minimum 'off time' for each relay. To spare the compressor and relays.
 Run mode, selecting 'Pr0' to 'Pr5' will start the corresponding profile running from step 0, duration 0. Selecting 'th' 
 will switch to thermostat mode (i.e. stop any running profile, setpoint will not change from this).
 
-The way that STC-1000+ is implemented, the profile will automatically set 'SP' when a new step is reached in the profile. 
-That means when running a profile, 'SP' is NOT preserved.
 Every hour, 'dh' (and if next step is reached, also 'St') is updated with new value(s). That means in case of a power outage, STC-1000+ will pick up (to within the hour) from where it left off.
 
+Additional features
+-------------------
+By pressing and holding 'power' button for approximately 3 seconds (when display is showing current temperature), the unit will "power off" (not really, but display will turn off and relays disengaged). Press again for 3 secs, to power on.
 
+By pressing and holding 'up' button (when display is showing current temperature), current setpoint will be shown.
+
+By pressing and holding 'down' button (when display is showing current temperature), 'th' will be shown if in thermostat mode, or if running profile display will show current profile, followed by current step and finally current step duration.
