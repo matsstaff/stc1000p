@@ -13,7 +13,7 @@ The goal of this project is twofold
 
 The first goal is achieved by using an Arduino UNO with a sketch to act as a programmer, and the second by using the SDCC compiler and GPUTILS. 
 
-If you are new to GitHub, use the 'Download ZIP' button ->
+If you are new to GitHub, use the 'Download ZIP' button (on the right hand side of this page)
 and start by reading usermanual.pdf
 
 Features
