@@ -240,19 +240,19 @@ static void update_profile(){
 			unsigned int step_dur = eeprom_read_config(EEADR_PROFILE_DURATION(profile_no, curr_step));
 			int sp1 = eeprom_read_config(EEADR_PROFILE_SETPOINT(profile_no, curr_step));
 			int sp2 = eeprom_read_config(EEADR_PROFILE_SETPOINT(profile_no, curr_step + 1));
-			unsigned int t = curr_dur << 3;
-			int sp = 4;
+			unsigned int t = curr_dur << 6;
+			long sp = 32;
 			unsigned char i;
 
-			for (i = 0; i < 8; i++) {
-				if (t >= step_dur) {
-					t -= step_dur;
-					sp += sp2;
-				} else {
-					sp += sp1;
-				}
+			for (i = 0; i < 64; i++) {
+			 if (t >= step_dur) {
+			    t -= step_dur;
+			    sp += sp2;
+			  } else {
+			    sp += sp1;
+			  }
 			}
-			sp >>= 3;
+			sp >>= 6;
 			eeprom_write_config(EEADR_SETPOINT, sp);
 		}
 		eeprom_write_config(EEADR_CURRENT_STEP_DURATION, curr_dur);
