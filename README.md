@@ -36,3 +36,4 @@ Updates
 
 2014-04-04 Release v1.00
 2014-04-11 Release v1.01 (Increase approximative ramping steps to 64)
+2014-04-15 Release v1.02 (Improved temperature averaging)
