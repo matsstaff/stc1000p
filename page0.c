@@ -433,36 +433,43 @@ void main(void) __naked {
 
 		if(TMR4IF){
 
-			// Read and accumulate AD value, note at this point temperature variable is not temp, but AD acc
-			temperature += (ADRESH << 8) | ADRESL;
+			millisx60++;
 
-			// Start new conversion
-			ADGO = 1;
+			if((millisx60 & 0x1) == 0){
+				unsigned char i;
+				int temp = 0;
+				unsigned int ad_result;
+				// Read and accumulate AD value, note at this point temperature variable is not temp, but AD acc
+				ad_result = (ADRESH << 8) | ADRESL;
+
+				// Alarm on sensor error (AD result out of range)
+				LATA0 = (ad_result >= 992 || ad_result < 32);
+
+				// Interpolate between lookup table points
+				for (i = 0; i < 32; i++) {
+					if((ad_result & 0x1f) <= i){
+						temp += ad_lookup[((ad_result >> 5) & 0x1f)];
+					} else {
+						temp += ad_lookup[((ad_result >> 5) & 0x1f) + 1];
+					}
+				}
+
+				// Divide by 32 and accumulate
+				temperature += (temp >> 5);
+
+				// Start new conversion
+				ADGO = 1;
+
+
+			}
 
 			// Only run every 16th time called, that is 16x60ms = 960ms
 			// Close enough to 1s for our purposes.
-			if((++millisx60 & 0xf) == 0){
+			if((millisx60 & 0xf) == 0){
 
-				temperature >>= 4; // Divide by 16 to get back to a regular AD value
+				temperature >>= 3; // Divide by 8 to get back to a temperature
 
-				// Alarm on sensor error (AD result out of range)
-				LATA0 = (temperature >= 992 || temperature < 32);
-
-				// Interpolate between lookup table points
-				{
-					unsigned char i;
-					unsigned temp = 0;
-					for (i = 0; i < 32; i++) {
-						if((temperature & 0x1f) <= i){
-							temp += ad_lookup[((temperature >> 5) & 0x1f)];
-						} else {
-							temp += ad_lookup[((temperature >> 5) & 0x1f) + 1];
-						}
-					}
-
-					// Divide by 32 and add temperature correction, now temperature actually is temperature (x10)
-					temperature = (temp >> 5) + eeprom_read_config(EEADR_TEMP_CORRECTION);
-				}
+				temperature += eeprom_read_config(EEADR_TEMP_CORRECTION);
 
 				if(eeprom_read_config(EEADR_POWER_ON) && !LATA0){ // Bypass regulation if power is 'off' or alarm
 
