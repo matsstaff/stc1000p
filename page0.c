@@ -416,8 +416,12 @@ static void interrupt_service_routine(void) __interrupt 0 {
  */
 void main(void) __naked {
 	unsigned int millisx60=0;
+	unsigned int ad_filter;
 
 	init();
+
+	// Initialize 'leaky' integrator
+	ad_filter = ((ADRESH << 8) | ADRESL) << 6;
 
 	//Loop forever
 	while (1) {
@@ -431,43 +435,38 @@ void main(void) __naked {
 			TMR6IF = 0;
 		}
 
-		if(TMR4IF){
+		if(TMR4IF) {
 
 			millisx60++;
 
-			if((millisx60 & 0x1) == 0){
-				unsigned char i;
-				int temp = 0;
-				unsigned int ad_result;
-				// Read and accumulate AD value, note at this point temperature variable is not temp, but AD acc
-				ad_result = (ADRESH << 8) | ADRESL;
+			// Accumulate and filter A/D values (leaky integrator)
+			ad_filter = ad_filter - (ad_filter >> 6) + ((ADRESH << 8) | ADRESL);
 
-				// Alarm on sensor error (AD result out of range)
-				LATA0 = (ad_result >= 992 || ad_result < 32);
+			// Start new conversion
+			ADGO = 1;
 
-				// Interpolate between lookup table points
-				for (i = 0; i < 32; i++) {
-					if((ad_result & 0x1f) <= i){
-						temp += ad_lookup[((ad_result >> 5) & 0x1f)];
-					} else {
-						temp += ad_lookup[((ad_result >> 5) & 0x1f) + 1];
-					}
-				}
-
-				// Divide by 32 and accumulate
-				temperature += (temp >> 5);
-
-				// Start new conversion
-				ADGO = 1;
-
-
-			}
+			// Alarm on sensor error (AD result out of range)
+//            LATA0 = (ad_result >= 992 || ad_result < 32);
+			LATA0 = (ad_filter >= 63488 || ad_filter <= 2047);
 
 			// Only run every 16th time called, that is 16x60ms = 960ms
 			// Close enough to 1s for our purposes.
-			if((millisx60 & 0xf) == 0){
+			if((millisx60 & 0xf) == 0) {
+				{
+					unsigned char i;
+					long temp = 0;
 
-				temperature >>= 3; // Divide by 8 to get back to a temperature
+					// Interpolate between lookup table points
+					for (i = 0; i < 64; i++) {
+						if(((ad_filter >> 5) & 0x3f) <= i) {
+							temp += ad_lookup[((ad_filter >> 11) & 0x1f)];
+						} else {
+							temp += ad_lookup[((ad_filter >> 11) & 0x1f) + 1];
+						}
+					}
+					// Divide by 64 to get back to normal temperature
+					temperature = (temp >> 6);
+				}
 
 				temperature += eeprom_read_config(EEADR_TEMP_CORRECTION);
 
