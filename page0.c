@@ -138,7 +138,7 @@ void eeprom_write_config(unsigned char eeprom_address,unsigned int data)
 	    WR = 1;
 
 	    // Re-enable interrupts
-	    GIE = 0;
+	    GIE = 1;
 
 	    // Disable writes
 	    WREN = 0;
@@ -420,6 +420,10 @@ void main(void) __naked {
 
 	init();
 
+	// Delay for first sample
+	while(!TMR4IF);
+	TMR4IF = 0;
+
 	// Initialize 'leaky' integrator
 	ad_filter = ((ADRESH << 8) | ADRESL) << 6;
 
@@ -454,7 +458,7 @@ void main(void) __naked {
 			if((millisx60 & 0xf) == 0) {
 				{
 					unsigned char i;
-					long temp = 0;
+					long temp = 32;
 
 					// Interpolate between lookup table points
 					for (i = 0; i < 64; i++) {
@@ -478,7 +482,7 @@ void main(void) __naked {
 						// Indicate profile mode
 						led_e.e_set = 0;
 						// Update profile every hour
-						if(millisx60 == 60000){
+						if(millisx60 >= 60000){
 							update_profile();
 							millisx60 = 0;
 						}

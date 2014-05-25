@@ -38,3 +38,5 @@ Updates
 2014-04-11 Release v1.01 Increase approximative ramping steps to 64  
 2014-04-15 Release v1.02 Improved temperature averaging  
 2014-04-16 Release v1.03 Added leaky integration filtering, improved averaging (+ bugfix)  
+2014-05-25 Release v1.04 A couple of minor improvements and a minor bugfix  
+
