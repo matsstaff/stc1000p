@@ -421,8 +421,7 @@ void main(void) __naked {
 	init();
 
 	// Delay for first sample
-	while(!TMR4IF);
-	TMR4IF = 0;
+	while(ADGO);
 
 	// Initialize 'leaky' integrator
 	ad_filter = ((ADRESH << 8) | ADRESL) << 6;
