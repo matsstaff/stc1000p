@@ -28,8 +28,15 @@ Features
 * Approximative ramping
 * Button acceleration, for frustrationless programming by buttons
 
-Cheers!
+Some excellent user provided content
+------------------------------------
+STC-1000+ Menu Navigation by Will Conrad   
+[![STC-1000+ Menu Navigation by Will Conrad](http://img.youtube.com/vi/u95BEq3bk7Q/0.jpg)](http://youtu.be/u95BEq3bk7Q)
 
+STC-1000+ Temp Profile Programming by Will Conrad   
+[![STC-1000+ Temp Profile Programming by Will Conrad](http://img.youtube.com/vi/nZst7ETP-w8/0.jpg)](http://youtu.be/nZst7ETP-w8)
+
+[STC-1000+ Profile Builder Spreadsheet by Will Conrad](https://drive.google.com/file/d/0B2mrl_TjEc1vVWgza3dFUFBmaDQ/edit?usp=sharing "STC-1000+ Profile Builder Spreadsheet by Will Conrad")   
 
 Updates
 =======
