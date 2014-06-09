@@ -112,6 +112,10 @@ unsigned int eeprom_read_config(unsigned char eeprom_address){
  */
 void eeprom_write_config(unsigned char eeprom_address,unsigned int data)
 {
+	if(data == eeprom_read_config(eeprom_address)){
+		return;
+	}
+
 	// multiply address by 2 to get eeprom address, as we will be storing 2 bytes.
 	eeprom_address = (eeprom_address << 1);
 
