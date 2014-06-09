@@ -112,6 +112,7 @@ unsigned int eeprom_read_config(unsigned char eeprom_address){
  */
 void eeprom_write_config(unsigned char eeprom_address,unsigned int data)
 {
+	// Avoid unnecessary EEPROM writes
 	if(data == eeprom_read_config(eeprom_address)){
 		return;
 	}
