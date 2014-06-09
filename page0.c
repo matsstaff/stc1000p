@@ -353,8 +353,9 @@ static void init() {
 	// Enable Timer2 interrupt
 	TMR2IE = 1;
 
-	// Postscaler 1:15, Enable counter, prescaler 1:16
-	T4CON = 0b01110110;
+	// Postscaler 1:15, - , prescaler 1:16
+	T4CON = 0b01110010;
+	TMR4ON = eeprom_read_config(EEADR_POWER_ON);
 	// @4MHz, Timer 2 clock is FOSC/4 -> 1MHz prescale 1:16-> 62.5kHz, 250 and postscale 1:15 -> 16.66666 Hz or 60ms
 	PR4 = 250;
 
@@ -473,8 +474,13 @@ void main(void) __naked {
 
 				temperature += eeprom_read_config(EEADR_TEMP_CORRECTION);
 
-				if(eeprom_read_config(EEADR_POWER_ON) && !LATA0){ // Bypass regulation if power is 'off' or alarm
-
+				if(LATA0){ // On alarm, disable outputs
+					led_10 = 0x11; // A
+					led_1 = 0xcb; //L
+					led_e.led_e = led_01 = 0xff;
+					LATA4 = 0;
+					LATA5 = 0;
+				} else {
 					// Update running profile every hour (if there is one)
 					// and handle reset of millis x60 counter
 					if(((unsigned char)eeprom_read_config(EEADR_RUN_MODE)) < 6){
@@ -497,17 +503,6 @@ void main(void) __naked {
 					if(TMR1GE){
 						temperature_to_led(temperature);
 					}
-
-				} else { // Power is 'off' or alarm, disable outputs
-					if(LATA0){
-						led_10 = 0x11; // A
-						led_1 = 0xcb; //L
-					} else {
-						led_10 = led_1 = 0xff;
-					}
-					led_e.led_e = led_01 = 0xff;
-					LATA4 = 0;
-					LATA5 = 0;
 				}
 
 				// Reset temperature for A/D acc

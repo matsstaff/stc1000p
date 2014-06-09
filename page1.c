@@ -24,6 +24,8 @@
 #include "pic14/pic16f1828.h"
 #include "stc1000p.h"
 
+#define reset() { __asm RESET __endasm; }
+
 /* Helpful defines to handle buttons */
 #define BTN_PWR			0x88
 #define BTN_S			0x44
@@ -63,44 +65,46 @@ enum menu_states {
 	state_down_pressed,
 };
 
-/* Helpers to constrain user input  */
-#define RANGE(x,min,max)	(((x)>(max))?(min):((x)<(min))?(max):(x));
+/* Helper to constrain user input  */
+static int range(int x, int min, int max){
+	return (((x)>(max))?(min):((x)<(min))?(max):(x));
+}
 
 static int check_config_value(int config_value, unsigned char config_address){
 	if(config_address < EEADR_PROFILE_SETPOINT(6,0)){
 		if(config_address & 0x1){
-			config_value = RANGE(config_value, 0, 999);
+			config_value = range(config_value, 0, 999);
 		} else {
-			config_value = RANGE(config_value, TEMP_MIN, TEMP_MAX);
+			config_value = range(config_value, TEMP_MIN, TEMP_MAX);
 		}
 	} else {
 		switch(config_address){
 		case EEADR_HYSTERESIS: // Hysteresis
-			config_value = RANGE(config_value, 0, TEMP_CORR_MAX);
+			config_value = range(config_value, 0, TEMP_CORR_MAX);
 			break;
 		case EEADR_TEMP_CORRECTION: // Temp correction
-			config_value = RANGE(config_value, TEMP_CORR_MIN, TEMP_CORR_MAX);
+			config_value = range(config_value, TEMP_CORR_MIN, TEMP_CORR_MAX);
 			break;
 		case EEADR_SETPOINT: // Setpoint
-			config_value = RANGE(config_value, TEMP_MIN, TEMP_MAX);
+			config_value = range(config_value, TEMP_MIN, TEMP_MAX);
 			break;
 		case EEADR_CURRENT_STEP: // Current step
-			config_value = RANGE(config_value, 0, 8);
+			config_value = range(config_value, 0, 8);
 			break;
 		case EEADR_CURRENT_STEP_DURATION: // Current duration
-			config_value = RANGE(config_value, 0, 999);
+			config_value = range(config_value, 0, 999);
 			break;
 		case EEADR_COOLING_DELAY: // Cooling delay
-			config_value = RANGE(config_value, 0, 60);
+			config_value = range(config_value, 0, 60);
 			break;
 		case EEADR_HEATING_DELAY: // Heating delay
-			config_value = RANGE(config_value, 0, 4);
+			config_value = range(config_value, 0, 4);
 			break;
 		case EEADR_RAMPING: // Ramping
-			config_value = RANGE(config_value, 0, 1);
+			config_value = range(config_value, 0, 1);
 			break;
 		case EEADR_RUN_MODE: // Run mode
-			config_value = RANGE(config_value, 0, 6);
+			config_value = range(config_value, 0, 6);
 			break;
 		}
 	}
@@ -180,7 +184,18 @@ void button_menu_fsm(){
 
 	case state_power_down_wait:
 		if(countdown==0){
-			eeprom_write_config(EEADR_POWER_ON, !eeprom_read_config(EEADR_POWER_ON));
+			unsigned char pwr_on = eeprom_read_config(EEADR_POWER_ON);
+			eeprom_write_config(EEADR_POWER_ON, !pwr_on);
+			if(pwr_on){
+				led_e.led_e = led_10 = led_1 = led_01 = 0xff;
+				LATA0 = 0;
+				LATA4 = 0;
+				LATA5 = 0;
+				TMR4ON = 0;
+				TMR4IF = 0;
+			} else {
+				reset();
+			}
 			state = state_idle;
 		} else if(!BTN_HELD(BTN_PWR)){
 			state = state_idle;
