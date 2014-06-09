@@ -406,14 +406,14 @@ void button_menu_fsm(){
 			config_value = ((config_value >= 1000) || (config_value < -1000)) ? (config_value + 10) : (config_value + 1);
 			config_value = check_config_value(config_value, ITEM_TO_ADDRESS(menu_item, config_item));
 			if(PR6 > 30){
-				PR6-=8;
+				PR6=(PR6>>1)+(PR6>>2)+(PR6>>3);
 			}
 			state = state_show_config_value;
 		} else if(BTN_RELEASED(BTN_DOWN) || BTN_HELD(BTN_DOWN)) {
 			config_value = ((config_value > 1000) || (config_value <= -1000)) ? (config_value - 10) : (config_value - 1);
 			config_value = check_config_value(config_value, ITEM_TO_ADDRESS(menu_item, config_item));
 			if(PR6 > 30){
-				PR6-=8;
+				PR6=(PR6>>1)+(PR6>>2)+(PR6>>3);
 			}
 			state = state_show_config_value;
 		} else if(BTN_RELEASED(BTN_S)){
