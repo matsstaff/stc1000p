@@ -98,7 +98,7 @@ static int check_config_value(int config_value, unsigned char config_address){
 			config_value = range(config_value, 0, 60);
 			break;
 		case EEADR_HEATING_DELAY: // Heating delay
-			config_value = range(config_value, 0, 4);
+			config_value = range(config_value, 0, 60);
 			break;
 		case EEADR_RAMPING: // Ramping
 			config_value = range(config_value, 0, 1);

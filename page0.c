@@ -263,18 +263,22 @@ static void update_profile(){
  * properly, so the variables below were moved from temperature_control()
  * and made global.
  */
-static unsigned int cooling_delay = 60;  // Initial cooling delay (secs)
-static unsigned char heating_delay = 60; // Initial heating delay (secs)
+static unsigned char delay_div = 30;
+static unsigned char cooling_delay = (1 << 1);  // Initial cooling delay
+static unsigned char heating_delay = (1 << 1);  // Initial heating delay
 static void temperature_control(){
 	int setpoint;
 
 	setpoint = eeprom_read_config(EEADR_SETPOINT);
 
-	if(cooling_delay){
-		cooling_delay--;
-	}
-	if(heating_delay){
-		heating_delay--;
+	if(--delay_div == 0){
+		delay_div = 30;
+		if(cooling_delay){
+			cooling_delay--;
+		}
+		if(heating_delay){
+			heating_delay--;
+		}
 	}
 
 	// Set LED outputs
@@ -284,25 +288,25 @@ static void temperature_control(){
 	// This is the thermostat logic
 	if (LATA4) {
 		if (temperature <= setpoint) {
-			cooling_delay = eeprom_read_config(EEADR_COOLING_DELAY) * 60;
+			cooling_delay = ((unsigned char)eeprom_read_config(EEADR_COOLING_DELAY)) << 1;
 			LATA4 = 0;
 		}
 	} else if(LATA5) {
 		if (temperature >= setpoint) {
-			heating_delay  = eeprom_read_config(EEADR_HEATING_DELAY) * 60;
+			heating_delay = ((unsigned char)eeprom_read_config(EEADR_HEATING_DELAY)) << 1;
 			LATA5 = 0;
 		}
 	} else {
 		int hysteresis = eeprom_read_config(EEADR_HYSTERESIS);
 		if (temperature > setpoint + hysteresis) {
 			if (cooling_delay) {
-				led_e.e_cool = led_e.e_cool ^ (cooling_delay & 0x1); // Flash to indicate cooling delay
+				led_e.e_cool = led_e.e_cool ^ (delay_div & 0x1); // Flash to indicate cooling delay
 			} else {
 				LATA4 = 1;
 			}
 		} else if (temperature < setpoint - hysteresis) {
 			if (heating_delay) {
-				led_e.e_heat = led_e.e_heat ^ (heating_delay & 0x1); // Flash to indicate heating delay
+				led_e.e_heat = led_e.e_heat ^ (delay_div & 0x1); // Flash to indicate heating delay
 			} else {
 				LATA5 = 1;
 			}
