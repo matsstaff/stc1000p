@@ -286,17 +286,13 @@ static void temperature_control(){
 	led_e.e_heat = !LATA5;
 
 	// This is the thermostat logic
-	if (LATA4) {
-		if (temperature <= setpoint) {
-			cooling_delay = ((unsigned char)eeprom_read_config(EEADR_COOLING_DELAY)) << 1;
-			LATA4 = 0;
-		}
-	} else if(LATA5) {
-		if (temperature >= setpoint) {
-			heating_delay = ((unsigned char)eeprom_read_config(EEADR_HEATING_DELAY)) << 1;
-			LATA5 = 0;
-		}
-	} else {
+	if((LATA4 && temperature <= setpoint) || (LATA5 && temperature >= setpoint)){
+		cooling_delay = ((unsigned char)eeprom_read_config(EEADR_COOLING_DELAY)) << 1;
+		heating_delay = ((unsigned char)eeprom_read_config(EEADR_HEATING_DELAY)) << 1;
+		LATA4 = 0;
+		LATA5 = 0;
+	}
+	else if(LATA4 == 0 && LATA5 == 0) {
 		int hysteresis = eeprom_read_config(EEADR_HYSTERESIS);
 		if (temperature > setpoint + hysteresis) {
 			if (cooling_delay) {
