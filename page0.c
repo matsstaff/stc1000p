@@ -363,9 +363,9 @@ static void init() {
 	// @4MHz, Timer 2 clock is FOSC/4 -> 1MHz prescale 1:16-> 62.5kHz, 250 and postscale 1:15 -> 16.66666 Hz or 60ms
 	PR4 = 250;
 
-	// Postscaler 1:15, Enable counter, prescaler 1:16
-	T6CON = 0b01110110;
-	// @4MHz, Timer 2 clock is FOSC/4 -> 1MHz prescale 1:16-> 62.5kHz, 250 and postscale 1:15 -> 16.66666 Hz or 60ms
+	// Postscaler 1:7, Enable counter, prescaler 1:64
+	T6CON = 0b00110111;
+	// @4MHz, Timer 2 clock is FOSC/4 -> 1MHz prescale 1:64-> 15.625kHz, 250 and postscale 1:6 -> 8.93Hz or 112ms
 	PR6 = 250;
 
 	// Set PEIE (enable peripheral interrupts, that is for timer2) and GIE (enable global interrupts)
