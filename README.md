@@ -53,4 +53,5 @@ Updates
 2014-04-15 Release v1.02 Improved temperature averaging  
 2014-04-16 Release v1.03 Added leaky integration filtering, improved averaging (+ bugfix)  
 2014-05-25 Release v1.04 A couple of minor improvements and a minor bugfix  
+2014-0?-?? Release v1.05 Reset both heating and cooling delay when either heating or cooling cycle ends. Improved power off functionality, increased button debounce time, allow longer heating delays.   
 
