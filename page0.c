@@ -60,7 +60,7 @@
 #define ClrWdt() { __asm CLRWDT __endasm; }
 
 /* Configuration words */
-unsigned int __at _CONFIG1 __CONFIG1 = 0xFDC;
+unsigned int __at _CONFIG1 __CONFIG1 = 0xFD4;
 unsigned int __at _CONFIG2 __CONFIG2 = 0x3AFF;
 
 /* Temperature lookup table  */

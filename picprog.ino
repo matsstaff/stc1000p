@@ -78,619 +78,631 @@ extern const char hex_fahrenheit[] PROGMEM;
 extern const char hex_eeprom_celsius[] PROGMEM;
 extern const char hex_eeprom_fahrenheit[] PROGMEM;
 
-/* Uncomment to use Fahrenheit for automatic upload */
-//#define FAHRENHEIT
-/* Uncomment to enable automatic upload (at startup of arduino) */
-//#define AUTOMATIC_UPLOAD
+/* Uncomment to enable automatic upload of Fahrenheit version */
+//#define AUTOMATIC_UPLOAD_FAHRENHEIT
+/* Uncomment to enable automatic upload of Celsius version */
+//#define AUTOMATIC_UPLOAD_CELSIUS
 
-void setup() {                
-  pinMode(ICSPCLK, INPUT);   
-  digitalWrite(ICSPCLK, LOW); // Disable pull-up
-  pinMode(ICSPDAT, INPUT);   
-  digitalWrite(ICSPDAT, LOW); // Disable pull-up
-  pinMode(nMCLR, INPUT);   
-  digitalWrite(nMCLR, LOW); // Disable pull-up
-  
-  Serial.begin(115200);
+void setup() {
+	pinMode(ICSPCLK, INPUT);
+	digitalWrite(ICSPCLK, LOW); // Disable pull-up
+	pinMode(ICSPDAT, INPUT);
+	digitalWrite(ICSPDAT, LOW); // Disable pull-up
+	pinMode(nMCLR, INPUT);
+	digitalWrite(nMCLR, LOW); // Disable pull-up
 
-  delay(2);
+	Serial.begin(115200);
 
-  Serial.println("STC-1000+ firmware sketch.");
-  Serial.println("Copyright 2014 Mats Staffansson");
-  Serial.println("");
-  Serial.println("Send 'd' to check for STC-1000");
+	delay(2);
 
-#ifdef AUTOMATIC_UPLOAD
-  {
-	unsigned int magic, ver, deviceid;
-	get_device_id(&magic, &ver, &deviceid);
+	Serial.println("STC-1000+ firmware sketch.");
+	Serial.println("Copyright 2014 Mats Staffansson");
+	Serial.println("");
+	Serial.println("Send 'd' to check for STC-1000");
 
-	  if((deviceid & 0x3FE0) == 0x27C0){
-		Serial.println("STC-1000 detected");
-		lvp_entry();
-		bulk_erase_device();
-#ifdef FAHRENHEIT
-		upload_hex_from_progmem(hex_fahrenheit);
-		upload_hex_from_progmem(hex_eeprom_fahrenheit);
-#else
-		upload_hex_from_progmem(hex_celsius);
-		upload_hex_from_progmem(hex_eeprom_celsius);
+#ifdef AUTOMATIC_UPLOAD_CELSIUS || AUTOMATIC_UPLOAD_FAHRENHEIT
+	{
+		unsigned int magic, ver, deviceid;
+		delay(100); // Make sure STC has time to wake up.
+		get_device_id(&magic, &ver, &deviceid);
+
+		if((deviceid & 0x3FE0) == 0x27C0) {
+			Serial.println("STC-1000 detected");
+			lvp_entry();
+			bulk_erase_device();
+#ifdef AUTOMATIC_UPLOAD_FAHRENHEIT
+			upload_hex_from_progmem(hex_fahrenheit);
+			upload_hex_from_progmem(hex_eeprom_fahrenheit);
+			write_magic(STC1000P_MAGIC_F);
+#else // AUTOMATIC_UPLOAD_CELSIUS
+			upload_hex_from_progmem(hex_celsius);
+			upload_hex_from_progmem(hex_eeprom_celsius);
+			write_magic(STC1000P_MAGIC_C);
 #endif
-	    write_magic(STC1000P_MAGIC_F);
-        write_version(STC1000P_VERSION);
-		p_exit();
-	  } else {
-		  Serial.println("No STC-1000 detected");
-	  }
-  }
+			write_version(STC1000P_VERSION);
+			p_exit();
+		} else {
+			Serial.println("No STC-1000 detected");
+		}
+	}
 #endif
 
 }
 
 void loop() {
-  if (Serial.available() > 0) {
-    char command = Serial.read();
-    switch(command)
-    {
-    case 'h':
-      hvp_entry();
-      break;
-    case 'l':
-      lvp_entry();
-      break;
-    case 'e':
-      p_exit();
-      break;
-    case 'c':
-      load_configuration(0);
-      break;
-    case 'p':
-      Serial.print('0');
-      Serial.print('x');
-      Serial.print(read_data_from_program_memory(), HEX);
-      Serial.println();
-      break;
-    case 'i':
-      increment_address();
-      break;
-    case 'u':
-   	  lvp_entry();
-   	  bulk_erase_program_memory();
-      upload_hex_file_to_device();
-      p_exit();
-      break;
-    case 'v':
-   	  lvp_entry();
-   	  bulk_erase_data_memory();
-      upload_hex_file_to_device();
-      p_exit();
-      break;
-    case 'a':
-   	  lvp_entry();
-   	  bulk_erase_device();
-      upload_hex_from_progmem(hex_celsius);
-      upload_hex_from_progmem(hex_eeprom_celsius);
-      write_magic(STC1000P_MAGIC_C);
-      write_version(STC1000P_VERSION);
-      p_exit();
-      break;
-    case 'b':
-   	  lvp_entry();
-   	  load_configuration(0);
-   	  bulk_erase_program_memory();
-   	  reset_address();
-      upload_hex_from_progmem(hex_celsius);
-      write_magic(STC1000P_MAGIC_C);
-      write_version(STC1000P_VERSION);
-      p_exit();
-      break;
-    case 'd':
-      {
-		unsigned int magic, ver, deviceid;
-		get_device_id(&magic, &ver, &deviceid);
-		Serial.print("Device ID is: 0x");
-		Serial.println(deviceid, HEX);
-	    if((deviceid & 0x3FE0) == 0x27C0){
-	    	Serial.println("STC-1000 detected.");
-	    	if(magic == STC1000P_MAGIC_C || magic == STC1000P_MAGIC_F){
-		    	Serial.print("STC-1000+ ");
-		    	if(magic == STC1000P_MAGIC_F){
-			    	Serial.print("Fahrenheit ");
-		    	} else {
-			    	Serial.print("Celsius ");
-		    	}
-		    	Serial.print("firmware with version ");
-		    	Serial.print(ver/100, DEC);
-		    	Serial.print(".");
-		    	Serial.print((ver%100)/10, DEC);
-		    	Serial.print((ver%10), DEC);
-		    	Serial.println(" detected.");
-		    	if(ver < STC1000P_EEPROM_VERSION){
-		    		Serial.println("EEPROM has changes, consider initializing EEPROM when flashing.");
-		    	}
+	if (Serial.available() > 0) {
+		char command = Serial.read();
+		switch (command) {
+		case 'h':
+			hvp_entry();
+			break;
+		case 'l':
+			lvp_entry();
+			break;
+		case 'e':
+			p_exit();
+			break;
+		case 'c':
+			load_configuration(0);
+			break;
+		case 'p':
+			Serial.print('0');
+			Serial.print('x');
+			Serial.print(read_data_from_program_memory(), HEX);
+			Serial.println();
+			break;
+		case 'i':
+			increment_address();
+			break;
+		case 'u':
+			lvp_entry();
+			bulk_erase_program_memory();
+			upload_hex_file_to_device();
+			p_exit();
+			break;
+		case 'v':
+			lvp_entry();
+			bulk_erase_data_memory();
+			upload_hex_file_to_device();
+			p_exit();
+			break;
+		case 'a':
+			lvp_entry();
+			bulk_erase_device();
+			upload_hex_from_progmem (hex_celsius);
+			upload_hex_from_progmem (hex_eeprom_celsius);
+			write_magic(STC1000P_MAGIC_C);
+			write_version(STC1000P_VERSION);
+			p_exit();
+			break;
+		case 'b':
+			lvp_entry();
+			load_configuration(0);
+			bulk_erase_program_memory();
+			reset_address();
+			upload_hex_from_progmem(hex_celsius);
+			write_magic(STC1000P_MAGIC_C);
+			write_version(STC1000P_VERSION);
+			p_exit();
+			break;
+		case 'd': {
+			unsigned int magic, ver, deviceid;
+			get_device_id(&magic, &ver, &deviceid);
+			Serial.print("Device ID is: 0x");
+			Serial.println(deviceid, HEX);
+			if ((deviceid & 0x3FE0) == 0x27C0) {
+				Serial.println("STC-1000 detected.");
+				if (magic == STC1000P_MAGIC_C || magic == STC1000P_MAGIC_F) {
+					Serial.print("STC-1000+ ");
+					if (magic == STC1000P_MAGIC_F) {
+						Serial.print("Fahrenheit ");
+					} else {
+						Serial.print("Celsius ");
+					}
+					Serial.print("firmware with version ");
+					Serial.print(ver / 100, DEC);
+					Serial.print(".");
+					Serial.print((ver % 100) / 10, DEC);
+					Serial.print((ver % 10), DEC);
+					Serial.println(" detected.");
+					if (ver < STC1000P_EEPROM_VERSION) {
+						Serial.println(
+								"EEPROM has changes, consider initializing EEPROM when flashing.");
+					}
 
-	    	} else {
-		    	Serial.println("No previous STC-1000+ firmware detected.");
-	    		Serial.println("Consider initializing EEPROM when flashing.");
-	    	}
-	    	Serial.print("Sketch has version ");
-	    	Serial.print(STC1000P_VERSION/100, DEC);
-	    	Serial.print(".");
-	    	Serial.print((STC1000P_VERSION%100)/10, DEC);
-	    	Serial.print((STC1000P_VERSION%10), DEC);
-	    	Serial.println("");
-	    	Serial.println("");
-	    	Serial.println("Send 'a' to upload Celsius version and initialize EEPROM data.");
-	    	Serial.println("Send 'b' to upload Celsius version (program memory only).");
-	    	Serial.println("Send 'f' to upload Fahrenheit version and initialize EEPROM data.");
-	    	Serial.println("Send 'g' to upload Fahrenheit version (program memory only).");
-	    } else {
-	      	Serial.println("STC-1000 NOT detected. Check wiring.");
-	    }
-      }
-      break;
-    case 'f':
-   	  lvp_entry();
-   	  bulk_erase_device();
-      upload_hex_from_progmem(hex_fahrenheit);
-      upload_hex_from_progmem(hex_eeprom_fahrenheit);
-      write_magic(STC1000P_MAGIC_F);
-      write_version(STC1000P_VERSION);
-      p_exit();
-      break;
-    case 'g':
-   	  lvp_entry();
-   	  load_configuration(0);
-   	  bulk_erase_program_memory();
-   	  reset_address();
-      upload_hex_from_progmem(hex_fahrenheit);
-      write_magic(STC1000P_MAGIC_F);
-      write_version(STC1000P_VERSION);
-      p_exit();
-      break;
-    default:
-      break;
-    }
-  }
+				} else {
+					Serial.println("No previous STC-1000+ firmware detected.");
+					Serial.println(
+							"Consider initializing EEPROM when flashing.");
+				}
+				Serial.print("Sketch has version ");
+				Serial.print(STC1000P_VERSION / 100, DEC);
+				Serial.print(".");
+				Serial.print((STC1000P_VERSION % 100) / 10, DEC);
+				Serial.print((STC1000P_VERSION % 10), DEC);
+				Serial.println("");
+				Serial.println("");
+				Serial.println(
+						"Send 'a' to upload Celsius version and initialize EEPROM data.");
+				Serial.println(
+						"Send 'b' to upload Celsius version (program memory only).");
+				Serial.println(
+						"Send 'f' to upload Fahrenheit version and initialize EEPROM data.");
+				Serial.println(
+						"Send 'g' to upload Fahrenheit version (program memory only).");
+			} else {
+				Serial.println("STC-1000 NOT detected. Check wiring.");
+			}
+		}
+			break;
+		case 'f':
+			lvp_entry();
+			bulk_erase_device();
+			upload_hex_from_progmem (hex_fahrenheit);
+			upload_hex_from_progmem (hex_eeprom_fahrenheit);
+			write_magic(STC1000P_MAGIC_F);
+			write_version(STC1000P_VERSION);
+			p_exit();
+			break;
+		case 'g':
+			lvp_entry();
+			load_configuration(0);
+			bulk_erase_program_memory();
+			reset_address();
+			upload_hex_from_progmem(hex_fahrenheit);
+			write_magic(STC1000P_MAGIC_F);
+			write_version(STC1000P_VERSION);
+			p_exit();
+			break;
+		default:
+			break;
+		}
+	}
 }
 
-unsigned char hex_nibble(unsigned char data){
-  data = toupper(data);
-  return (data >= 'A' ? data-'A'+10: data -'0') & 0xf;
+unsigned char hex_nibble(unsigned char data) {
+	data = toupper(data);
+	return (data >= 'A' ? data - 'A' + 10 : data - '0') & 0xf;
 }
 
-unsigned char parse_hex(){
-  unsigned char data;
-  while(Serial.available() < 2);
-  data = hex_nibble(Serial.read()) << 4;
-  data |= hex_nibble(Serial.read());
+unsigned char parse_hex() {
+	unsigned char data;
+	while (Serial.available() < 2)
+		;
+	data = hex_nibble(Serial.read()) << 4;
+	data |= hex_nibble(Serial.read());
 
-  return data;
+	return data;
 }
 
-unsigned char handle_hex_file_line(unsigned char bytecount, unsigned int address, unsigned char recordtype, unsigned char data[]){
+unsigned char handle_hex_file_line(unsigned char bytecount,
+		unsigned int address, unsigned char recordtype, unsigned char data[]) {
 	static unsigned int device_address = 0;
 	unsigned char i;
 
-    if(recordtype == 1){
-      reset_address();
-      device_address = 0;
-      Serial.println("Programming done");
-      return 1;
-    } else if(recordtype == 04){
-      if(data[1] == 0){
-        Serial.println("Programming program memory");
-        reset_address();
-        device_address = 0;
-      } else if(data[1] == 1){
-        Serial.println("Programming config memory");
-        load_configuration(0);
-        device_address = 0;
-      }
-    } else if(recordtype == 00) {
-      if(address >= 0xE000){
-	      Serial.print("Programming ");
-	      Serial.print(bytecount>>1, DEC);
-	      Serial.print(" bytes at EEPROM address 0x");
-	      Serial.println((address & 0x1FFF) >> 1, HEX);
+	if (recordtype == 1) {
+		reset_address();
+		device_address = 0;
+		Serial.println("Programming done");
+		return 1;
+	} else if (recordtype == 04) {
+		if (data[1] == 0) {
+			Serial.println("Programming program memory");
+			reset_address();
+			device_address = 0;
+		} else if (data[1] == 1) {
+			Serial.println("Programming config memory");
+			load_configuration(0);
+			device_address = 0;
+		}
+	} else if (recordtype == 00) {
+		if (address >= 0xE000) {
+			Serial.print("Programming ");
+			Serial.print(bytecount >> 1, DEC);
+			Serial.print(" bytes at EEPROM address 0x");
+			Serial.println((address & 0x1FFF) >> 1, HEX);
 
-    	  if(device_address != ((address & 0x1FFF) >> 1) || ((address & 0x1FFF) >> 1) == 0){
-            Serial.println("Resetting address for EEPROM");
-    	  	reset_address();
-    	  	device_address = 0;
-		  }
-          while(device_address != ((address & 0x1FFF) >> 1)){
-	        increment_address();
-	        device_address++;
-	        Serial.print("Incrementing address to 0x");
-	        Serial.println(device_address, HEX);
-	      }
-		    
-	      for(i=0; i<bytecount; i+=2){
-	        unsigned char data_out = data[i];
-	        unsigned char data_in;
-	        load_data_for_data_memory(data_out);
-	        begin_internally_timed_programming();
-	        data_in = read_data_from_data_memory();
-	        if(data_in != data_out){
-	          Serial.print("Validation failed for EEPROM address 0x");
-	          Serial.print(device_address, HEX);
-	          Serial.print(" wrote 0x");
-	          Serial.print(data_out, HEX);
-	          Serial.print(" but read back 0x");
-	          Serial.println(data_in, HEX);
-	          return 1;
-	        }
-	        increment_address();
-	        device_address++;
-    	  } 
-      } else {
-	      Serial.print("Programming ");
-	      Serial.print(bytecount>>1, DEC);
-	      Serial.print(" words at address 0x");
-	      Serial.println(address >> 1, HEX);
-	      
-	      while(device_address != (address >> 1)){
-	        increment_address();
-	        device_address++;
-	        Serial.print("Incrementing address to 0x");
-	        Serial.println(device_address, HEX);
-	      }
-	      
-	      for(i=0; i<bytecount; i+=2){
-	        unsigned int data_word_out = (((unsigned int)data[i+1]) << 8) | data[i];
-	        unsigned int data_word_in;
-	        load_data_for_program_memory(data_word_out);
-	        begin_internally_timed_programming();
-	        data_word_in = read_data_from_program_memory();
-	        if(data_word_in != data_word_out){
-	          Serial.print("Validation failed for address 0x");
-	          Serial.print(device_address, HEX);
-	          Serial.print(" wrote 0x");
-	          Serial.print(data_word_out, HEX);
-	          Serial.print(" but read back 0x");
-	          Serial.println(data_word_in, HEX);
-	          return 1;
-	        }
-	        increment_address();
-	        device_address++;
-	      }
-	    }
-	 }
-    return 0;
+			if (device_address != ((address & 0x1FFF) >> 1)
+					|| ((address & 0x1FFF) >> 1) == 0) {
+				Serial.println("Resetting address for EEPROM");
+				reset_address();
+				device_address = 0;
+			}
+			while (device_address != ((address & 0x1FFF) >> 1)) {
+				increment_address();
+				device_address++;
+				Serial.print("Incrementing address to 0x");
+				Serial.println(device_address, HEX);
+			}
+
+			for (i = 0; i < bytecount; i += 2) {
+				unsigned char data_out = data[i];
+				unsigned char data_in;
+				load_data_for_data_memory(data_out);
+				begin_internally_timed_programming();
+				data_in = read_data_from_data_memory();
+				if (data_in != data_out) {
+					Serial.print("Validation failed for EEPROM address 0x");
+					Serial.print(device_address, HEX);
+					Serial.print(" wrote 0x");
+					Serial.print(data_out, HEX);
+					Serial.print(" but read back 0x");
+					Serial.println(data_in, HEX);
+					return 1;
+				}
+				increment_address();
+				device_address++;
+			}
+		} else {
+			Serial.print("Programming ");
+			Serial.print(bytecount >> 1, DEC);
+			Serial.print(" words at address 0x");
+			Serial.println(address >> 1, HEX);
+
+			while (device_address != (address >> 1)) {
+				increment_address();
+				device_address++;
+				Serial.print("Incrementing address to 0x");
+				Serial.println(device_address, HEX);
+			}
+
+			for (i = 0; i < bytecount; i += 2) {
+				unsigned int data_word_out = (((unsigned int) data[i + 1]) << 8)
+						| data[i];
+				unsigned int data_word_in;
+				load_data_for_program_memory(data_word_out);
+				begin_internally_timed_programming();
+				data_word_in = read_data_from_program_memory();
+				if (data_word_in != data_word_out) {
+					Serial.print("Validation failed for address 0x");
+					Serial.print(device_address, HEX);
+					Serial.print(" wrote 0x");
+					Serial.print(data_word_out, HEX);
+					Serial.print(" but read back 0x");
+					Serial.println(data_word_in, HEX);
+					return 1;
+				}
+				increment_address();
+				device_address++;
+			}
+		}
+	}
+	return 0;
 }
 
-void upload_hex_file_to_device(){
-  unsigned char done = 0;
+void upload_hex_file_to_device() {
+	unsigned char done = 0;
 
-  Serial.println("Waiting for hex data...");
+	Serial.println("Waiting for hex data...");
 
-  while(!done){
-    unsigned char bytecount;
-    unsigned int address;
-    unsigned char recordtype;
-    unsigned char data[16];
-    unsigned char checksum;
-    unsigned char i;
+	while (!done) {
+		unsigned char bytecount;
+		unsigned int address;
+		unsigned char recordtype;
+		unsigned char data[16];
+		unsigned char checksum;
+		unsigned char i;
 
-    // Read start of line
-    while(1){
-      while(Serial.available() < 1);
-      char rx = Serial.read();
-      if(rx == ':'){
-        break;
-      }
-    }
+		// Read start of line
+		while (1) {
+			while (Serial.available() < 1)
+				;
+			char rx = Serial.read();
+			if (rx == ':') {
+				break;
+			}
+		}
 
-    // Read bytecount
-    bytecount = parse_hex();
-    checksum = bytecount;
+		// Read bytecount
+		bytecount = parse_hex();
+		checksum = bytecount;
 
-    // Read address
-    address = ((unsigned int)parse_hex()) << 8;
-    address |= parse_hex();
-    checksum += ((unsigned char)(address>>8));
-    checksum += ((unsigned char)(address));
+		// Read address
+		address = ((unsigned int) parse_hex()) << 8;
+		address |= parse_hex();
+		checksum += ((unsigned char) (address >> 8));
+		checksum += ((unsigned char) (address));
 
-    // Read recordtype
-    recordtype = parse_hex();
-    checksum += recordtype;
+		// Read recordtype
+		recordtype = parse_hex();
+		checksum += recordtype;
 
-    for(i=0; i<bytecount; i++){
-      data[i] = parse_hex();
-      checksum += data[i];
-    }
+		for (i = 0; i < bytecount; i++) {
+			data[i] = parse_hex();
+			checksum += data[i];
+		}
 
-    // Read checksum
-    i = parse_hex();
-    checksum += i;
+		// Read checksum
+		i = parse_hex();
+		checksum += i;
 
-    if(checksum){
-      Serial.println("Checksum error!");
-      break;
-    }
+		if (checksum) {
+			Serial.println("Checksum error!");
+			break;
+		}
 
-    done = handle_hex_file_line(bytecount, address, recordtype, data);
-  }
+		done = handle_hex_file_line(bytecount, address, recordtype, data);
+	}
 }
 
-void upload_hex_from_progmem(PGM_P hexdata){
-  unsigned char done = 0;
+void upload_hex_from_progmem(PGM_P hexdata) {
+	unsigned char done = 0;
 
-  Serial.println("Programming hex data...");
+	Serial.println("Programming hex data...");
 
-  while(!done){
-    unsigned char bytecount;
-    unsigned int address;
-    unsigned char recordtype;
-    unsigned char data[16];
-    unsigned char checksum;
-    unsigned char i;
+	while (!done) {
+		unsigned char bytecount;
+		unsigned int address;
+		unsigned char recordtype;
+		unsigned char data[16];
+		unsigned char checksum;
+		unsigned char i;
 
-    // Read bytecount
-    bytecount = pgm_read_byte(hexdata++);
-    checksum = bytecount;
+		// Read bytecount
+		bytecount = pgm_read_byte(hexdata++);
+		checksum = bytecount;
 
-    // Read address
-    address = ((unsigned int)pgm_read_byte(hexdata++)) << 8;
-    address |= pgm_read_byte(hexdata++);
-    checksum += ((unsigned char)(address>>8));
-    checksum += ((unsigned char)(address));
+		// Read address
+		address = ((unsigned int) pgm_read_byte(hexdata++)) << 8;
+		address |= pgm_read_byte(hexdata++);
+		checksum += ((unsigned char) (address >> 8));
+		checksum += ((unsigned char) (address));
 
-    // Read recordtype
-    recordtype = pgm_read_byte(hexdata++);
-    checksum += recordtype;
+		// Read recordtype
+		recordtype = pgm_read_byte(hexdata++);
+		checksum += recordtype;
 
-    for(i=0; i<bytecount; i++){
-      data[i] = pgm_read_byte(hexdata++);
-      checksum += data[i];
-    }
+		for (i = 0; i < bytecount; i++) {
+			data[i] = pgm_read_byte(hexdata++);
+			checksum += data[i];
+		}
 
-    // Read checksum
-    i = pgm_read_byte(hexdata++);
-    checksum += i;
+		// Read checksum
+		i = pgm_read_byte(hexdata++);
+		checksum += i;
 
-    if(checksum){
-      Serial.println("Checksum error!");
-      break;
-    }
+		if (checksum) {
+			Serial.println("Checksum error!");
+			break;
+		}
 
-    done = handle_hex_file_line(bytecount, address, recordtype, data);
-  }
+		done = handle_hex_file_line(bytecount, address, recordtype, data);
+	}
 
 }
 
 /* low level bit transfer */
-void write_bit(unsigned char bit){
-  digitalWrite(ICSPCLK, HIGH);
-  digitalWrite(ICSPDAT, bit ? HIGH : LOW);
-  TCKH();
-  digitalWrite(ICSPCLK, LOW);
-  TCKL();
-  //  digitalWrite(ICSPDAT,LOW); // REM?
+void write_bit(unsigned char bit) {
+	digitalWrite(ICSPCLK, HIGH);
+	digitalWrite(ICSPDAT, bit ? HIGH : LOW);
+	TCKH();
+	digitalWrite(ICSPCLK, LOW);
+	TCKL();
+	//  digitalWrite(ICSPDAT,LOW); // REM?
 }
 
-unsigned char read_bit(){
-  unsigned char rv;
+unsigned char read_bit() {
+	unsigned char rv;
 
-  digitalWrite(ICSPCLK, HIGH);
-  TCKH();
-  rv = (digitalRead(ICSPDAT)==HIGH);
-  digitalWrite(ICSPCLK, LOW);
-  TCKL();
+	digitalWrite(ICSPCLK, HIGH);
+	TCKH();
+	rv = (digitalRead(ICSPDAT) == HIGH);
+	digitalWrite(ICSPCLK, LOW);
+	TCKL();
 
-  return rv;
+	return rv;
 }
 
 /* Program/verify mode entry and exit */
-void hvp_entry(){
+void hvp_entry() {
 
-  Serial.println("Enter high voltage programming mode");
+	Serial.println("Enter high voltage programming mode");
 
-  pinMode(ICSPCLK, OUTPUT);    
-  pinMode(VDD1, OUTPUT);
-  pinMode(VDD2, OUTPUT);
-  pinMode(VDD3, OUTPUT);
-  pinMode(ICSPDAT, OUTPUT);   
-  // Set VPP to VIHH (9v)
+	pinMode(ICSPCLK, OUTPUT);
+	pinMode(VDD1, OUTPUT);
+	pinMode(VDD2, OUTPUT);
+	pinMode(VDD3, OUTPUT);
+	pinMode(ICSPDAT, OUTPUT);
+	// Set VPP to VIHH (9v)
 
-  TENTS();
-  digitalWrite(VDD1, HIGH);
-  digitalWrite(VDD2, HIGH);
-  digitalWrite(VDD3, HIGH);
-  TENTH();
+	TENTS();
+	digitalWrite(VDD1, HIGH);
+	digitalWrite(VDD2, HIGH);
+	digitalWrite(VDD3, HIGH);
+	TENTH();
 }
 
-void lvp_entry(){
-  unsigned long LVP_magic = 0b01001101010000110100100001010000;
-  unsigned char i;
+void lvp_entry() {
+	unsigned long LVP_magic = 0b01001101010000110100100001010000;
+	unsigned char i;
 
-  Serial.println("Enter low voltage programming mode");
+	Serial.println("Enter low voltage programming mode");
 
-  pinMode(nMCLR, OUTPUT);
-  pinMode(VDD1, OUTPUT);
-  pinMode(VDD2, OUTPUT);
-  pinMode(VDD3, OUTPUT);
+	pinMode(nMCLR, OUTPUT);
+	pinMode(VDD1, OUTPUT);
+	pinMode(VDD2, OUTPUT);
+	pinMode(VDD3, OUTPUT);
 
-  digitalWrite(nMCLR, HIGH);
-  digitalWrite(VDD1, HIGH);
-  digitalWrite(VDD2, HIGH);
-  digitalWrite(VDD3, HIGH);
-  TENTS();
-  digitalWrite(nMCLR, LOW);
-  pinMode(ICSPCLK, OUTPUT);    
-  pinMode(ICSPDAT, OUTPUT);   
-  TENTH();
+	digitalWrite(nMCLR, HIGH);
+	digitalWrite(VDD1, HIGH);
+	digitalWrite(VDD2, HIGH);
+	digitalWrite(VDD3, HIGH);
+	TENTS();
+	digitalWrite(nMCLR, LOW);
+	pinMode(ICSPCLK, OUTPUT);
+	pinMode(ICSPDAT, OUTPUT);
+	TENTH();
 
-  // Send "MCHP" backwards, to unlock LVP mode 
-  for(i=0; i<32; i++){
-    write_bit((LVP_magic >> i) & 1);
-  }
-  write_bit(0);
+	// Send "MCHP" backwards, to unlock LVP mode
+	for (i = 0; i < 32; i++) {
+		write_bit((LVP_magic >> i) & 1);
+	}
+	write_bit(0);
 }
 
-void p_exit(){
+void p_exit() {
 
-  Serial.println("Leaving programming mode");
+	Serial.println("Leaving programming mode");
 
-  digitalWrite(nMCLR, LOW); // LVP mode
-  digitalWrite(ICSPCLK, LOW);
-  digitalWrite(ICSPDAT, LOW);
-  digitalWrite(VDD1, LOW);
-  digitalWrite(VDD2, LOW);
-  digitalWrite(VDD3, LOW);
-  TEXIT();
+	digitalWrite(nMCLR, LOW); // LVP mode
+	digitalWrite(ICSPCLK, LOW);
+	digitalWrite(ICSPDAT, LOW);
+	digitalWrite(VDD1, LOW);
+	digitalWrite(VDD2, LOW);
+	digitalWrite(VDD3, LOW);
+	TEXIT();
 
-  pinMode(nMCLR, INPUT); // LVP mode
-  pinMode(ICSPCLK, INPUT);    
-  pinMode(VDD1, INPUT);
-  pinMode(VDD2, INPUT);
-  pinMode(VDD3, INPUT);
-  pinMode(ICSPDAT, INPUT);   
+	pinMode(nMCLR, INPUT); // LVP mode
+	pinMode(ICSPCLK, INPUT);
+	pinMode(VDD1, INPUT);
+	pinMode(VDD2, INPUT);
+	pinMode(VDD3, INPUT);
+	pinMode(ICSPDAT, INPUT);
 }
 
 /* low level command transfer */
-void write_command(unsigned char command){
-  unsigned char i;
+void write_command(unsigned char command) {
+	unsigned char i;
 
-  for(i=0; i<5; i++){
-    write_bit((command >> i) & 1);
-  }
-  write_bit(0);
-  TDLY();
+	for (i = 0; i < 5; i++) {
+		write_bit((command >> i) & 1);
+	}
+	write_bit(0);
+	TDLY();
 }
 
-void write_command_with_data(unsigned char command, unsigned int data){
-  unsigned char i;
+void write_command_with_data(unsigned char command, unsigned int data) {
+	unsigned char i;
 
-  write_command(command);
+	write_command(command);
 
-  write_bit(0);
-  for(i=0; i<14; i++){
-    write_bit((data>>i) & 1);
-  }
-  write_bit(0);
+	write_bit(0);
+	for (i = 0; i < 14; i++) {
+		write_bit((data >> i) & 1);
+	}
+	write_bit(0);
 }
 
-unsigned int read_command(unsigned char command){
-  unsigned char i;
-  unsigned int data = 0;
+unsigned int read_command(unsigned char command) {
+	unsigned char i;
+	unsigned int data = 0;
 
-  write_command(command);
+	write_command(command);
 
-  pinMode(ICSPDAT, INPUT);
+	pinMode(ICSPDAT, INPUT);
 
-  read_bit();
-  for(i=0; i<14; i++){
-    data |= ((unsigned int)(read_bit() & 0x1) << i);
-  }
-  read_bit();
+	read_bit();
+	for (i = 0; i < 14; i++) {
+		data |= ((unsigned int) (read_bit() & 0x1) << i);
+	}
+	read_bit();
 
-  pinMode(ICSPDAT, OUTPUT);
+	pinMode(ICSPDAT, OUTPUT);
 
-  return data;
+	return data;
 }
 
 /* high level commands */
-void load_configuration(unsigned int data){
-  write_command_with_data(LOAD_CONFIGURATION, data);
+void load_configuration(unsigned int data) {
+	write_command_with_data(LOAD_CONFIGURATION, data);
 }
 
-void load_data_for_program_memory(unsigned int data){
-  write_command_with_data(LOAD_DATA_FOR_PROGRAM_MEMORY, data);
+void load_data_for_program_memory(unsigned int data) {
+	write_command_with_data(LOAD_DATA_FOR_PROGRAM_MEMORY, data);
 }
 
-void load_data_for_data_memory(unsigned char data){
-  write_command_with_data(LOAD_DATA_FOR_DATA_MEMORY, data);
+void load_data_for_data_memory(unsigned char data) {
+	write_command_with_data(LOAD_DATA_FOR_DATA_MEMORY, data);
 }
 
-unsigned int read_data_from_program_memory(){
-  return read_command(READ_DATA_FROM_PROGRAM_MEMORY);
+unsigned int read_data_from_program_memory() {
+	return read_command(READ_DATA_FROM_PROGRAM_MEMORY);
 }
 
-unsigned char read_data_from_data_memory(){
-  return (unsigned char)read_command(READ_DATA_FROM_DATA_MEMORY);
+unsigned char read_data_from_data_memory() {
+	return (unsigned char) read_command(READ_DATA_FROM_DATA_MEMORY);
 }
 
-void increment_address(){
-  write_command(INCREMENT_ADDRESS);
+void increment_address() {
+	write_command(INCREMENT_ADDRESS);
 }
 
-void reset_address(){
-  write_command(RESET_ADDRESS);
+void reset_address() {
+	write_command(RESET_ADDRESS);
 }
 
-void begin_internally_timed_programming(){
-  write_command(BEGIN_INTERNALLY_TIMED_PROGRAMMING);
-  TPINT();
+void begin_internally_timed_programming() {
+	write_command(BEGIN_INTERNALLY_TIMED_PROGRAMMING);
+	TPINT();
 }
 
-void begin_externally_timed_programming(){
-  write_command(BEGIN_EXTERNALLY_TIMED_PROGRAMMING);
-  TPEXT();
+void begin_externally_timed_programming() {
+	write_command(BEGIN_EXTERNALLY_TIMED_PROGRAMMING);
+	TPEXT();
 }
 
-void end_externally_timed_programming(){
-  write_command(END_EXTERNALLY_TIMED_PROGRAMMING);
-  TDIS();
+void end_externally_timed_programming() {
+	write_command(END_EXTERNALLY_TIMED_PROGRAMMING);
+	TDIS();
 }
 
-void bulk_erase_program_memory(){
-  Serial.println("Bulk erasing program memory");
-  write_command(BULK_ERASE_PROGRAM_MEMORY);
-  TERAB();
+void bulk_erase_program_memory() {
+	Serial.println("Bulk erasing program memory");
+	write_command(BULK_ERASE_PROGRAM_MEMORY);
+	TERAB();
 }
 
-void bulk_erase_data_memory(){
-  Serial.println("Bulk erasing data memory");
-  write_command(BULK_ERASE_DATA_MEMORY);
-  TERAB();
+void bulk_erase_data_memory() {
+	Serial.println("Bulk erasing data memory");
+	write_command(BULK_ERASE_DATA_MEMORY);
+	TERAB();
 }
 
-void row_erase_program_memory(){
-  write_command(ROW_ERASE_PROGRAM_MEMORY);
-  TERAR();
+void row_erase_program_memory() {
+	write_command(ROW_ERASE_PROGRAM_MEMORY);
+	TERAR();
 }
 
 /* algorithms */
-void bulk_erase_device(){
-  Serial.println("Bulk erasing device");
-  load_configuration(0);
-  bulk_erase_program_memory();
-  bulk_erase_data_memory();
+void bulk_erase_device() {
+	Serial.println("Bulk erasing device");
+	load_configuration(0);
+	bulk_erase_program_memory();
+	bulk_erase_data_memory();
 }
 
-void get_device_id( unsigned int *magic, unsigned int *version, unsigned int *deviceid){
-  lvp_entry();
-  load_configuration(0);
-  *magic = read_data_from_program_memory();
-  increment_address();
-  *version = read_data_from_program_memory();
-  increment_address();
+void get_device_id(unsigned int *magic, unsigned int *version,
+		unsigned int *deviceid) {
+	lvp_entry();
+	load_configuration(0);
+	*magic = read_data_from_program_memory();
+	increment_address();
+	*version = read_data_from_program_memory();
+	increment_address();
 
-  increment_address();
-  increment_address();
-  increment_address();
-  increment_address();
+	increment_address();
+	increment_address();
+	increment_address();
+	increment_address();
 
-  *deviceid = read_data_from_program_memory();
-  
-  p_exit();
+	*deviceid = read_data_from_program_memory();
+
+	p_exit();
 }
 
-void write_magic(unsigned int data_word_out){
+void write_magic(unsigned int data_word_out) {
 	Serial.println("Writing magic.");
 	load_configuration(0);
-    load_data_for_program_memory(data_word_out);
-    begin_internally_timed_programming();
+	load_data_for_program_memory(data_word_out);
+	begin_internally_timed_programming();
 }
 
-void write_version(unsigned int data_word_out){
+void write_version(unsigned int data_word_out) {
 	Serial.println("Writing version.");
 	load_configuration(0);
 	increment_address();
-    load_data_for_program_memory(data_word_out);
-    begin_internally_timed_programming();
+	load_data_for_program_memory(data_word_out);
+	begin_internally_timed_programming();
 }
 const char hex_celsius[] PROGMEM = {
    0x02,0x00,0x00,0x04,0x00,0x00,0xFA,
@@ -1182,7 +1194,7 @@ const char hex_celsius[] PROGMEM = {
    0x10,0x1E,0x50,0x00,0x37,0x34,0x01,0x34,0x21,0x34,0x05,0x34,0xC1,0x34,0xCD,0x34,0x85,0x34,0x09,0x34,0x68,
    0x02,0x1E,0x60,0x00,0x59,0x34,0xF3,
    0x02,0x00,0x00,0x04,0x00,0x01,0xF9,
-   0x02,0x00,0x0E,0x00,0xDC,0x0F,0x05,
+   0x02,0x00,0x0E,0x00,0xD4,0x0F,0x0D,
    0x02,0x00,0x10,0x00,0xFF,0x3A,0xB5,
    0x00,0x00,0x00,0x01,0xFF
 };
@@ -1676,7 +1688,7 @@ const char hex_fahrenheit[] PROGMEM = {
    0x10,0x1E,0x50,0x00,0x37,0x34,0x01,0x34,0x21,0x34,0x05,0x34,0xC1,0x34,0xCD,0x34,0x85,0x34,0x09,0x34,0x68,
    0x02,0x1E,0x60,0x00,0x59,0x34,0xF3,
    0x02,0x00,0x00,0x04,0x00,0x01,0xF9,
-   0x02,0x00,0x0E,0x00,0xDC,0x0F,0x05,
+   0x02,0x00,0x0E,0x00,0xD4,0x0F,0x0D,
    0x02,0x00,0x10,0x00,0xFF,0x3A,0xB5,
    0x00,0x00,0x00,0x01,0xFF
 };
