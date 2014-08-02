@@ -60,14 +60,14 @@
 #define ClrWdt() { __asm CLRWDT __endasm; }
 
 /* Configuration words */
-unsigned int __at _CONFIG1 __CONFIG1 = 0xFDC;
+unsigned int __at _CONFIG1 __CONFIG1 = 0xFD4;
 unsigned int __at _CONFIG2 __CONFIG2 = 0x3AFF;
 
 /* Temperature lookup table  */
 #ifdef FAHRENHEIT
-const int ad_lookup[32] = { 0, -526, -322, -171, -51, 47, 132, 210, 280, 348, 412, 473, 534, 592, 653, 711, 770, 829, 892, 958, 1024, 1096, 1171, 1253, 1343, 1443, 1558, 1693, 1862, 2075, 2390, 2840 };
+const int ad_lookup[32] = { 0, -555, -319, -167, -49, 48, 134, 211, 282, 348, 412, 474, 534, 593, 652, 711, 770, 831, 893, 957, 1025, 1096, 1172, 1253, 1343, 1444, 1559, 1694, 1860, 2078, 2397, 2987 };
 #else  // CELSIUS
-const int ad_lookup[32] = { 0, -470, -357, -273, -206, -152, -104, -61, -22, 16, 51, 85, 119, 151, 185, 217, 250, 283, 318, 354, 391, 431, 473, 519, 568, 624, 688, 763, 857, 975, 1150, 1400 };
+const int ad_lookup[32] = { 0, -486, -355, -270, -205, -151, -104, -61, -21, 16, 51, 85, 119, 152, 184, 217, 250, 284, 318, 354, 391, 431, 473, 519, 569, 624, 688, 763, 856, 977, 1154, 1482 };
 #endif
 
 /* LED character lookup table (0-15), includes hex */
@@ -112,6 +112,11 @@ unsigned int eeprom_read_config(unsigned char eeprom_address){
  */
 void eeprom_write_config(unsigned char eeprom_address,unsigned int data)
 {
+	// Avoid unnecessary EEPROM writes
+	if(data == eeprom_read_config(eeprom_address)){
+		return;
+	}
+
 	// multiply address by 2 to get eeprom address, as we will be storing 2 bytes.
 	eeprom_address = (eeprom_address << 1);
 
@@ -263,8 +268,8 @@ static void update_profile(){
  * properly, so the variables below were moved from temperature_control()
  * and made global.
  */
-static unsigned int cooling_delay = 60;  // Initial cooling delay (secs)
-static unsigned char heating_delay = 60; // Initial heating delay (secs)
+static unsigned int cooling_delay = 60;  // Initial cooling delay
+static unsigned int heating_delay = 60;  // Initial heating delay
 static void temperature_control(){
 	int setpoint;
 
@@ -282,17 +287,13 @@ static void temperature_control(){
 	led_e.e_heat = !LATA5;
 
 	// This is the thermostat logic
-	if (LATA4) {
-		if (temperature <= setpoint) {
-			cooling_delay = eeprom_read_config(EEADR_COOLING_DELAY) * 60;
-			LATA4 = 0;
-		}
-	} else if(LATA5) {
-		if (temperature >= setpoint) {
-			heating_delay  = eeprom_read_config(EEADR_HEATING_DELAY) * 60;
-			LATA5 = 0;
-		}
-	} else {
+	if((LATA4 && temperature <= setpoint) || (LATA5 && temperature >= setpoint)){
+		cooling_delay = ((unsigned char)eeprom_read_config(EEADR_COOLING_DELAY)) * 60;
+		heating_delay = ((unsigned char)eeprom_read_config(EEADR_HEATING_DELAY)) * 60;
+		LATA4 = 0;
+		LATA5 = 0;
+	}
+	else if(LATA4 == 0 && LATA5 == 0) {
 		int hysteresis = eeprom_read_config(EEADR_HYSTERESIS);
 		if (temperature > setpoint + hysteresis) {
 			if (cooling_delay) {
@@ -353,14 +354,15 @@ static void init() {
 	// Enable Timer2 interrupt
 	TMR2IE = 1;
 
-	// Postscaler 1:15, Enable counter, prescaler 1:16
-	T4CON = 0b01110110;
+	// Postscaler 1:15, - , prescaler 1:16
+	T4CON = 0b01110010;
+	TMR4ON = eeprom_read_config(EEADR_POWER_ON);
 	// @4MHz, Timer 2 clock is FOSC/4 -> 1MHz prescale 1:16-> 62.5kHz, 250 and postscale 1:15 -> 16.66666 Hz or 60ms
 	PR4 = 250;
 
-	// Postscaler 1:15, Enable counter, prescaler 1:16
-	T6CON = 0b01110110;
-	// @4MHz, Timer 2 clock is FOSC/4 -> 1MHz prescale 1:16-> 62.5kHz, 250 and postscale 1:15 -> 16.66666 Hz or 60ms
+	// Postscaler 1:7, Enable counter, prescaler 1:64
+	T6CON = 0b00110111;
+	// @4MHz, Timer 2 clock is FOSC/4 -> 1MHz prescale 1:64-> 15.625kHz, 250 and postscale 1:6 -> 8.93Hz or 112ms
 	PR6 = 250;
 
 	// Set PEIE (enable peripheral interrupts, that is for timer2) and GIE (enable global interrupts)
@@ -473,8 +475,13 @@ void main(void) __naked {
 
 				temperature += eeprom_read_config(EEADR_TEMP_CORRECTION);
 
-				if(eeprom_read_config(EEADR_POWER_ON) && !LATA0){ // Bypass regulation if power is 'off' or alarm
-
+				if(LATA0){ // On alarm, disable outputs
+					led_10 = 0x11; // A
+					led_1 = 0xcb; //L
+					led_e.led_e = led_01 = 0xff;
+					LATA4 = 0;
+					LATA5 = 0;
+				} else {
 					// Update running profile every hour (if there is one)
 					// and handle reset of millis x60 counter
 					if(((unsigned char)eeprom_read_config(EEADR_RUN_MODE)) < 6){
@@ -497,17 +504,6 @@ void main(void) __naked {
 					if(TMR1GE){
 						temperature_to_led(temperature);
 					}
-
-				} else { // Power is 'off' or alarm, disable outputs
-					if(LATA0){
-						led_10 = 0x11; // A
-						led_1 = 0xcb; //L
-					} else {
-						led_10 = led_1 = 0xff;
-					}
-					led_e.led_e = led_01 = 0xff;
-					LATA4 = 0;
-					LATA5 = 0;
 				}
 
 				// Reset temperature for A/D acc
