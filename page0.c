@@ -25,7 +25,7 @@
  *                                    ------------
  *                                VDD | 1     20 | VSS
  *                     Relay Heat RA5 | 2     19 | RA0/ICSPDAT (Programming header), Piezo buzzer
- *                     Relay Cool RA4 | 3     18 | RA1/ICSPCLK (Programming header)
+ *                     Relay Cool RA4 | 3     18 | RA1/AN1/ICSPCLK (Programming header), Thermistor
  * (Programming header) nMCLR/VPP/RA3 | 4     17 | RA2/AN2 Thermistor
  *                          LED 5 RC5 | 5     16 | RC0 LED 0
  *                   LED 4, BTN 4 RC4 | 6     15 | RC1 LED 1
@@ -65,19 +65,22 @@ unsigned int __at _CONFIG2 __CONFIG2 = 0x3AFF;
 
 /* Temperature lookup table  */
 #ifdef FAHRENHEIT
-const int ad_lookup[32] = { 0, -555, -319, -167, -49, 48, 134, 211, 282, 348, 412, 474, 534, 593, 652, 711, 770, 831, 893, 957, 1025, 1096, 1172, 1253, 1343, 1444, 1559, 1694, 1860, 2078, 2397, 2987 };
+const int ad_lookup[] = { 0, -555, -319, -167, -49, 48, 134, 211, 282, 348, 412, 474, 534, 593, 652, 711, 770, 831, 893, 957, 1025, 1096, 1172, 1253, 1343, 1444, 1559, 1694, 1860, 2078, 2397, 2987 };
 #else  // CELSIUS
-const int ad_lookup[32] = { 0, -486, -355, -270, -205, -151, -104, -61, -21, 16, 51, 85, 119, 152, 184, 217, 250, 284, 318, 354, 391, 431, 473, 519, 569, 624, 688, 763, 856, 977, 1154, 1482 };
+const int ad_lookup[] = { 0, -486, -355, -270, -205, -151, -104, -61, -21, 16, 51, 85, 119, 152, 184, 217, 250, 284, 318, 354, 391, 431, 473, 519, 569, 624, 688, 763, 856, 977, 1154, 1482 };
 #endif
 
 /* LED character lookup table (0-15), includes hex */
-unsigned const char led_lookup[16] = { 0x3, 0xb7, 0xd, 0x25, 0xb1, 0x61, 0x41, 0x37, 0x1, 0x21, 0x5, 0xc1, 0xcd, 0x85, 0x9, 0x59 };
+//unsigned const char led_lookup[] = { 0x3, 0xb7, 0xd, 0x25, 0xb1, 0x61, 0x41, 0x37, 0x1, 0x21, 0x5, 0xc1, 0xcd, 0x85, 0x9, 0x59 };
+/* LED character lookup table (0-9) */
+unsigned const char led_lookup[] = { 0x3, 0xb7, 0xd, 0x25, 0xb1, 0x61, 0x41, 0x37, 0x1, 0x21 };
 
 /* Global variables to hold LED data (for multiplexing purposes) */
 _led_e_bits led_e = {0xff};
 unsigned char led_10, led_1, led_01;
 
 static int temperature=0;
+static int temperature2=0;
 
 /* Functions.
  * Note: Functions used from other page cannot be static, but functions
@@ -188,7 +191,7 @@ void value_to_led(int value, unsigned char decimal) {
 #endif // FAHRENHEIT
 	}
 
-	// If temperature > 100 we must lose decimal...
+	// If temperature >= 100 we must lose decimal...
 	if (value >= 1000) {
 		value = ((unsigned int) value) / 10;
 		decimal = 0;
@@ -271,9 +274,9 @@ static void update_profile(){
 static unsigned int cooling_delay = 60;  // Initial cooling delay
 static unsigned int heating_delay = 60;  // Initial heating delay
 static void temperature_control(){
-	int setpoint;
-
-	setpoint = eeprom_read_config(EEADR_SETPOINT);
+	int setpoint = eeprom_read_config(EEADR_SETPOINT);
+	int hysteresis2 = eeprom_read_config(EEADR_HYSTERESIS_2);
+	unsigned char probe2 = eeprom_read_config(EEADR_2ND_PROBE);
 
 	if(cooling_delay){
 		cooling_delay--;
@@ -287,9 +290,11 @@ static void temperature_control(){
 	led_e.e_heat = !LATA5;
 
 	// This is the thermostat logic
-	if((LATA4 && temperature <= setpoint) || (LATA5 && temperature >= setpoint)){
-		cooling_delay = ((unsigned char)eeprom_read_config(EEADR_COOLING_DELAY)) * 60;
-		heating_delay = ((unsigned char)eeprom_read_config(EEADR_HEATING_DELAY)) * 60;
+	if((LATA4 && (temperature <= setpoint || (probe2 && (temperature2 < (setpoint - hysteresis2))))) || (LATA5 && (temperature >= setpoint || (probe2 && (temperature2 > (setpoint + hysteresis2)))))){
+		cooling_delay = eeprom_read_config(EEADR_COOLING_DELAY) << 6;
+		cooling_delay = cooling_delay - (cooling_delay >> 4);
+		heating_delay = eeprom_read_config(EEADR_HEATING_DELAY) << 6;
+		heating_delay = heating_delay - (heating_delay >> 4);
 		LATA4 = 0;
 		LATA5 = 0;
 	}
@@ -332,17 +337,17 @@ static void init() {
 	TRISC = 0;
 
 	// Analog input on thermistor
-	ANSA2 = 1;
+	ANSELA = _ANSA1 | _ANSA2;
 	// Select AD channel AN2
-	CHS1 = 1;
+//	ADCON0bits.CHS = 2;
 	// AD clock FOSC/8 (FOSC = 4MHz)
 	ADCS0 = 1;
 	// Right justify AD result
 	ADFM = 1;
 	// Enable AD
-	ADON = 1;
+//	ADON = 1;
 	// Start conversion
-	ADGO = 1;
+//	ADGO = 1;
 
 	// IMPORTANT FOR BUTTONS TO WORK!!! Disable analog input -> enables digital input
 	ANSELC = 0;
@@ -413,20 +418,52 @@ static void interrupt_service_routine(void) __interrupt 0 {
 	}
 }
 
+#define START_TCONV_1()		(ADCON0 = _CHS1 | _ADON)
+#define START_TCONV_2()		(ADCON0 = _CHS0 | _ADON)
+
+static unsigned int read_ad(unsigned int adfilter){
+	unsigned char i;
+	for(i=0; i<40; i++){ __asm NOP __endasm; };
+	ADGO = 1;
+	while(ADGO);
+	ADON = 0;
+	return (adfilter - (adfilter >> 6) + ((ADRESH << 8) | ADRESL));
+}
+
+static int ad_to_temp(unsigned int adfilter){
+	unsigned char i;
+	long temp = 32;
+	unsigned char a = ((adfilter >> 5) & 0x3f);
+	unsigned char b = ((adfilter >> 11) & 0x1f);
+
+	// Interpolate between lookup table points
+	for (i = 0; i < 64; i++) {
+		if(a <= i) {
+			temp += ad_lookup[b];
+		} else {
+			temp += ad_lookup[b + 1];
+		}
+	}
+
+	// Divide by 64 to get back to normal temperature
+	return (temp >> 6);
+}
+
+
 /*
  * Main entry point.
  */
 void main(void) __naked {
 	unsigned int millisx60=0;
-	unsigned int ad_filter;
+	unsigned int ad_filter, ad_filter2;
 
 	init();
 
-	// Delay for first sample
-	while(ADGO);
+	START_TCONV_1();
+	ad_filter = read_ad(0) << 6;
 
-	// Initialize 'leaky' integrator
-	ad_filter = ((ADRESH << 8) | ADRESL) << 6;
+	START_TCONV_2();
+	ad_filter2 = read_ad(0) << 6;
 
 	//Loop forever
 	while (1) {
@@ -436,6 +473,12 @@ void main(void) __naked {
 			// Handle button press and menu
 			button_menu_fsm();
 
+			if(!TMR4ON){
+				led_e.led_e = 0xff;
+				led_10 = 0x3;
+				led_1 = led_01 = 0x59;
+			}
+
 			// Reset timer flag
 			TMR6IF = 0;
 		}
@@ -444,11 +487,11 @@ void main(void) __naked {
 
 			millisx60++;
 
-			// Accumulate and filter A/D values (leaky integrator)
-			ad_filter = ad_filter - (ad_filter >> 6) + ((ADRESH << 8) | ADRESL);
+			START_TCONV_1();
+			ad_filter = read_ad(ad_filter);
 
-			// Start new conversion
-			ADGO = 1;
+			START_TCONV_2();
+			ad_filter2 = read_ad(ad_filter2);
 
 			// Alarm on sensor error (AD result out of range)
 //            LATA0 = (ad_result >= 992 || ad_result < 32);
@@ -457,23 +500,9 @@ void main(void) __naked {
 			// Only run every 16th time called, that is 16x60ms = 960ms
 			// Close enough to 1s for our purposes.
 			if((millisx60 & 0xf) == 0) {
-				{
-					unsigned char i;
-					long temp = 32;
 
-					// Interpolate between lookup table points
-					for (i = 0; i < 64; i++) {
-						if(((ad_filter >> 5) & 0x3f) <= i) {
-							temp += ad_lookup[((ad_filter >> 11) & 0x1f)];
-						} else {
-							temp += ad_lookup[((ad_filter >> 11) & 0x1f) + 1];
-						}
-					}
-					// Divide by 64 to get back to normal temperature
-					temperature = (temp >> 6);
-				}
-
-				temperature += eeprom_read_config(EEADR_TEMP_CORRECTION);
+				temperature = ad_to_temp(ad_filter) + eeprom_read_config(EEADR_TEMP_CORRECTION);
+				temperature2 = ad_to_temp(ad_filter2) + eeprom_read_config(EEADR_TEMP_CORRECTION_2);
 
 				if(LATA0){ // On alarm, disable outputs
 					led_10 = 0x11; // A
@@ -502,12 +531,10 @@ void main(void) __naked {
 
 					// Show temperature if menu is idle
 					if(TMR1GE){
-						temperature_to_led(temperature);
+						led_e.e_point = !TX9;
+						temperature_to_led(TX9 ? temperature2 : temperature);
 					}
 				}
-
-				// Reset temperature for A/D acc
-				temperature = 0;
 
 			} // End 1 sec section
 

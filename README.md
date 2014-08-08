@@ -25,6 +25,7 @@ Features
 * Somewhat intuitive menus for configuring
 * Separate delay settings for cooling and heating
 * Configurable hysteresis (allowable temp swing) from 0.0 to 2.5°C or 0.0 to 5.0°F
+* Optionally limit heating and cooling by input from 2nd temp probe
 * Approximative ramping
 * Button acceleration, for frustrationless programming by buttons
 
@@ -54,4 +55,4 @@ Updates
 2014-04-16 Release v1.03 Added leaky integration filtering, improved averaging (+ bugfix)  
 2014-05-25 Release v1.04 A couple of minor improvements and a minor bugfix  
 2014-08-02 Release v1.05 Reset both heating and cooling delay when either heating or cooling cycle ends. Improved power off functionality, increased button debounce time, allow longer heating delays.   
-
+2014-??-?? Release v1.06 Add functionality for 2nd temp probe (to limit heating/cooling). Display 'OFF' in soft off mode.

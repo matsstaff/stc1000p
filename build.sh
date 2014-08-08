@@ -22,7 +22,7 @@
 # This is a simple script to make building STC-1000+ releases easier.
 
 # Build HEX files
-make all clean
+make clean all
 
 # Extract version info from stc1000p.h
 v=`cat stc1000p.h | grep STC1000P_VERSION`
@@ -59,3 +59,14 @@ echo "};" >> picprog.tmp
 # Rename old sketch and replace with new
 mv -f picprog.ino picprog.bkp
 mv picprog.tmp picprog.ino
+
+# Print size approximation (from .asm files)
+let s=0;
+for a in `cat page0_c.asm page1_c.asm | grep instructions | sed 's/^.*=  //' | sed 's/ instructions.*//'`;
+do
+	echo $a;
+	s=$(($s+$a));
+done;
+echo "total $s";
+
+make clean

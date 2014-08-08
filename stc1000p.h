@@ -25,34 +25,41 @@
 
 /* Define STC-1000+ version number (XYY, X=major, YY=minor) */
 /* Also, keep track of last version that has changes in EEPROM layout */
-#define STC1000P_VERSION		105
-#define STC1000P_EEPROM_VERSION	10
+#define STC1000P_VERSION		106
+#define STC1000P_EEPROM_VERSION	11
 
 /* Define limits for temperatures */
 #ifdef FAHRENHEIT
 #define TEMP_MAX		(2500)
 #define TEMP_MIN		(-400)
-#define TEMP_CORR_MAX	(50)
-#define TEMP_CORR_MIN	(-50)
+#define TEMP_CORR_MAX	(100)
+#define TEMP_CORR_MIN	(-100)
+#define TEMP_HYST_1_MAX	(100)
+#define TEMP_HYST_2_MAX	(500)
 #else  // CELSIUS
 #define TEMP_MAX		(1400)
 #define TEMP_MIN		(-400)
-#define TEMP_CORR_MAX	(25)
-#define TEMP_CORR_MIN	(-25)
+#define TEMP_CORR_MAX	(50)
+#define TEMP_CORR_MIN	(-50)
+#define TEMP_HYST_1_MAX	(50)
+#define TEMP_HYST_2_MAX	(250)
 #endif
 
 /* Defines for EEPROM config addresses */
-#define EEADR_PROFILE_SETPOINT(profile, step)	((profile)*19 + (step)*2)
-#define EEADR_PROFILE_DURATION(profile, step)	((profile)*19 + (step)*2 + 1)
+#define EEADR_PROFILE_SETPOINT(profile, step)	(((profile)<<4) + ((profile)<<1) + (profile) + ((step)<<1))
+#define EEADR_PROFILE_DURATION(profile, step)	EEADR_PROFILE_SETPOINT(profile, step) + 1
 #define EEADR_HYSTERESIS						114
-#define EEADR_TEMP_CORRECTION					115
-#define EEADR_SETPOINT							116
-#define EEADR_CURRENT_STEP						117
-#define EEADR_CURRENT_STEP_DURATION				118
-#define EEADR_COOLING_DELAY						119
-#define EEADR_HEATING_DELAY						120
-#define EEADR_RAMPING							121
-#define EEADR_RUN_MODE							122
+#define EEADR_HYSTERESIS_2						115
+#define EEADR_TEMP_CORRECTION					116
+#define EEADR_TEMP_CORRECTION_2					117
+#define EEADR_SETPOINT							118
+#define EEADR_CURRENT_STEP						119
+#define EEADR_CURRENT_STEP_DURATION				120
+#define EEADR_COOLING_DELAY						121
+#define EEADR_HEATING_DELAY						122
+#define EEADR_RAMPING							123
+#define EEADR_2ND_PROBE							124
+#define EEADR_RUN_MODE							125
 #define EEADR_POWER_ON							127
 
 /* Declare functions and variables from Page 0 */
@@ -76,7 +83,7 @@ typedef union
 
 extern _led_e_bits led_e;
 extern unsigned char led_10, led_1, led_01;
-extern unsigned const char led_lookup[16];
+extern unsigned const char led_lookup[];
 
 extern unsigned int eeprom_read_config(unsigned char eeprom_address);
 extern void eeprom_write_config(unsigned char eeprom_address,unsigned int data);

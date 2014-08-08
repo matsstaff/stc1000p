@@ -30,13 +30,16 @@
 			600, 24, 620, 24, 640, 24, 660, 24, 680, 144, 770, 48, 400, 0, 0, 0, 0, 0, 0, // Pr0 (SP0, dh0, ..., dh8, SP9)
 			600, 24, 620, 24, 640, 24, 660, 24, 680, 144, 770, 48, 400, 0, 0, 0, 0, 0, 0, // Pr0 (SP0, dh0, ..., dh8, SP9)
 			10, // Hysteresis (temperature * 10 that is 5 = 0.5)
+			100, // Hysteresis2 (temperature * 10 that is 100 = 10.0)
 			0, // Temp correction (temperature * 10)
+			0, // Temp correction2 (temperature * 10)
 			680, // Setpoint (temperature * 10)
 			0, // Current step (0-8)
 			0, // Current step duration (0-999 hours)
 			5, // Cooling delay (0-60 minutes)
-			2, // Heating delay (0-4 minutes)
+			2, // Heating delay (0-60 minutes)
 			0, // Ramping
+			0, // 2nd probe
 			6 // Run mode (0-5 running profile 0-5, 6 = thermostat mode)
 };
 #else // CELSIUS
@@ -48,13 +51,16 @@
 			160, 24, 170, 24, 180, 24, 190, 24, 200, 144, 250, 48, 40, 0, 0, 0, 0, 0, 0, // Pr4 (SP0, dh0, ..., dh8, SP9)
 			160, 24, 170, 24, 180, 24, 190, 24, 200, 144, 250, 48, 40, 0, 0, 0, 0, 0, 0, // Pr5 (SP0, dh0, ..., dh8, SP9)
 			5, // Hysteresis (temperature * 10 that is 5 = 0.5)
+			50, // Hysteresis2 (temperature * 10 that is 50 = 5.0)
 			0, // Temp correction (temperature * 10)
+			0, // Temp correction2 (temperature * 10)
 			200, // Setpoint (temperature * 10)
 			0, // Current step (0-8)
 			0, // Current step duration (0-999 hours)
 			5, // Cooling delay (0-60 minutes)
-			2, // Heating delay (0-4 minutes)
+			2, // Heating delay (0-60 minutes)
 			0, // Ramping
+			0, // 2nd probe
 			6 // Run mode (0-5 running profile 0-5, 6 = thermostat mode)
 	};
 #endif

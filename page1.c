@@ -39,6 +39,7 @@
 
 /* Help to convert menu item number and config item number to an EEPROM config address */
 #define ITEM_TO_ADDRESS(mi, ci)	((mi)*19 + (ci))
+//#define ITEM_TO_ADDRESS(mi, ci)	(((mi)<<4) + ((mi)<<1) + (mi) + (ci))
 
 /* States for the menu FSM */
 enum menu_states {
@@ -80,9 +81,13 @@ static int check_config_value(int config_value, unsigned char config_address){
 	} else {
 		switch(config_address){
 		case EEADR_HYSTERESIS: // Hysteresis
-			config_value = range(config_value, 0, TEMP_CORR_MAX);
+			config_value = range(config_value, 0, TEMP_HYST_1_MAX);
+			break;
+		case EEADR_HYSTERESIS_2: // Hysteresis
+			config_value = range(config_value, 0, TEMP_HYST_2_MAX);
 			break;
 		case EEADR_TEMP_CORRECTION: // Temp correction
+		case EEADR_TEMP_CORRECTION_2: // Temp correction
 			config_value = range(config_value, TEMP_CORR_MIN, TEMP_CORR_MAX);
 			break;
 		case EEADR_SETPOINT: // Setpoint
@@ -101,6 +106,7 @@ static int check_config_value(int config_value, unsigned char config_address){
 			config_value = range(config_value, 0, 60);
 			break;
 		case EEADR_RAMPING: // Ramping
+		case EEADR_2ND_PROBE: // 2nd probe
 			config_value = range(config_value, 0, 1);
 			break;
 		case EEADR_RUN_MODE: // Run mode
@@ -125,29 +131,31 @@ static unsigned char _buttons = 0;
  * returns: nothing
  */
 void button_menu_fsm(){
-	unsigned char trisc, latb;
+	{
+		unsigned char trisc, latb;
 
-	// Disable interrups while reading buttons
-	GIE = 0;
+		// Disable interrups while reading buttons
+		GIE = 0;
 
-	// Save registers that interferes with LED's
-	latb = LATB;
-	trisc = TRISC;
+		// Save registers that interferes with LED's
+		latb = LATB;
+		trisc = TRISC;
 
-	LATB = 0b00000000; // Turn off LED's
-	TRISC = 0b11011000; // Enable input for buttons
+		LATB = 0b00000000; // Turn off LED's
+		TRISC = 0b11011000; // Enable input for buttons
 
-	_buttons = (_buttons << 1) | RC7; // pwr
-	_buttons = (_buttons << 1) | RC4; // s
-	_buttons = (_buttons << 1) | RC6; // up
-	_buttons = (_buttons << 1) | RC3; // down
+		_buttons = (_buttons << 1) | RC7; // pwr
+		_buttons = (_buttons << 1) | RC4; // s
+		_buttons = (_buttons << 1) | RC6; // up
+		_buttons = (_buttons << 1) | RC3; // down
 
-	// Restore registers
-	LATB = latb;
-	TRISC = trisc;
+		// Restore registers
+		LATB = latb;
+		TRISC = trisc;
 
-	// Reenable interrups
-	GIE = 1;
+		// Reenable interrups
+		GIE = 1;
+	}
 
 	if(countdown){
 		countdown--;
@@ -187,7 +195,6 @@ void button_menu_fsm(){
 			unsigned char pwr_on = eeprom_read_config(EEADR_POWER_ON);
 			eeprom_write_config(EEADR_POWER_ON, !pwr_on);
 			if(pwr_on){
-				led_e.led_e = led_10 = led_1 = led_01 = 0xff;
 				LATA0 = 0;
 				LATA4 = 0;
 				LATA5 = 0;
@@ -198,6 +205,9 @@ void button_menu_fsm(){
 			}
 			state = state_idle;
 		} else if(!BTN_HELD(BTN_PWR)){
+			if((unsigned char)eeprom_read_config(EEADR_2ND_PROBE)){
+					TX9 = !TX9;
+			}
 			state = state_idle;
 		}
 		break;
@@ -210,23 +220,26 @@ void button_menu_fsm(){
 		break;
 
 	case state_show_profile:
-		led_e.e_deg = 1;
-		led_e.e_c = 1;
-		if((unsigned char)eeprom_read_config(EEADR_RUN_MODE)<6){
-			led_10 = 0x19; // P
-			led_1 = 0xdd; // r
-			led_01 = led_lookup[((unsigned char)eeprom_read_config(EEADR_RUN_MODE)) & 0xf];
-			if(countdown==0){
-				countdown=17;
-				state = state_show_profile_st;
+		{
+			unsigned char run_mode = eeprom_read_config(EEADR_RUN_MODE);
+			led_e.e_deg = 1;
+			led_e.e_c = 1;
+			if(run_mode<6){
+				led_10 = 0x19; // P
+				led_1 = 0xdd; // r
+				led_01 = led_lookup[run_mode & 0xf];
+				if(countdown==0){
+					countdown=17;
+					state = state_show_profile_st;
+				}
+			} else {
+				led_10=0xc9; // t
+				led_1=0xd1;	// h
+				led_01 = 0xff;
 			}
-		} else {
-			led_10=0xc9; // t
-			led_1=0xd1;	// h
-			led_01 = 0xff;
-		}
-		if(!BTN_HELD(BTN_DOWN)){
-			state=state_idle;
+			if(!BTN_HELD(BTN_DOWN)){
+				state=state_idle;
+			}
 		}
 		break;
 	case state_show_profile_st:
@@ -297,39 +310,49 @@ void button_menu_fsm(){
 		} else /* if(menu_item == 6) */{
 			led_01 = 0xff;
 			switch(config_item){
+			case 1: // hysteresis2
+				led_01 = 0xd; //led_lookup[2];
+//				break;
 			case 0: // hysteresis
 				led_10 = 0xd1; // h
 				led_1 = 0xa1; // y
 				break;
-			case 1: // temp correction
+			case 3: // temp correction
+				led_01 = 0xd; //led_lookup[2];
+//				break;
+			case 2: // temp correction
 				led_10 = 0xc9; // t
 				led_1 = 0xcd; // c
 				break;
-			case 2: // Set point
+			case 4: // Set point
 				led_10 = 0x61; // S
 				led_1 = 0x19; // P
 				break;
-			case 3: // profile step
+			case 5: // profile step
 				led_10 = 0x61; // S
 				led_1 = 0xc9; // t
 				break;
-			case 4:  // profile duration
+			case 6:  // profile duration
 				led_10 = 0x85; // d
 				led_1 = 0xd1; // h
 				break;
-			case 5: // Cooling delay
+			case 7: // Cooling delay
 				led_10 = 0xcd; // c
 				led_1 = 0x85; // d
 				break;
-			case 6: // Heating delay
+			case 8: // Heating delay
 				led_10 = 0xd1; // h
 				led_1 = 0x85; // d
 				break;
-			case 7: // Ramping
+			case 9: // Ramping
 				led_10 = 0xdd; // r
 				led_1 = 0x19; // P
 				break;
-			case 8:
+			case 10: // 2nd probe
+				led_10 = 0x19; // P
+				led_1 = 0xc1; // b
+				break;
+			case 11:
 				led_10 = 0xdd; // r
 				led_1 = 0xd5; // n
 				break;
@@ -347,9 +370,9 @@ void button_menu_fsm(){
 			if(menu_item < 6){
 				config_item = (config_item >= 18) ? 0 : config_item+1;
 			} else {
-				config_item = (config_item >= 8) ? 0 : config_item+1;
-				if(config_item == 3 && (unsigned char)eeprom_read_config(EEADR_RUN_MODE) >= 6){
-					config_item = 5;
+				config_item = (config_item >= 11) ? 0 : config_item+1;
+				if(config_item == 5 && (unsigned char)eeprom_read_config(EEADR_RUN_MODE) >= 6){
+					config_item = 7;
 				}
 			}
 			state = state_show_config_item;
@@ -357,15 +380,16 @@ void button_menu_fsm(){
 			if(menu_item < 6){
 				config_item = (config_item == 0) ? 18 : config_item-1;
 			} else {
-				config_item = (config_item == 0) ? 8 : config_item-1;
-				if(config_item == 4 && (unsigned char)eeprom_read_config(EEADR_RUN_MODE) >= 6){
-					config_item = 2;
+				config_item = (config_item == 0) ? 11 : config_item-1;
+				if(config_item == 6 && (unsigned char)eeprom_read_config(EEADR_RUN_MODE) >= 6){
+					config_item = 4;
 				}
 			}
 			state = state_show_config_item;
 		} else if(BTN_RELEASED(BTN_S)){
-			config_value = eeprom_read_config(ITEM_TO_ADDRESS(menu_item, config_item));
-			config_value = check_config_value(config_value, ITEM_TO_ADDRESS(menu_item, config_item));
+			unsigned char adr = ITEM_TO_ADDRESS(menu_item, config_item);
+			config_value = eeprom_read_config(adr);
+			config_value = check_config_value(config_value, adr);
 			countdown = 110;
 			state = state_show_config_value;
 		}
@@ -378,9 +402,9 @@ void button_menu_fsm(){
 				temperature_to_led(config_value);
 			}
 		} else if(menu_item == 6){
-			if(config_item < 3){
+			if(config_item < 4){
 				temperature_to_led(config_value);
-			} else if (config_item < 8){
+			} else if (config_item < 11){
 				int_to_led(config_value);
 			} else {
 				if(config_value==6){
@@ -398,44 +422,48 @@ void button_menu_fsm(){
 		state = state_set_config_value;
 		break;
 	case state_set_config_value:
-		if(countdown==0){
-			state=state_idle;
-		} else if(BTN_RELEASED(BTN_PWR)){
-			state = state_show_config_item;
-		} else if(BTN_RELEASED(BTN_UP) || BTN_HELD(BTN_UP)) {
-			config_value = ((config_value >= 1000) || (config_value < -1000)) ? (config_value + 10) : (config_value + 1);
-			config_value = check_config_value(config_value, ITEM_TO_ADDRESS(menu_item, config_item));
-			if(PR6 > 30){
-				PR6-=8;
-			}
-			state = state_show_config_value;
-		} else if(BTN_RELEASED(BTN_DOWN) || BTN_HELD(BTN_DOWN)) {
-			config_value = ((config_value > 1000) || (config_value <= -1000)) ? (config_value - 10) : (config_value - 1);
-			config_value = check_config_value(config_value, ITEM_TO_ADDRESS(menu_item, config_item));
-			if(PR6 > 30){
-				PR6-=8;
-			}
-			state = state_show_config_value;
-		} else if(BTN_RELEASED(BTN_S)){
-			if(menu_item == 6){
-				if(config_item == 8){
-					// When setting runmode, clear current step & duration
-					eeprom_write_config(EEADR_CURRENT_STEP, 0);
-					eeprom_write_config(EEADR_CURRENT_STEP_DURATION, 0);
-					if(config_value < 6){
-						// Set intial value for SP
-						eeprom_write_config(EEADR_SETPOINT, eeprom_read_config(EEADR_PROFILE_SETPOINT(config_value, 0)));
-						// Hack in case inital step duration is '0'
-						if(eeprom_read_config(EEADR_PROFILE_DURATION(config_value, 0)) == 0){
-							config_value = 6;
+		{
+			unsigned char adr = ITEM_TO_ADDRESS(menu_item, config_item);
+
+			if(countdown==0){
+				state=state_idle;
+			} else if(BTN_RELEASED(BTN_PWR)){
+				state = state_show_config_item;
+			} else if(BTN_RELEASED(BTN_UP) || BTN_HELD(BTN_UP)) {
+				config_value = ((config_value >= 1000) || (config_value < -1000)) ? (config_value + 10) : (config_value + 1);
+				config_value = check_config_value(config_value, adr);
+				if(PR6 > 30){
+					PR6-=8;
+				}
+				state = state_show_config_value;
+			} else if(BTN_RELEASED(BTN_DOWN) || BTN_HELD(BTN_DOWN)) {
+				config_value = ((config_value > 1000) || (config_value <= -1000)) ? (config_value - 10) : (config_value - 1);
+				config_value = check_config_value(config_value, adr);
+				if(PR6 > 30){
+					PR6-=8;
+				}
+				state = state_show_config_value;
+			} else if(BTN_RELEASED(BTN_S)){
+				if(menu_item == 6){
+					if(config_item == 11){
+						// When setting runmode, clear current step & duration
+						eeprom_write_config(EEADR_CURRENT_STEP, 0);
+						eeprom_write_config(EEADR_CURRENT_STEP_DURATION, 0);
+						if(config_value < 6){
+							// Set intial value for SP
+							eeprom_write_config(EEADR_SETPOINT, eeprom_read_config(EEADR_PROFILE_SETPOINT(((unsigned char)config_value), 0)));
+							// Hack in case inital step duration is '0'
+							if(eeprom_read_config(EEADR_PROFILE_DURATION(((unsigned char)config_value), 0)) == 0){
+								config_value = 6;
+							}
 						}
 					}
 				}
+				eeprom_write_config(adr, config_value);
+				state=state_show_config_item;
+			} else {
+				PR6 = 250;
 			}
-			eeprom_write_config(ITEM_TO_ADDRESS(menu_item, config_item), config_value);
-			state=state_show_config_item;
-		} else {
-			PR6 = 250;
 		}
 		break;
 	default:
