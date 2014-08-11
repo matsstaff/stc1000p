@@ -316,13 +316,14 @@ static void temperature_control(){
 	}
 	else if(LATA4 == 0 && LATA5 == 0) {
 		int hysteresis = eeprom_read_config(EEADR_HYSTERESIS);
-		if ((temperature > setpoint + hysteresis) && (!probe2 || temperature2 >= setpoint)) {
+		hysteresis2 >>= 2; // Halve hysteresis 2
+		if ((temperature > setpoint + hysteresis) && (!probe2 || (temperature2 >= setpoint - hysteresis2))) {
 			if (cooling_delay) {
 				led_e.e_cool = led_e.e_cool ^ (cooling_delay & 0x1); // Flash to indicate cooling delay
 			} else {
 				LATA4 = 1;
 			}
-		} else if ((temperature < setpoint - hysteresis) && (!probe2 || temperature2 <= setpoint)) {
+		} else if ((temperature < setpoint - hysteresis) && (!probe2 || (temperature2 <= setpoint + hysteresis2))) {
 			if (heating_delay) {
 				led_e.e_heat = led_e.e_heat ^ (heating_delay & 0x1); // Flash to indicate heating delay
 			} else {
