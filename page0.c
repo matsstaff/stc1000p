@@ -210,59 +210,75 @@ void value_to_led(int value, unsigned char decimal) {
 		for(i=0; value >= 10; i++){
 			value -= 10;
 		}
-		led_1 = led_lookup[i] & (decimal ? 0xfe : 0xff);
+		led_1 = led_lookup[i];
+		if(decimal){
+			led_1 &= 0xfe;
+		}
 	} else {
 		led_1 = 0xff; // Turn off led if zero (lose leading zeros)
 	}
 	led_01 = led_lookup[value];
 }
 
-
+/* To be called once every hour on the hour.
+ * Updates EEPROM configuration when running profile.
+ */
 static void update_profile(){
-	unsigned char profile_no;
+	unsigned char profile_no = eeprom_read_config(EEADR_RUN_MODE);
 
-	profile_no = eeprom_read_config(EEADR_RUN_MODE);
+	// Running profile?
+	if (profile_no < 6) {
+		unsigned char curr_step = eeprom_read_config(EEADR_CURRENT_STEP);
+		unsigned int curr_dur = eeprom_read_config(EEADR_CURRENT_STEP_DURATION) + 1;
+		unsigned char profile_step_eeaddr;
+		unsigned int profile_step_dur;
+		int profile_next_step_sp;
 
-	if (profile_no < 6) { // Running profile
-		unsigned char curr_step;
-		unsigned int curr_dur;
+		// Sanity check
+		if(curr_step > 8){
+			curr_step = 8;
+		}
 
-		// Load step and duration
-		curr_step = eeprom_read_config(EEADR_CURRENT_STEP);
-		curr_step = curr_step > 8 ? 8 : curr_step;	// sanity check
-		curr_dur = eeprom_read_config(EEADR_CURRENT_STEP_DURATION);
+		profile_step_eeaddr = EEADR_PROFILE_SETPOINT(profile_no, curr_step);
+		profile_step_dur = eeprom_read_config(profile_step_eeaddr + 1);
+		profile_next_step_sp = eeprom_read_config(profile_step_eeaddr + 2);
 
-		curr_dur++;  // TODO Maybe increment conditionally to be able to call this function outside of on one hour marks?
-		if (curr_dur >= eeprom_read_config(EEADR_PROFILE_DURATION(profile_no, curr_step))) {
-			curr_step++;
-			curr_dur = 0;
-				// Is this the last step? Update settings and switch to thermostat mode.
-			if (curr_step == 9	|| eeprom_read_config(EEADR_PROFILE_DURATION(profile_no, curr_step)) == 0) {
-				eeprom_write_config(EEADR_SETPOINT,	eeprom_read_config(EEADR_PROFILE_SETPOINT(profile_no, curr_step)));
+		// Reached end of step?
+		if (curr_dur >= profile_step_dur) {
+			// Update setpoint with value from next step
+			eeprom_write_config(EEADR_SETPOINT,	profile_next_step_sp);
+			// Is this the last step (next step is number 9 or next step duration is 0)?
+			if (curr_step == 8 || eeprom_read_config(profile_step_eeaddr + 3) == 0) {
+				// Switch to thermostat mode.
 				eeprom_write_config(EEADR_RUN_MODE, 6);
 				return; // Fastest way out...
 			}
+			// Reset duration
+			curr_dur = 0;
+			// Update step
+			curr_step++;
 			eeprom_write_config(EEADR_CURRENT_STEP, curr_step);
-			eeprom_write_config(EEADR_SETPOINT, eeprom_read_config(EEADR_PROFILE_SETPOINT(profile_no, curr_step)));
-		} else if(eeprom_read_config(EEADR_RAMPING)) {
-			unsigned int step_dur = eeprom_read_config(EEADR_PROFILE_DURATION(profile_no, curr_step));
-			int sp1 = eeprom_read_config(EEADR_PROFILE_SETPOINT(profile_no, curr_step));
-			int sp2 = eeprom_read_config(EEADR_PROFILE_SETPOINT(profile_no, curr_step + 1));
+		} else if(eeprom_read_config(EEADR_RAMPING)) { // Is ramping enabled?
+			int profile_step_sp = eeprom_read_config(profile_step_eeaddr);
 			unsigned int t = curr_dur << 6;
 			long sp = 32;
 			unsigned char i;
 
+			// Linear interpolation calculation of new setpoint (64 substeps)
 			for (i = 0; i < 64; i++) {
-			 if (t >= step_dur) {
-			    t -= step_dur;
-			    sp += sp2;
+			 if (t >= profile_step_dur) {
+			    t -= profile_step_dur;
+			    sp += profile_next_step_sp;
 			  } else {
-			    sp += sp1;
+			    sp += profile_step_sp;
 			  }
 			}
 			sp >>= 6;
+
+			// Update setpoint
 			eeprom_write_config(EEADR_SETPOINT, sp);
 		}
+		// Update duration
 		eeprom_write_config(EEADR_CURRENT_STEP_DURATION, curr_dur);
 	}
 }
@@ -300,13 +316,13 @@ static void temperature_control(){
 	}
 	else if(LATA4 == 0 && LATA5 == 0) {
 		int hysteresis = eeprom_read_config(EEADR_HYSTERESIS);
-		if (temperature > setpoint + hysteresis) {
+		if ((temperature > setpoint + hysteresis) && (!probe2 || temperature2 >= setpoint)) {
 			if (cooling_delay) {
 				led_e.e_cool = led_e.e_cool ^ (cooling_delay & 0x1); // Flash to indicate cooling delay
 			} else {
 				LATA4 = 1;
 			}
-		} else if (temperature < setpoint - hysteresis) {
+		} else if ((temperature < setpoint - hysteresis) && (!probe2 || temperature2 <= setpoint)) {
 			if (heating_delay) {
 				led_e.e_heat = led_e.e_heat ^ (heating_delay & 0x1); // Flash to indicate heating delay
 			} else {
@@ -433,8 +449,8 @@ static unsigned int read_ad(unsigned int adfilter){
 static int ad_to_temp(unsigned int adfilter){
 	unsigned char i;
 	long temp = 32;
-	unsigned char a = ((adfilter >> 5) & 0x3f);
-	unsigned char b = ((adfilter >> 11) & 0x1f);
+	unsigned char a = ((adfilter >> 5) & 0x3f); // Lower 6 bits
+	unsigned char b = ((adfilter >> 11) & 0x1f); // Upper 5 bits
 
 	// Interpolate between lookup table points
 	for (i = 0; i < 64; i++) {
@@ -448,7 +464,6 @@ static int ad_to_temp(unsigned int adfilter){
 	// Divide by 64 to get back to normal temperature
 	return (temp >> 6);
 }
-
 
 /*
  * Main entry point.
@@ -532,7 +547,11 @@ void main(void) __naked {
 					// Show temperature if menu is idle
 					if(TMR1GE){
 						led_e.e_point = !TX9;
-						temperature_to_led(TX9 ? temperature2 : temperature);
+						if(TX9){
+							temperature_to_led(temperature2);
+						} else {
+							temperature_to_led(temperature);
+						}
 					}
 				}
 
