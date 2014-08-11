@@ -205,9 +205,9 @@ void button_menu_fsm(){
 			}
 			state = state_idle;
 		} else if(!BTN_HELD(BTN_PWR)){
-			if((unsigned char)eeprom_read_config(EEADR_2ND_PROBE)){
+//			if((unsigned char)eeprom_read_config(EEADR_2ND_PROBE)){
 					TX9 = !TX9;
-			}
+//			}
 			state = state_idle;
 		}
 		break;
