@@ -439,11 +439,11 @@ static void interrupt_service_routine(void) __interrupt 0 {
 
 static unsigned int read_ad(unsigned int adfilter){
 	unsigned char i;
-	for(i=0; i<40; i++){ __asm NOP __endasm; };
+//	for(i=0; i<40; i++){ __asm NOP __endasm; };
 	ADGO = 1;
 	while(ADGO);
 	ADON = 0;
-	return (adfilter - (adfilter >> 6) + ((ADRESH << 8) | ADRESL));
+	return ((adfilter - (adfilter >> 6)) + ((ADRESH << 8) | ADRESL));
 }
 
 static int ad_to_temp(unsigned int adfilter){
@@ -470,15 +470,11 @@ static int ad_to_temp(unsigned int adfilter){
  */
 void main(void) __naked {
 	unsigned int millisx60=0;
-	unsigned int ad_filter, ad_filter2;
+	unsigned int ad_filter=0x7fff, ad_filter2=0x7fff;
 
 	init();
 
 	START_TCONV_1();
-	ad_filter = read_ad(0) << 6;
-
-	START_TCONV_2();
-	ad_filter2 = read_ad(0) << 6;
 
 	//Loop forever
 	while (1) {
@@ -502,15 +498,13 @@ void main(void) __naked {
 
 			millisx60++;
 
-			START_TCONV_1();
-			ad_filter = read_ad(ad_filter);
-
-			START_TCONV_2();
-			ad_filter2 = read_ad(ad_filter2);
-
-			// Alarm on sensor error (AD result out of range)
-//            LATA0 = (ad_result >= 992 || ad_result < 32);
-			LATA0 = (ad_filter >= 63488 || ad_filter <= 2047);
+			if(millisx60 & 0x1){
+				ad_filter = read_ad(ad_filter);
+				START_TCONV_2();
+			} else {
+				ad_filter2 = read_ad(ad_filter2);
+				START_TCONV_1();
+			}
 
 			// Only run every 16th time called, that is 16x60ms = 960ms
 			// Close enough to 1s for our purposes.
@@ -519,12 +513,16 @@ void main(void) __naked {
 				temperature = ad_to_temp(ad_filter) + eeprom_read_config(EEADR_TEMP_CORRECTION);
 				temperature2 = ad_to_temp(ad_filter2) + eeprom_read_config(EEADR_TEMP_CORRECTION_2);
 
+				// Alarm on sensor error (AD result out of range)
+				LATA0 = ((ad_filter>>8) >= 248 || (ad_filter>>8) <= 8) || (eeprom_read_config(EEADR_2ND_PROBE) && ((ad_filter2>>8) >= 248 || (ad_filter2>>8) <= 8));
+
 				if(LATA0){ // On alarm, disable outputs
 					led_10 = 0x11; // A
 					led_1 = 0xcb; //L
 					led_e.led_e = led_01 = 0xff;
 					LATA4 = 0;
 					LATA5 = 0;
+					cooling_delay = heating_delay = 60;
 				} else {
 					// Update running profile every hour (if there is one)
 					// and handle reset of millis x60 counter
