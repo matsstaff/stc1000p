@@ -43,7 +43,7 @@ You will of course also need a computer and the proper USB cable to connect the 
 
 ![image alt text](image_0.jpg)
 
-*Fig1: Pin header (1x5, 0.1inch/2.54mm pitch) *
+*Fig1: Pin header (1x5, 0.1inch/2.54mm pitch)*
 
 ![image alt text](image_1.jpg)
 
@@ -98,8 +98,9 @@ Only when the sketch is uploaded correctly is it safe to make the connections to
 |ICSPCLK |D9     |
 |ICSPDAT |D8     |
 |GND     |GND    |
-|VCC	 |5V     |
+|VCC  	 |5V     |
 |nMCLR	 |D3     |
+
 *Table 1: Connections between STC-1000 and Arduino boards*
 
 See also *Fig 5*, *Fig 6, Fig 7* and *Fig 8 *for illustrations.
@@ -153,6 +154,35 @@ Then check your connections and try again, until you get the correct output.
 Send ‘a’ or ‘f’ to upload the version you want (Celsius or Fahrenheit). If you are upgrading from a previous version of STC-1000+, you may want to use the ‘b’ or ‘g’ command instead. The difference is that all the data will be retained in EEPROM (i.e. profiles, temperature correction e.t.c.). When upgrading, the sketch will indicate (on the ‘d’ command output) if there are changes that might invalidate your current EEPROM data, and if so you might want to use the ‘a’/’f’ command even when upgrading, to make sure the data has sane defaults.
 
 After sending the upload command, a lot of output will appear in the serial monitor (that might be useful, should there be a problem) and due to how the the hardware is designed, it will also make some noise during programming (this takes ~20 seconds).
+
+## The very cheap programmer
+
+*TODO: Add more text here.* 
+
+![image alt text](image_9.jpg)
+
+*Fig 9: Text.*
+
+![image alt text](image_10.jpg)
+
+*Fig 10: Text.*
+
+![image alt text](image_11.jpg)
+
+*Fig 11: Text.*
+
+![image alt text](image_12.jpg)
+
+*Fig 12: Text.*
+
+![image alt text](image_13.jpg)
+
+*Fig 13: Text.*
+
+![image alt text](image_14.jpg)
+
+*Fig 14: Text.*
+
 
 # Using the STC-1000+ firmware
 
@@ -208,58 +238,17 @@ You can change all the setpoints and durations associated with that profile from
 
 The settings menu has the following items:
 
-<table>
-  <tr>
-    <td>Sub menu item</td>
-    <td>Description</td>
-    <td>Values</td>
-  </tr>
-  <tr>
-    <td>hy</td>
-    <td>Set hysteresis</td>
-    <td>0.0 to 2.5°C or 0.0 to 5.0°F</td>
-  </tr>
-  <tr>
-    <td>tc</td>
-    <td>Set temperature correction</td>
-    <td>-2.5 to 2.5°C or -5.0 to 5.0°F</td>
-  </tr>
-  <tr>
-    <td>SP</td>
-    <td>Set setpoint</td>
-    <td>-40 to 140°C or -40 to 250°F</td>
-  </tr>
-  <tr>
-    <td>St</td>
-    <td>Set current profile step</td>
-    <td>0 to 8</td>
-  </tr>
-  <tr>
-    <td>dh</td>
-    <td>Set current profile duration</td>
-    <td>0 to 999 hours</td>
-  </tr>
-  <tr>
-    <td>cd</td>
-    <td>Set cooling delay</td>
-    <td>0 to 60 minutes</td>
-  </tr>
-  <tr>
-    <td>hd</td>
-    <td>Set heating delay</td>
-    <td>0 to 60 minutes</td>
-  </tr>
-  <tr>
-    <td>rP</td>
-    <td>Ramping</td>
-    <td>0 = off, 1 = on</td>
-  </tr>
-  <tr>
-    <td>rn</td>
-    <td>Set run mode</td>
-    <td>'Pr0' to 'Pr5' and 'th'</td>
-  </tr>
-</table>
+|Sub menu item|Description|Values|
+|---|---|---|
+|hy|Set hysteresis|0.0 to 2.5°C or 0.0 to 5.0°F|
+|tc|Set temperature correction|-2.5 to 2.5°C or -5.0 to 5.0°F|
+|SP|Set setpoint|-40 to 140°C or -40 to 250°F|
+|St|Set current profile step|0 to 8|
+|dh|Set current profile duration|0 to 999 hours|
+|cd|Set cooling delay|0 to 60 minutes|
+|hd|Set heating delay|0 to 60 minutes|
+|rP|Ramping|0 = off, 1 = on|
+|rn|Set run mode|'Pr0' to 'Pr5' and 'th'|
 
 
 *Table 4: Settings sub-menu items*
