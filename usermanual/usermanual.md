@@ -245,13 +245,16 @@ The settings menu has the following items:
 |Sub menu item|Description|Values|
 |---|---|---|
 |hy|Set hysteresis|0.0 to 2.5°C or 0.0 to 5.0°F|
+|hy2|Set hysteresis for second temp probe|0.0 to 25.0°C or 0.0 to 50.0°F|
 |tc|Set temperature correction|-2.5 to 2.5°C or -5.0 to 5.0°F|
+|tc2|Set temperature correction for second temp probe|-2.5 to 2.5°C or -5.0 to 5.0°F|
 |SP|Set setpoint|-40 to 140°C or -40 to 250°F|
 |St|Set current profile step|0 to 8|
 |dh|Set current profile duration|0 to 999 hours|
 |cd|Set cooling delay|0 to 60 minutes|
 |hd|Set heating delay|0 to 60 minutes|
 |rP|Ramping|0 = off, 1 = on|
+|Pb|Enable second temp probe for use in thermostat control|0 = off, 1 = on|
 |rn|Set run mode|'Pr0' to 'Pr5' and 'th'|
 
 
