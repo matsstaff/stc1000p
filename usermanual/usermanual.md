@@ -11,13 +11,15 @@ Mats Staffansson
 
 2014-06-30:	Updated heating and cooling delay (reset on either cycle)
 
+2014-08-12:	Added info on second temp probe and the very cheap programmer
+
 # Introduction
 
 STC-1000+ is a project which aims to provide a firmware better suited for controlling fermentation for the popular STC-1000 dual stage temperature controller, as well as providing the means to easily upload the firmware to the controller.
 
 # Disclaimers
 
-It appears that two different versions of STC-1000 hardware are in circulation and only one of these are compatible with STC-1000+. The circuit board needs to be of A400_P type.
+It appears that different versions of STC-1000 hardware are in circulation and only one of these are compatible with STC-1000+. The circuit board needs to be of A400_P type.
 
 While I personally feel this is a quality piece of software, flashing your STC-1000 is irreversible. You will not be able to restore the original firmware. 
 
@@ -33,7 +35,7 @@ You will need the following equipment:
 
 * An STC-1000 (with the correct hardware revision, A400_P)
 
-* An Arduino compatible development board (tested to work with Arduino UNO)
+* An Arduino compatible development board (tested to work with Arduino UNO and Arduino Pro Mini 5V 16Mhz)
 
 * Arduino IDE (download from here: [http://arduino.cc/en/main/software](http://arduino.cc/en/main/software))
 
@@ -135,7 +137,7 @@ No previous STC-1000+ firmware detected.
 
 Consider initializing EEPROM when flashing.
 
-Sketch has version 0.11
+Sketch has version 1.06
 
 Send 'a' to upload Celsius version and initialize EEPROM data.
 
@@ -151,42 +153,61 @@ STC-1000 NOT detected. Check wiring.
 
 Then check your connections and try again, until you get the correct output.
 
-Send ‘a’ or ‘f’ to upload the version you want (Celsius or Fahrenheit). If you are upgrading from a previous version of STC-1000+, you may want to use the ‘b’ or ‘g’ command instead. The difference is that all the data will be retained in EEPROM (i.e. profiles, temperature correction e.t.c.). When upgrading, the sketch will indicate (on the ‘d’ command output) if there are changes that might invalidate your current EEPROM data, and if so you might want to use the ‘a’/’f’ command even when upgrading, to make sure the data has sane defaults.
+Send ‘a’ or ‘f’ to upload the version you want (Celsius or Fahrenheit). If you are upgrading from a previous version of STC-1000+, you may want to use the ‘b’ or ‘g’ command instead. The difference is that all the data will be retained in EEPROM (i.e. profiles, temperature correction et.c.). When upgrading, the sketch will indicate (on the ‘d’ command output) if there are changes that might invalidate your current EEPROM data, and if so you might want to use the ‘a’/’f’ command even when upgrading, to make sure the data has sane defaults.
 
 After sending the upload command, a lot of output will appear in the serial monitor (that might be useful, should there be a problem) and due to how the the hardware is designed, it will also make some noise during programming (this takes ~20 seconds).
 
 ## The very cheap programmer
 
-*TODO: Add more text here.* 
+If you are able to do some light soldering, then it is possible to build a programmer to flash the STC-1000 very cheaply using an Arduino pro mini and CP2102 (USB to TTL serial converver). Currently, this will cost around $5 on eBay. Search for "arduino pro mini 5V 16M CP2102" and you should find suitable matches. You will also need some wire. I find it easiest to use a 5 pin dupont cable. I will show how I build the programmer.
 
 ![image alt text](image_8.jpg)
 
-*Fig 9: Text.*
+*Fig 9: The material I use, Arduino pro mini, CP2102, 5 pin dupont cable and heat shrink tubing (optional).*
+
+First I use a flat nose plier to bend the 90 degree pin header on the CP2102 back straight.
 
 ![image alt text](image_9.jpg)
 
-*Fig 10: Text.*
+*Fig 10: CP2102 with straightened pinheader.*
+
+The 3.3V pin needs to go. You could probably just cut it, but I heat up the solder with the soldering iron while at the same time pulling it from the other end with some pliers.
 
 ![image alt text](image_10.jpg)
 
-*Fig 11: Text.*
+*Fig 11: Instruments of destruction, awaiting their next victim (Oh, no! Aaargh...).*
 
 ![image alt text](image_11.jpg)
 
-*Fig 12: Text.*
+*Fig 12: -He was so young. -Yes he was, who will inform the family? Wait, that's us!.*
+
+Ok, enough stupid captions. Flip the pro mini upside down, and the pins should line up (note: rx goes to tx and tx to rx, the others should match)
 
 ![image alt text](image_12.jpg)
 
-*Fig 13: Text.*
+*Fig 13: Pro mini lined up on the pin header, note the empty spot for the 3.3V pin.*
+
+Solder it in and cut the excess of the pins.
 
 ![image alt text](image_13.jpg)
 
-*Fig 14: Text.*
+*Fig 14: CP2102 and pro mini joined together.*
+
+Then just cut off one end of the dupont cable. Strip just a little bit of insulation off the end of each cable and pre tin. Solder each cable in the correct position (D9, D8, GND, VCC, D3). Best to feed it from below the board, as the reset button (which will still work) and other stuff is on the other side.
 
 ![image alt text](image_14.jpg)
 
-*Fig 15: Text.*
+*Fig 15: This will function as a programmer.*
 
+The last step is optional, but will make it more durable and a bit neater. Cut a few pieces off of a hot glue stick and put around and under the wires. Then feed it through an appropriately cut length of heat shrink tubing (usb connector first). 15mm diameter heat shrink tubing is a snug fit. When heating the tubing, the glue will melt and make a cheapish stress relief for the cables. A hot air gun works well to shrink the tubing, an electric hot plate (stove) also work very well. In pinch, you can even use a lighter.
+
+![image alt text](image_15.jpg)
+
+*Fig 15: Hot glue bits placed around and under the wires.*
+
+![image alt text](image_16.jpg)
+
+*Fig 16: The finished 'product'.*
 
 # Using the STC-1000+ firmware
 
@@ -203,6 +224,8 @@ After sending the upload command, a lot of output will appear in the serial moni
 * Separate delay settings for cooling and heating
 
 * Configurable hysteresis (allowable temp swing)
+
+* Optinally use a second temperature input (fridge air temp) to limit over/undershoot.
 
 * Approximative ramping
 
@@ -262,7 +285,11 @@ The settings menu has the following items:
 
 **Hysteresis**, is the allowable temperature range around the setpoint where the thermostat will not change state. For example, if temperature is greater than setpoint + hysteresis AND the time passed since last cooling cycle is greater than cooling delay, then cooling relay will be engaged. Once the temperature reaches setpoint again, cooling relay will be disengaged.
 
+**Hysteresis 2**, is the allowable temperature range around the setpoint for temp probe 2, if it is enabled (Pb=1). For example, if temperature 2 is less than setpoint - hy2 cooling relay will cut out even if SP-hy has not been reached for temperature (1). Also, cooling will not be allowed again, until temperature 2 exceeds SP-0.5*hy2 (that is, it has regained at least half the hysteresis).
+
 **Temperature correction**, will be added to the read temperature, this allows the user to calibrate temperature reading. It is best to calibrate around your working point. That means for fermentation, it is better to calibrate at room temperature against a reference thermometer than using ice water.
+
+**Temperature correction 2**, same as tc but for secondary temp probe.
 
 **Setpoint**, well... The desired temperature to keep. The way STC-1000+ firmware works, setpoint is *always* the value the thermostat strives towards, even when running a profile. What the profile does is simply setting the setpoint at given times.
 
@@ -270,7 +297,7 @@ The settings menu has the following items:
 
 **Cooling** and **heating delay** is the minimum 'off time' for each relay, to spare the compressor and relays from short cycling. If the the temperature is too high or too low, but the delay has not yet been met, the corresponding LED (heating/cooling) will blink, indicating that the controller is waiting to for the delay to pass before it will start heating or cooling. When the controller is powered on, the initial delay (for both heating and cooling) will **always** be approximately 1 minute, regardless of the settings. That is because even if your system could tolerate no heating or cooling delays during normal control (i.e. ‘cd’ and/or ‘hd’ set to zero), it would be undesirable for the relay to rapidly turn on and off in the event of a power outage causing mains power to fluctuate. Both cooling and heating delays are loaded when either cooling/heating relays switched off. So, for instance if you set cooling delay to 60 minutes and setpoint is reached, turning cooling relay off, it will be approximately one hour until cooling relay will be allowed to switch on again, even if you change your mind and change the setting in EEPROM (i.e. it will not affect the current cycle).
 
-The delay can be used to prevent oscillation. For example, setting an appropriately long heating delay can prevent the heater coming on if the cooling cycle causes an undershoot that would otherwise cause heater to run. What is ‘appropriate’ depends on your setup.
+The delay can be used to prevent oscillation (hunting). For example, setting an appropriately long heating delay can prevent the heater coming on if the cooling cycle causes an undershoot that would otherwise cause heater to run. What is ‘appropriate’ depends on your setup.
 
 **Run mode**, selecting 'Pr0' to 'Pr5' will start the corresponding profile running from step 0, duration 0. Selecting 'th' will switch to thermostat mode, the last setpoint from the previously running profile will be retained as the current setpoint when switching from a profile to thermostat mode.
 
@@ -309,6 +336,10 @@ Note, that in order to keep a constant temperature with ramping enabled, an extr
 You can think of the ramping as being true, even if this approximation is being used, the only caveat is, if you need a long ramp (over several days or weeks) and require it to be smoother. Then you may need to split it over several steps.
 
 Another tip would be to try to design your profiles with ramping in mind, if possible (that is include the extra setpoints when keeping constant temperature is desired), even if you will not use ramping. That way, the profiles will work as expected even if ramping is enabled.
+
+## Secondary temperature probe input
+
+Limit over/undershoot by putting limits on fridge air temperature. Todo, explain better what the idea is and how the hysteresis work and that swings needs be larger and more rapid than for t1.
 
 ## Additional features
 
