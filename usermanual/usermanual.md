@@ -219,15 +219,17 @@ The last step is optional, but will make it more durable and a bit neater. Cut a
 
 * Each setpoint can be held for 1-999 hours (i.e. up to ~41 days).
 
+* Oversampling and filtering of temperature
+
 * Somewhat intuitive menus for configuring
 
 * Separate delay settings for cooling and heating
 
 * Configurable hysteresis (allowable temp swing)
 
-* Optinally use a second temperature input (fridge air temp) to limit over/undershoot.
+* Optionally use a second temperature input (fridge air temp) to limit over/undershoot.
 
-* Approximative ramping
+* Optionally use approximative linear ramping between setpoints
 
 * Button acceleration, for frustrationless programming by buttons
 
