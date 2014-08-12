@@ -1,6 +1,5 @@
-USER MANUAL
-
-STC-1000+
+STC-1000+ USER MANUAL
+=====================
 
 Mats Staffansson
 
@@ -11,10 +10,6 @@ Mats Staffansson
 2014-05-25:	Updated the ramping section with the change from 8 to 64 substeps.
 
 2014-06-30:	Updated heating and cooling delay (reset on either cycle)
-
-# Index
-
-[[TOC]]
 
 # Introduction
 
