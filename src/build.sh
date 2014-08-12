@@ -29,7 +29,7 @@ v=`cat stc1000p.h | grep STC1000P_VERSION`
 e=`cat stc1000p.h | grep STC1000P_EEPROM_VERSION`
 
 # Remove embedded HEX data from previous sketch and insert version info
-cat picprog.ino | sed -n '/^const char hex_celsius\[\] PROGMEM/q;p' | sed "s/^#define STC1000P_VERSION.*/$v/" | sed "s/^#define STC1000P_EEPROM_REV.*/$e/" >> picprog.tmp
+cat ../picprog.ino | sed -n '/^const char hex_celsius\[\] PROGMEM/q;p' | sed "s/^#define STC1000P_VERSION.*/$v/" | sed "s/^#define STC1000P_EEPROM_REV.*/$e/" >> picprog.tmp
 
 # Insert new HEX data
 echo "const char hex_celsius[] PROGMEM = {" >> picprog.tmp; 
@@ -57,8 +57,8 @@ done;
 echo "};" >> picprog.tmp
 
 # Rename old sketch and replace with new
-mv -f picprog.ino picprog.bkp
-mv picprog.tmp picprog.ino
+mv -f ../picprog.ino picprog.bkp
+mv picprog.tmp ../picprog.ino
 
 # Print size approximation (from .asm files)
 let s=0;
@@ -70,3 +70,4 @@ done;
 echo "total $s";
 
 make clean
+mv *.hex build/
