@@ -159,29 +159,33 @@ After sending the upload command, a lot of output will appear in the serial moni
 
 *TODO: Add more text here.* 
 
-![image alt text](image_9.jpg)
+![image alt text](image_8.jpg)
 
 *Fig 9: Text.*
 
-![image alt text](image_10.jpg)
+![image alt text](image_9.jpg)
 
 *Fig 10: Text.*
 
-![image alt text](image_11.jpg)
+![image alt text](image_10.jpg)
 
 *Fig 11: Text.*
 
-![image alt text](image_12.jpg)
+![image alt text](image_11.jpg)
 
 *Fig 12: Text.*
 
-![image alt text](image_13.jpg)
+![image alt text](image_12.jpg)
 
 *Fig 13: Text.*
 
-![image alt text](image_14.jpg)
+![image alt text](image_13.jpg)
 
 *Fig 14: Text.*
+
+![image alt text](image_14.jpg)
+
+*Fig 15: Text.*
 
 
 # Using the STC-1000+ firmware
