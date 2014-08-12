@@ -159,29 +159,33 @@ After sending the upload command, a lot of output will appear in the serial moni
 
 *TODO: Add more text here.* 
 
-![image alt text](image_9.jpg)
+![image alt text](image_8.jpg)
 
 *Fig 9: Text.*
 
-![image alt text](image_10.jpg)
+![image alt text](image_9.jpg)
 
 *Fig 10: Text.*
 
-![image alt text](image_11.jpg)
+![image alt text](image_10.jpg)
 
 *Fig 11: Text.*
 
-![image alt text](image_12.jpg)
+![image alt text](image_11.jpg)
 
 *Fig 12: Text.*
 
-![image alt text](image_13.jpg)
+![image alt text](image_12.jpg)
 
 *Fig 13: Text.*
 
-![image alt text](image_14.jpg)
+![image alt text](image_13.jpg)
 
 *Fig 14: Text.*
+
+![image alt text](image_14.jpg)
+
+*Fig 15: Text.*
 
 
 # Using the STC-1000+ firmware
@@ -241,13 +245,16 @@ The settings menu has the following items:
 |Sub menu item|Description|Values|
 |---|---|---|
 |hy|Set hysteresis|0.0 to 2.5°C or 0.0 to 5.0°F|
+|hy2|Set hysteresis for second temp probe|0.0 to 25.0°C or 0.0 to 50.0°F|
 |tc|Set temperature correction|-2.5 to 2.5°C or -5.0 to 5.0°F|
+|tc2|Set temperature correction for second temp probe|-2.5 to 2.5°C or -5.0 to 5.0°F|
 |SP|Set setpoint|-40 to 140°C or -40 to 250°F|
 |St|Set current profile step|0 to 8|
 |dh|Set current profile duration|0 to 999 hours|
 |cd|Set cooling delay|0 to 60 minutes|
 |hd|Set heating delay|0 to 60 minutes|
 |rP|Ramping|0 = off, 1 = on|
+|Pb|Enable second temp probe for use in thermostat control|0 = off, 1 = on|
 |rn|Set run mode|'Pr0' to 'Pr5' and 'th'|
 
 
@@ -305,9 +312,11 @@ Another tip would be to try to design your profiles with ramping in mind, if pos
 
 ## Additional features
 
-**Sensor alarm**, if the measured temperature is out of range (indicating the sensor is not connected properly or broken), the internal buzzer will sound and display will show ‘AL’. 
+**Sensor alarm**, if the measured temperature is out of range (indicating the sensor is not connected properly or broken), the internal buzzer will sound and display will show ‘AL’. If secondary probe is enabled for thermostat control (Pb=1), then alarm will go off if that temperature goes out of range as well. On alarm, both relays will be disengaged and the heating and cooling delay will be reset to 1 minute. So, once the temperature in in range again (i.e. sensor is reconnected), temperature readings can stabilize before thermostat control takes over.
 
-**Power off**, pressing and holding power button for a few seconds when the controller is not in menu (showing current temperature), will disable the display and and relays (soft power off). To really power off, you need to cut mains power to the device.
+**Power off**, pressing and holding power button for a few seconds when the controller is not in menu (showing current temperature), will disable the relays (soft power off) and show 'OFF' on the display. To really power off, you need to cut mains power to the device. The soft power off state will remain after a power cycle. Long pressing the power off button again will bring it out of soft power off mode.
+
+**Switch temperature display**, pressing and releasing the power button quickly will switch which temperature probe's value is being shown on the display. If temperature from the secondary probe is showing an additional LED (between the first two digits) will be lit as an indication.
 
 By pressing and holding ‘up’ button when temperature is showing, current setpoint will be displayed. 
 
