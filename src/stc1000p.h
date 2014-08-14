@@ -18,6 +18,38 @@
  * You should have received a copy of the GNU General Public License
  * along with STC1000+.  If not, see <http://www.gnu.org/licenses/>.
  *
+ *
+ * Schematic of the connections to the MCU.
+ *
+ *                                     PIC16F1828
+ *                                    ------------
+ *                                VDD | 1     20 | VSS
+ *                     Relay Heat RA5 | 2     19 | RA0/ICSPDAT (Programming header), Piezo buzzer
+ *                     Relay Cool RA4 | 3     18 | RA1/AN1/ICSPCLK (Programming header), Thermistor
+ * (Programming header) nMCLR/VPP/RA3 | 4     17 | RA2/AN2 Thermistor
+ *                          LED 5 RC5 | 5     16 | RC0 LED 0
+ *                   LED 4, BTN 4 RC4 | 6     15 | RC1 LED 1
+ *                   LED 3, BTN 3 RC3 | 7     14 | RC2 LED 2
+ *                   LED 6, BTN 2 RC6 | 8     13 | RB4 LED Common Anode 10's digit
+ *                   LED 7, BTN 1 RC7 | 9     12 | RB5 LED Common Anode 1's digit
+ *        LED Common Anode extras RB7 | 10    11 | RB6 LED Common Anode 0.1's digit
+ *                                    ------------
+ *
+ *
+ * Schematic of the bit numbers for the display LED's. Useful if custom characters are needed.
+ *
+ *           * 7       --------    *    --------       * C
+ *                    /   7   /    1   /   7   /       5 2
+ *                 2 /       / 6    2 /       / 6    ----
+ *                   -------          -------     2 / 7 / 6
+ *           *     /   1   /        /   1   /       ---
+ *           3  5 /       / 3    5 /       / 3  5 / 1 / 3
+ *                --------    *    --------   *   ----  *
+ *                  4         0      4        0    4    0
+ *
+ *
+ *
+ *
  */
 
 #ifndef __STC1000P_H__
@@ -62,11 +94,44 @@
 #define EEADR_RUN_MODE							125
 #define EEADR_POWER_ON							127
 
+#define LED_OFF	0xff
+#define LED_0	0x3
+#define LED_1	0xb7
+#define LED_2	0xd
+#define LED_3	0x25
+#define LED_4	0xb1
+#define LED_5	0x61
+#define LED_6	0x41
+#define LED_7	0x37
+#define LED_8	0x1
+#define LED_9	0x21
+#define LED_A	0x5
+#define LED_b	0xc1
+#define LED_C	0x4b
+#define LED_c	0xcd
+#define LED_d	0x85
+#define LED_e	0x9
+#define LED_E	0x49
+#define LED_F	0x59
+#define LED_H	0x91
+#define LED_h	0xd1
+#define LED_I	0xb7
+#define LED_J	0x87
+#define LED_L	0xcb
+#define LED_n	0xd5	
+#define LED_O	0x3
+#define LED_P	0x19
+#define LED_r	0xdd	
+#define LED_S	0x61
+#define LED_t	0xc9
+#define LED_U	0x83
+#define LED_y	0xa1
+
 /* Declare functions and variables from Page 0 */
 
 typedef union
 {
-	unsigned char led_e;
+	unsigned char raw;
 
 	struct
 	  {
@@ -79,10 +144,27 @@ typedef union
 	  unsigned e_set                : 1;
 	  unsigned e_cool               : 1;
 	  };
-} _led_e_bits;
+} led_e_t;
 
-extern _led_e_bits led_e;
-extern unsigned char led_10, led_1, led_01;
+typedef union
+{
+	unsigned char raw;
+
+	struct
+	  {
+	  unsigned decimal				: 1;
+	  unsigned middle				: 1;
+	  unsigned upper_left			: 1;
+	  unsigned lower_right          : 1;
+	  unsigned bottom				: 1;
+	  unsigned lower_left			: 1;
+	  unsigned upper_right			: 1;
+	  unsigned top					: 1;
+	  };
+} led_t;
+
+extern led_e_t led_e;
+extern led_t led_10, led_1, led_01;
 extern unsigned const char led_lookup[];
 
 extern unsigned int eeprom_read_config(unsigned char eeprom_address);

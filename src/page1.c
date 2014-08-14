@@ -41,6 +41,101 @@
 #define ITEM_TO_ADDRESS(mi, ci)	((mi)*19 + (ci))
 //#define ITEM_TO_ADDRESS(mi, ci)	(((mi)<<4) + ((mi)<<1) + (mi) + (ci))
 
+
+/* Reimplement menu with x macros */
+
+#define SET_MENU_DATA(_) \
+    _(hy, 		LED_h, 		LED_y, 		LED_OFF, 	0, 				TEMP_HYST_1_MAX) \
+    _(hy2, 		LED_h, 		LED_y, 		LED_2, 		0, 				TEMP_HYST_2_MAX) \
+    _(tc, 		LED_t, 		LED_c, 		LED_OFF, 	TEMP_CORR_MIN, 	TEMP_CORR_MAX) \
+    _(tc2, 		LED_t, 		LED_c, 		LED_2, 		TEMP_CORR_MIN,	TEMP_CORR_MAX) \
+    _(SP, 		LED_S, 		LED_P, 		LED_OFF, 	TEMP_MIN,		TEMP_MAX) \
+    _(St, 		LED_S, 		LED_t, 		LED_OFF, 	0,				8) \
+    _(dh, 		LED_d, 		LED_h, 		LED_OFF, 	0,				999) \
+    _(cd, 		LED_c, 		LED_d, 		LED_OFF, 	0,				60) \
+    _(hd, 		LED_h, 		LED_d, 		LED_OFF, 	0,				60) \
+    _(rP, 		LED_r, 		LED_P, 		LED_OFF, 	0,				1) \
+    _(Pb, 		LED_P, 		LED_b, 		LED_OFF, 	0,				1) \
+    _(rn, 		LED_r, 		LED_n, 		LED_OFF, 	0,				6) \
+
+#define TO_STRUCT(name, led10ch, led1ch, led01ch, minv, maxv) \
+    { led10ch, led1ch, led01ch, minv, maxv},
+    
+#define TO_ENUM(name, led10ch, led1ch, led01ch, minv, maxv) \
+    name,
+
+enum set_menu_enum {
+    SET_MENU_DATA(TO_ENUM)
+};
+
+#define EEADR(name)    (114 + ((name)<<2))
+
+struct s_setmenu {
+    unsigned char led_c_10;
+    unsigned char led_c_1;
+    unsigned char led_c_01;
+//    unsigned char flags;
+    int min;
+    int max;
+};
+
+static const struct s_setmenu setmenu[] = {
+	SET_MENU_DATA(TO_STRUCT)
+};
+
+#define SET_MENU_SIZE	(sizeof(setmenu)/sizeof(setmenu[0]))
+
+/* End reimplement menu with x macros */
+
+/* Helpers to constrain user input  */
+//#define RANGE(x,min,max)	(((x)>(max))?(min):((x)<(min))?(max):(x));
+
+int RANGE(int x, int min, int max){
+	if(x>max)
+		return min;
+	if(x<min)
+		return max;
+	return x;
+}
+
+static int check_config_value(int config_value, unsigned char config_address){
+	if(config_address < EEADR_PROFILE_SETPOINT(6,0)){
+		if(config_address & 0x1){
+			config_value = RANGE(config_value, 0, 999);
+		} else {
+			config_value = RANGE(config_value, TEMP_MIN, TEMP_MAX);
+		}
+	} else {
+		config_address -= 114;
+		config_value = RANGE(config_value, setmenu[config_address].min, setmenu[config_address].max);
+	}
+	return config_value;
+}
+
+static void prx_to_led(unsigned char run_mode, unsigned char is_menu){
+	led_e.e_negative = 1;
+	led_e.e_deg = 1;
+	led_e.e_c = 1;
+	if(run_mode<6){
+		led_10.raw = LED_P;
+		led_1.raw = LED_r;
+		led_01.raw = led_lookup[run_mode];
+	} else {
+		if(is_menu){
+			led_10.raw = LED_S;
+			led_1.raw = LED_e;
+			led_01.raw = LED_t;
+		} else {
+			led_10.raw = LED_t;
+			led_1.raw = LED_h;
+			led_01.raw = LED_OFF;
+		}
+	}
+}
+
+#define run_mode_to_led(x)	prx_to_led(x,0)
+#define menu_to_led(x)	prx_to_led(x,1)
+
 /* States for the menu FSM */
 enum menu_states {
 	state_idle = 0,
@@ -65,57 +160,6 @@ enum menu_states {
 	state_up_pressed,
 	state_down_pressed,
 };
-
-/* Helper to constrain user input  */
-static int range(int x, int min, int max){
-	return (((x)>(max))?(min):((x)<(min))?(max):(x));
-}
-
-static int check_config_value(int config_value, unsigned char config_address){
-	if(config_address < EEADR_PROFILE_SETPOINT(6,0)){
-		if(config_address & 0x1){
-			config_value = range(config_value, 0, 999);
-		} else {
-			config_value = range(config_value, TEMP_MIN, TEMP_MAX);
-		}
-	} else {
-		switch(config_address){
-		case EEADR_HYSTERESIS: // Hysteresis
-			config_value = range(config_value, 0, TEMP_HYST_1_MAX);
-			break;
-		case EEADR_HYSTERESIS_2: // Hysteresis
-			config_value = range(config_value, 0, TEMP_HYST_2_MAX);
-			break;
-		case EEADR_TEMP_CORRECTION: // Temp correction
-		case EEADR_TEMP_CORRECTION_2: // Temp correction
-			config_value = range(config_value, TEMP_CORR_MIN, TEMP_CORR_MAX);
-			break;
-		case EEADR_SETPOINT: // Setpoint
-			config_value = range(config_value, TEMP_MIN, TEMP_MAX);
-			break;
-		case EEADR_CURRENT_STEP: // Current step
-			config_value = range(config_value, 0, 8);
-			break;
-		case EEADR_CURRENT_STEP_DURATION: // Current duration
-			config_value = range(config_value, 0, 999);
-			break;
-		case EEADR_COOLING_DELAY: // Cooling delay
-			config_value = range(config_value, 0, 60);
-			break;
-		case EEADR_HEATING_DELAY: // Heating delay
-			config_value = range(config_value, 0, 60);
-			break;
-		case EEADR_RAMPING: // Ramping
-		case EEADR_2ND_PROBE: // 2nd probe
-			config_value = range(config_value, 0, 1);
-			break;
-		case EEADR_RUN_MODE: // Run mode
-			config_value = range(config_value, 0, 6);
-			break;
-		}
-	}
-	return config_value;
-}
 
 /* Due to a fault in SDCC, static local variables are not initialized
  * properly, so the variables below were moved from button_menu_fsm()
@@ -182,7 +226,7 @@ void button_menu_fsm(){
 
 	case state_show_version:
 		int_to_led(STC1000P_VERSION);
-		led_10 &= 0xfe;
+		led_10.decimal = 0;
 		led_e.e_deg = 1;
 		led_e.e_c = 1;
 		if(!BTN_HELD(BTN_UP | BTN_DOWN)){
@@ -222,20 +266,10 @@ void button_menu_fsm(){
 	case state_show_profile:
 		{
 			unsigned char run_mode = eeprom_read_config(EEADR_RUN_MODE);
-			led_e.e_deg = 1;
-			led_e.e_c = 1;
-			if(run_mode<6){
-				led_10 = 0x19; // P
-				led_1 = 0xdd; // r
-				led_01 = led_lookup[run_mode & 0xf];
-				if(countdown==0){
-					countdown=17;
-					state = state_show_profile_st;
-				}
-			} else {
-				led_10=0xc9; // t
-				led_1=0xd1;	// h
-				led_01 = 0xff;
+			run_mode_to_led(run_mode);
+			if(run_mode<6 && countdown==0){
+				countdown=17;
+				state = state_show_profile_st;
 			}
 			if(!BTN_HELD(BTN_DOWN)){
 				state=state_idle;
@@ -264,19 +298,7 @@ void button_menu_fsm(){
 		break;
 
 	case state_show_menu_item:
-		led_e.e_negative = 1;
-		led_e.e_deg = 1;
-		led_e.e_c = 1;
-		if(menu_item < 6){
-			led_10 = 0x19; // P
-			led_1 = 0xdd; // r
-			led_01 = led_lookup[menu_item];
-		} else /* if(menu_item == 6) */ {
-			menu_item = 6;
-			led_10 = 0x61; // S
-			led_1 = 0x9; // e
-			led_01 = 0xc9;  // t
-		}
+		menu_to_led(menu_item);
 		countdown = 110;
 		state = state_set_menu_item;
 		break;
@@ -300,63 +322,17 @@ void button_menu_fsm(){
 		led_e.e_c = 1;
 		if(menu_item < 6){
 			if(config_item & 0x1) {
-				led_10 = 0x85; // d
-				led_1 = 0xd1; // h
+				led_10.raw = LED_d;
+				led_1.raw = LED_h;
 			} else {
-				led_10 = 0x61; // S
-				led_1 = 0x19; // P
+				led_10.raw = LED_S;
+				led_1.raw = LED_P;
 			}
-			led_01 = led_lookup[config_item >> 1];
+			led_01.raw = led_lookup[config_item >> 1];
 		} else /* if(menu_item == 6) */{
-			led_01 = 0xff;
-			switch(config_item){
-			case 1: // hysteresis2
-				led_01 = 0xd; //led_lookup[2];
-//				break;
-			case 0: // hysteresis
-				led_10 = 0xd1; // h
-				led_1 = 0xa1; // y
-				break;
-			case 3: // temp correction
-				led_01 = 0xd; //led_lookup[2];
-//				break;
-			case 2: // temp correction
-				led_10 = 0xc9; // t
-				led_1 = 0xcd; // c
-				break;
-			case 4: // Set point
-				led_10 = 0x61; // S
-				led_1 = 0x19; // P
-				break;
-			case 5: // profile step
-				led_10 = 0x61; // S
-				led_1 = 0xc9; // t
-				break;
-			case 6:  // profile duration
-				led_10 = 0x85; // d
-				led_1 = 0xd1; // h
-				break;
-			case 7: // Cooling delay
-				led_10 = 0xcd; // c
-				led_1 = 0x85; // d
-				break;
-			case 8: // Heating delay
-				led_10 = 0xd1; // h
-				led_1 = 0x85; // d
-				break;
-			case 9: // Ramping
-				led_10 = 0xdd; // r
-				led_1 = 0x19; // P
-				break;
-			case 10: // 2nd probe
-				led_10 = 0x19; // P
-				led_1 = 0xc1; // b
-				break;
-			case 11:
-				led_10 = 0xdd; // r
-				led_1 = 0xd5; // n
-				break;
-			}
+			led_10.raw = setmenu[config_item].led_c_10;
+			led_1.raw = setmenu[config_item].led_c_1;
+			led_01.raw = setmenu[config_item].led_c_01;
 		}
 		countdown = 110;
 		state = state_set_config_item;
@@ -370,9 +346,9 @@ void button_menu_fsm(){
 			if(menu_item < 6){
 				config_item = (config_item >= 18) ? 0 : config_item+1;
 			} else {
-				config_item = (config_item >= 11) ? 0 : config_item+1;
-				if(config_item == 5 && (unsigned char)eeprom_read_config(EEADR_RUN_MODE) >= 6){
-					config_item = 7;
+				config_item = (config_item >= SET_MENU_SIZE-1) ? 0 : config_item+1;
+				if(config_item == St && (unsigned char)eeprom_read_config(EEADR_RUN_MODE) >= 6){
+					config_item += 2;
 				}
 			}
 			state = state_show_config_item;
@@ -380,9 +356,9 @@ void button_menu_fsm(){
 			if(menu_item < 6){
 				config_item = (config_item == 0) ? 18 : config_item-1;
 			} else {
-				config_item = (config_item == 0) ? 11 : config_item-1;
-				if(config_item == 6 && (unsigned char)eeprom_read_config(EEADR_RUN_MODE) >= 6){
-					config_item = 4;
+				config_item = (config_item == 0) ? SET_MENU_SIZE-1 : config_item-1;
+				if(config_item == dh && (unsigned char)eeprom_read_config(EEADR_RUN_MODE) >= 6){
+					config_item -= 2;
 				}
 			}
 			state = state_show_config_item;
@@ -402,20 +378,12 @@ void button_menu_fsm(){
 				temperature_to_led(config_value);
 			}
 		} else if(menu_item == 6){
-			if(config_item < 4){
+			if(config_item <= SP){
 				temperature_to_led(config_value);
-			} else if (config_item < 11){
+			} else if (config_item < SET_MENU_SIZE-1){
 				int_to_led(config_value);
 			} else {
-				if(config_value==6){
-					led_10=0xc9; // t
-					led_1=0xd1;	// h
-					led_01 = 0xff;
-				} else {
-					led_10 = 0x19; // P
-					led_1 = 0xdd; // r
-					led_01 = led_lookup[config_value & 0xf];
-				}
+				run_mode_to_led(config_value);
 			}
 		}
 		countdown = 110;
@@ -445,7 +413,7 @@ void button_menu_fsm(){
 				state = state_show_config_value;
 			} else if(BTN_RELEASED(BTN_S)){
 				if(menu_item == 6){
-					if(config_item == 11){
+					if(config_item == rn){
 						// When setting runmode, clear current step & duration
 						eeprom_write_config(EEADR_CURRENT_STEP, 0);
 						eeprom_write_config(EEADR_CURRENT_STEP_DURATION, 0);

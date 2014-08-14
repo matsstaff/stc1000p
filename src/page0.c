@@ -18,38 +18,6 @@
  * You should have received a copy of the GNU General Public License
  * along with STC1000+.  If not, see <http://www.gnu.org/licenses/>.
  *
- *
- * Schematic of the connections to the MCU.
- *
- *                                     PIC16F1828
- *                                    ------------
- *                                VDD | 1     20 | VSS
- *                     Relay Heat RA5 | 2     19 | RA0/ICSPDAT (Programming header), Piezo buzzer
- *                     Relay Cool RA4 | 3     18 | RA1/AN1/ICSPCLK (Programming header), Thermistor
- * (Programming header) nMCLR/VPP/RA3 | 4     17 | RA2/AN2 Thermistor
- *                          LED 5 RC5 | 5     16 | RC0 LED 0
- *                   LED 4, BTN 4 RC4 | 6     15 | RC1 LED 1
- *                   LED 3, BTN 3 RC3 | 7     14 | RC2 LED 2
- *                   LED 6, BTN 2 RC6 | 8     13 | RB4 LED Common Anode 10's digit
- *                   LED 7, BTN 1 RC7 | 9     12 | RB5 LED Common Anode 1's digit
- *        LED Common Anode extras RB7 | 10    11 | RB6 LED Common Anode 0.1's digit
- *                                    ------------
- *
- *
- * Schematic of the bit numbers for the display LED's. Useful if custom characters are needed.
- *
- *           * 7       --------    *    --------       * C
- *                    /   7   /    1   /   7   /       5 2
- *                 2 /       / 6    2 /       / 6    ----
- *                   -------          -------     2 / 7 / 6
- *           *     /   1   /        /   1   /       ---
- *           3  5 /       / 3    5 /       / 3  5 / 1 / 3
- *                --------    *    --------   *   ----  *
- *                  4         0      4        0    4    0
- *
- *
- *
- *
  */
 
 #define __16f1828
@@ -73,11 +41,11 @@ const int ad_lookup[] = { 0, -486, -355, -270, -205, -151, -104, -61, -21, 16, 5
 /* LED character lookup table (0-15), includes hex */
 //unsigned const char led_lookup[] = { 0x3, 0xb7, 0xd, 0x25, 0xb1, 0x61, 0x41, 0x37, 0x1, 0x21, 0x5, 0xc1, 0xcd, 0x85, 0x9, 0x59 };
 /* LED character lookup table (0-9) */
-unsigned const char led_lookup[] = { 0x3, 0xb7, 0xd, 0x25, 0xb1, 0x61, 0x41, 0x37, 0x1, 0x21 };
+unsigned const char led_lookup[] = { LED_0, LED_1, LED_2, LED_3, LED_4, LED_5, LED_6, LED_7, LED_8, LED_9 };
 
 /* Global variables to hold LED data (for multiplexing purposes) */
-_led_e_bits led_e = {0xff};
-unsigned char led_10, led_1, led_01;
+led_e_t led_e = {0xff};
+led_t led_10, led_1, led_01;
 
 static int temperature=0;
 static int temperature2=0;
@@ -202,22 +170,22 @@ void value_to_led(int value, unsigned char decimal) {
 		for(i=0; value >= 100; i++){
 			value -= 100;
 		}
-		led_10 = led_lookup[i & 0xf];
+		led_10.raw = led_lookup[i & 0xf];
 	} else {
-		led_10 = 0xff; // Turn off led if zero (lose leading zeros)
+		led_10.raw = LED_OFF; // Turn off led if zero (lose leading zeros)
 	}
-	if(value >= 10 || decimal || led_10!=0xff){ // If decimal, we want 1 leading zero
+	if(value >= 10 || decimal || led_10.raw!=LED_OFF){ // If decimal, we want 1 leading zero
 		for(i=0; value >= 10; i++){
 			value -= 10;
 		}
-		led_1 = led_lookup[i];
+		led_1.raw = led_lookup[i];
 		if(decimal){
-			led_1 &= 0xfe;
+			led_1.decimal = 0;
 		}
 	} else {
-		led_1 = 0xff; // Turn off led if zero (lose leading zeros)
+		led_1.raw = LED_OFF; // Turn off led if zero (lose leading zeros)
 	}
-	led_01 = led_lookup[value];
+	led_01.raw = led_lookup[(unsigned char)value];
 }
 
 /* To be called once every hour on the hour.
@@ -414,16 +382,16 @@ static void interrupt_service_routine(void) __interrupt 0 {
 		// Multiplex LED's every millisecond
 		switch(latb) {
 			case 0x10:
-			LATC = led_10;
+			LATC = led_10.raw;
 			break;
 			case 0x20:
-			LATC = led_1;
+			LATC = led_1.raw;
 			break;
 			case 0x40:
-			LATC = led_01;
+			LATC = led_01.raw;
 			break;
 			case 0x80:
-			LATC = led_e.led_e;
+			LATC = led_e.raw;
 			break;
 		}
 
@@ -439,7 +407,7 @@ static void interrupt_service_routine(void) __interrupt 0 {
 #define START_TCONV_2()		(ADCON0 = _CHS0 | _ADON)
 
 static unsigned int read_ad(unsigned int adfilter){
-	unsigned char i;
+//	unsigned char i;
 //	for(i=0; i<40; i++){ __asm NOP __endasm; };
 	ADGO = 1;
 	while(ADGO);
@@ -486,9 +454,9 @@ void main(void) __naked {
 			button_menu_fsm();
 
 			if(!TMR4ON){
-				led_e.led_e = 0xff;
-				led_10 = 0x3;
-				led_1 = led_01 = 0x59;
+				led_e.raw = LED_OFF;
+				led_10.raw = LED_O;
+				led_1.raw = led_01.raw = LED_F;
 			}
 
 			// Reset timer flag
@@ -518,9 +486,9 @@ void main(void) __naked {
 				LATA0 = ((ad_filter>>8) >= 248 || (ad_filter>>8) <= 8) || (eeprom_read_config(EEADR_2ND_PROBE) && ((ad_filter2>>8) >= 248 || (ad_filter2>>8) <= 8));
 
 				if(LATA0){ // On alarm, disable outputs
-					led_10 = 0x11; // A
-					led_1 = 0xcb; //L
-					led_e.led_e = led_01 = 0xff;
+					led_10.raw = LED_A;
+					led_1.raw = LED_L;
+					led_e.raw = led_01.raw = LED_OFF;
 					LATA4 = 0;
 					LATA5 = 0;
 					cooling_delay = heating_delay = 60;
