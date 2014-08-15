@@ -328,7 +328,7 @@ void button_menu_fsm(){
 				led_10.raw = LED_S;
 				led_1.raw = LED_P;
 			}
-			led_01.raw = led_lookup[config_item >> 1];
+			led_01.raw = led_lookup[((unsigned char)config_item) >> 1];
 		} else /* if(menu_item == 6) */{
 			led_10.raw = setmenu[config_item].led_c_10;
 			led_1.raw = setmenu[config_item].led_c_1;

@@ -33,25 +33,25 @@ cat ../picprog.ino | sed -n '/^const char hex_celsius\[\] PROGMEM/q;p' | sed "s/
 
 # Insert new HEX data
 echo "const char hex_celsius[] PROGMEM = {" >> picprog.tmp; 
-for l in `cat stc1000p_celsius.hex | sed 's/^://' | sed 's/\(..\)/0\x\1\,/g'`; do 
+for l in `cat build/stc1000p_celsius.hex | sed 's/^://' | sed 's/\(..\)/0\x\1\,/g'`; do 
 	echo "   $l" | sed 's/0x00,0x00,0x00,0x01,0xFF,/0x00,0x00,0x00,0x01,0xFF/' >> picprog.tmp; 
 done; 
 echo "};" >> picprog.tmp
 
 echo "const char hex_fahrenheit[] PROGMEM = {" >> picprog.tmp; 
-for l in `cat stc1000p_fahrenheit.hex | sed 's/^://' | sed 's/\(..\)/0\x\1\,/g'`; do 
+for l in `cat build/stc1000p_fahrenheit.hex | sed 's/^://' | sed 's/\(..\)/0\x\1\,/g'`; do 
 	echo "   $l" | sed 's/0x00,0x00,0x00,0x01,0xFF,/0x00,0x00,0x00,0x01,0xFF/' >> picprog.tmp; 
 done; 
 echo "};" >> picprog.tmp
 
 echo "const char hex_eeprom_celsius[] PROGMEM = {" >> picprog.tmp; 
-for l in `cat eedata_celsius.hex | sed 's/^://' | sed 's/\(..\)/0\x\1\,/g'`; do 
+for l in `cat build/eedata_celsius.hex | sed 's/^://' | sed 's/\(..\)/0\x\1\,/g'`; do 
 	echo "   $l" | sed 's/0x00,0x00,0x00,0x01,0xFF,/0x00,0x00,0x00,0x01,0xFF/' >> picprog.tmp; 
 done; 
 echo "};" >> picprog.tmp
 
 echo "const char hex_eeprom_fahrenheit[] PROGMEM = {" >> picprog.tmp; 
-for l in `cat eedata_fahrenheit.hex | sed 's/^://' | sed 's/\(..\)/0\x\1\,/g'`; do 
+for l in `cat build/eedata_fahrenheit.hex | sed 's/^://' | sed 's/\(..\)/0\x\1\,/g'`; do 
 	echo "   $l" | sed 's/0x00,0x00,0x00,0x01,0xFF,/0x00,0x00,0x00,0x01,0xFF/' >> picprog.tmp; 
 done; 
 echo "};" >> picprog.tmp
@@ -62,7 +62,7 @@ mv picprog.tmp ../picprog.ino
 
 # Print size approximation (from .asm files)
 let s=0;
-for a in `cat page0_c.asm page1_c.asm | grep instructions | sed 's/^.*=  //' | sed 's/ instructions.*//'`;
+for a in `cat build/page0_c.asm build/page1_c.asm | grep instructions | sed 's/^.*=  //' | sed 's/ instructions.*//'`;
 do
 	echo $a;
 	s=$(($s+$a));
@@ -70,4 +70,4 @@ done;
 echo "total $s";
 
 make clean
-mv *.hex build/
+

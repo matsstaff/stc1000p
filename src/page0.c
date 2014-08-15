@@ -133,6 +133,20 @@ void eeprom_write_config(unsigned char eeprom_address,unsigned int data)
 
 }
 
+#if 1
+static unsigned int divu10(unsigned int n) {
+	unsigned int q, r;
+	q = (n >> 1) + (n >> 2);
+	q = q + (q >> 4);
+	q = q + (q >> 8);
+	q = q >> 3;
+	r = n - ((q << 3) + (q << 1));
+	return q + ((r + 6) >> 4);
+}
+#else
+#define divu10(x)	((x)/10)
+#endif
+
 /* Update LED globals with temperature or integer data.
  * arguments: value (actual temperature multiplied by 10 or an integer)
  *            decimal indicates if the value is multiplied by 10 (i.e. a temperature)
@@ -161,7 +175,7 @@ void value_to_led(int value, unsigned char decimal) {
 
 	// If temperature >= 100 we must lose decimal...
 	if (value >= 1000) {
-		value = ((unsigned int) value) / 10;
+		value = divu10((unsigned int) value);
 		decimal = 0;
 	}
 
@@ -407,8 +421,6 @@ static void interrupt_service_routine(void) __interrupt 0 {
 #define START_TCONV_2()		(ADCON0 = _CHS0 | _ADON)
 
 static unsigned int read_ad(unsigned int adfilter){
-//	unsigned char i;
-//	for(i=0; i<40; i++){ __asm NOP __endasm; };
 	ADGO = 1;
 	while(ADGO);
 	ADON = 0;
