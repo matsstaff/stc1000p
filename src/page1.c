@@ -43,32 +43,9 @@
 
 
 /* Reimplement menu with x macros */
-
-#define SET_MENU_DATA(_) \
-    _(hy, 		LED_h, 		LED_y, 		LED_OFF, 	0, 				TEMP_HYST_1_MAX) \
-    _(hy2, 		LED_h, 		LED_y, 		LED_2, 		0, 				TEMP_HYST_2_MAX) \
-    _(tc, 		LED_t, 		LED_c, 		LED_OFF, 	TEMP_CORR_MIN, 	TEMP_CORR_MAX) \
-    _(tc2, 		LED_t, 		LED_c, 		LED_2, 		TEMP_CORR_MIN,	TEMP_CORR_MAX) \
-    _(SP, 		LED_S, 		LED_P, 		LED_OFF, 	TEMP_MIN,		TEMP_MAX) \
-    _(St, 		LED_S, 		LED_t, 		LED_OFF, 	0,				8) \
-    _(dh, 		LED_d, 		LED_h, 		LED_OFF, 	0,				999) \
-    _(cd, 		LED_c, 		LED_d, 		LED_OFF, 	0,				60) \
-    _(hd, 		LED_h, 		LED_d, 		LED_OFF, 	0,				60) \
-    _(rP, 		LED_r, 		LED_P, 		LED_OFF, 	0,				1) \
-    _(Pb, 		LED_P, 		LED_b, 		LED_OFF, 	0,				1) \
-    _(rn, 		LED_r, 		LED_n, 		LED_OFF, 	0,				6) \
-
 #define TO_STRUCT(name, led10ch, led1ch, led01ch, minv, maxv) \
     { led10ch, led1ch, led01ch, minv, maxv},
     
-#define TO_ENUM(name, led10ch, led1ch, led01ch, minv, maxv) \
-    name,
-
-enum set_menu_enum {
-    SET_MENU_DATA(TO_ENUM)
-};
-
-#define EEADR(name)    (114 + ((name)<<2))
 
 struct s_setmenu {
     unsigned char led_c_10;
@@ -257,7 +234,7 @@ void button_menu_fsm(){
 		break;
 
 	case state_show_sp:
-		temperature_to_led(eeprom_read_config(EEADR_SETPOINT));
+		temperature_to_led(eeprom_read_config(EEADR(SP)));
 		if(!BTN_HELD(BTN_UP)){
 			state=state_idle;
 		}
@@ -265,7 +242,7 @@ void button_menu_fsm(){
 
 	case state_show_profile:
 		{
-			unsigned char run_mode = eeprom_read_config(EEADR_RUN_MODE);
+			unsigned char run_mode = eeprom_read_config(EEADR(rn));
 			run_mode_to_led(run_mode);
 			if(run_mode<6 && countdown==0){
 				countdown=17;
@@ -277,7 +254,7 @@ void button_menu_fsm(){
 		}
 		break;
 	case state_show_profile_st:
-		int_to_led(eeprom_read_config(EEADR_CURRENT_STEP));
+		int_to_led(eeprom_read_config(EEADR(St)));
 		if(countdown==0){
 			countdown=13;
 			state = state_show_profile_dh;
@@ -287,7 +264,7 @@ void button_menu_fsm(){
 		}
 		break;
 	case state_show_profile_dh:
-		int_to_led(eeprom_read_config(EEADR_CURRENT_STEP_DURATION));
+		int_to_led(eeprom_read_config(EEADR(dh)));
 		if(countdown==0){
 			countdown=13;
 			state = state_show_profile;
@@ -347,7 +324,7 @@ void button_menu_fsm(){
 				config_item = (config_item >= 18) ? 0 : config_item+1;
 			} else {
 				config_item = (config_item >= SET_MENU_SIZE-1) ? 0 : config_item+1;
-				if(config_item == St && (unsigned char)eeprom_read_config(EEADR_RUN_MODE) >= 6){
+				if(config_item == St && (unsigned char)eeprom_read_config(EEADR(rn)) >= 6){
 					config_item += 2;
 				}
 			}
@@ -357,7 +334,7 @@ void button_menu_fsm(){
 				config_item = (config_item == 0) ? 18 : config_item-1;
 			} else {
 				config_item = (config_item == 0) ? SET_MENU_SIZE-1 : config_item-1;
-				if(config_item == dh && (unsigned char)eeprom_read_config(EEADR_RUN_MODE) >= 6){
+				if(config_item == dh && (unsigned char)eeprom_read_config(EEADR(rn)) >= 6){
 					config_item -= 2;
 				}
 			}
@@ -415,11 +392,11 @@ void button_menu_fsm(){
 				if(menu_item == 6){
 					if(config_item == rn){
 						// When setting runmode, clear current step & duration
-						eeprom_write_config(EEADR_CURRENT_STEP, 0);
-						eeprom_write_config(EEADR_CURRENT_STEP_DURATION, 0);
+						eeprom_write_config(EEADR(St), 0);
+						eeprom_write_config(EEADR(dh), 0);
 						if(config_value < 6){
 							// Set intial value for SP
-							eeprom_write_config(EEADR_SETPOINT, eeprom_read_config(EEADR_PROFILE_SETPOINT(((unsigned char)config_value), 0)));
+							eeprom_write_config(EEADR(SP), eeprom_read_config(EEADR_PROFILE_SETPOINT(((unsigned char)config_value), 0)));
 							// Hack in case inital step duration is '0'
 							if(eeprom_read_config(EEADR_PROFILE_DURATION(((unsigned char)config_value), 0)) == 0){
 								config_value = 6;

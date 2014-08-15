@@ -77,21 +77,33 @@
 #define TEMP_HYST_2_MAX	(250)
 #endif
 
+/* The data needed for the 'Set' menu */
+#define SET_MENU_DATA(_) \
+    _(hy, 		LED_h, 		LED_y, 		LED_OFF, 	0, 				TEMP_HYST_1_MAX) \
+    _(hy2, 		LED_h, 		LED_y, 		LED_2, 		0, 				TEMP_HYST_2_MAX) \
+    _(tc, 		LED_t, 		LED_c, 		LED_OFF, 	TEMP_CORR_MIN, 	TEMP_CORR_MAX) \
+    _(tc2, 		LED_t, 		LED_c, 		LED_2, 		TEMP_CORR_MIN,	TEMP_CORR_MAX) \
+    _(SP, 		LED_S, 		LED_P, 		LED_OFF, 	TEMP_MIN,		TEMP_MAX) \
+    _(St, 		LED_S, 		LED_t, 		LED_OFF, 	0,				8) \
+    _(dh, 		LED_d, 		LED_h, 		LED_OFF, 	0,				999) \
+    _(cd, 		LED_c, 		LED_d, 		LED_OFF, 	0,				60) \
+    _(hd, 		LED_h, 		LED_d, 		LED_OFF, 	0,				60) \
+    _(rP, 		LED_r, 		LED_P, 		LED_OFF, 	0,				1) \
+    _(Pb, 		LED_P, 		LED_b, 		LED_OFF, 	0,				1) \
+    _(rn, 		LED_r, 		LED_n, 		LED_OFF, 	0,				6) \
+
+#define TO_ENUM(name, led10ch, led1ch, led01ch, minv, maxv) \
+    name,
+
+enum set_menu_enum {
+    SET_MENU_DATA(TO_ENUM)
+};
+
 /* Defines for EEPROM config addresses */
 #define EEADR_PROFILE_SETPOINT(profile, step)	(((profile)<<4) + ((profile)<<1) + (profile) + ((step)<<1))
 #define EEADR_PROFILE_DURATION(profile, step)	EEADR_PROFILE_SETPOINT(profile, step) + 1
-#define EEADR_HYSTERESIS						114
-#define EEADR_HYSTERESIS_2						115
-#define EEADR_TEMP_CORRECTION					116
-#define EEADR_TEMP_CORRECTION_2					117
-#define EEADR_SETPOINT							118
-#define EEADR_CURRENT_STEP						119
-#define EEADR_CURRENT_STEP_DURATION				120
-#define EEADR_COOLING_DELAY						121
-#define EEADR_HEATING_DELAY						122
-#define EEADR_RAMPING							123
-#define EEADR_2ND_PROBE							124
-#define EEADR_RUN_MODE							125
+
+#define EEADR(name)    							(114 + ((name)<<2))
 #define EEADR_POWER_ON							127
 
 #define LED_OFF	0xff
