@@ -206,12 +206,12 @@ void value_to_led(int value, unsigned char decimal) {
  * Updates EEPROM configuration when running profile.
  */
 static void update_profile(){
-	unsigned char profile_no = eeprom_read_config(EEADR(rn));
+	unsigned char profile_no = eeprom_read_config(EEADR_SET_MENU_ITEM(rn));
 
 	// Running profile?
-	if (profile_no < 6) {
-		unsigned char curr_step = eeprom_read_config(EEADR(St));
-		unsigned int curr_dur = eeprom_read_config(EEADR(dh)) + 1;
+	if (profile_no < THERMOSTAT_MODE) {
+		unsigned char curr_step = eeprom_read_config(EEADR_SET_MENU_ITEM(St));
+		unsigned int curr_dur = eeprom_read_config(EEADR_SET_MENU_ITEM(dh)) + 1;
 		unsigned char profile_step_eeaddr;
 		unsigned int profile_step_dur;
 		int profile_next_step_sp;
@@ -228,19 +228,19 @@ static void update_profile(){
 		// Reached end of step?
 		if (curr_dur >= profile_step_dur) {
 			// Update setpoint with value from next step
-			eeprom_write_config(EEADR(SP),	profile_next_step_sp);
+			eeprom_write_config(EEADR_SET_MENU_ITEM(SP), profile_next_step_sp);
 			// Is this the last step (next step is number 9 or next step duration is 0)?
 			if (curr_step == 8 || eeprom_read_config(profile_step_eeaddr + 3) == 0) {
 				// Switch to thermostat mode.
-				eeprom_write_config(EEADR(rn), 6);
+				eeprom_write_config(EEADR_SET_MENU_ITEM(rn), THERMOSTAT_MODE);
 				return; // Fastest way out...
 			}
 			// Reset duration
 			curr_dur = 0;
 			// Update step
 			curr_step++;
-			eeprom_write_config(EEADR(St), curr_step);
-		} else if(eeprom_read_config(EEADR(rP))) { // Is ramping enabled?
+			eeprom_write_config(EEADR_SET_MENU_ITEM(St), curr_step);
+		} else if(eeprom_read_config(EEADR_SET_MENU_ITEM(rP))) { // Is ramping enabled?
 			int profile_step_sp = eeprom_read_config(profile_step_eeaddr);
 			unsigned int t = curr_dur << 6;
 			long sp = 32;
@@ -258,10 +258,10 @@ static void update_profile(){
 			sp >>= 6;
 
 			// Update setpoint
-			eeprom_write_config(EEADR(SP), sp);
+			eeprom_write_config(EEADR_SET_MENU_ITEM(SP), sp);
 		}
 		// Update duration
-		eeprom_write_config(EEADR(dh), curr_dur);
+		eeprom_write_config(EEADR_SET_MENU_ITEM(dh), curr_dur);
 	}
 }
 
@@ -272,9 +272,9 @@ static void update_profile(){
 static unsigned int cooling_delay = 60;  // Initial cooling delay
 static unsigned int heating_delay = 60;  // Initial heating delay
 static void temperature_control(){
-	int setpoint = eeprom_read_config(EEADR(SP));
-	int hysteresis2 = eeprom_read_config(EEADR(hy2));
-	unsigned char probe2 = eeprom_read_config(EEADR(Pb));
+	int setpoint = eeprom_read_config(EEADR_SET_MENU_ITEM(SP));
+	int hysteresis2 = eeprom_read_config(EEADR_SET_MENU_ITEM(hy2));
+	unsigned char probe2 = eeprom_read_config(EEADR_SET_MENU_ITEM(Pb));
 
 	if(cooling_delay){
 		cooling_delay--;
@@ -289,15 +289,15 @@ static void temperature_control(){
 
 	// This is the thermostat logic
 	if((LATA4 && (temperature <= setpoint || (probe2 && (temperature2 < (setpoint - hysteresis2))))) || (LATA5 && (temperature >= setpoint || (probe2 && (temperature2 > (setpoint + hysteresis2)))))){
-		cooling_delay = eeprom_read_config(EEADR(cd)) << 6;
+		cooling_delay = eeprom_read_config(EEADR_SET_MENU_ITEM(cd)) << 6;
 		cooling_delay = cooling_delay - (cooling_delay >> 4);
-		heating_delay = eeprom_read_config(EEADR(hd)) << 6;
+		heating_delay = eeprom_read_config(EEADR_SET_MENU_ITEM(hd)) << 6;
 		heating_delay = heating_delay - (heating_delay >> 4);
 		LATA4 = 0;
 		LATA5 = 0;
 	}
 	else if(LATA4 == 0 && LATA5 == 0) {
-		int hysteresis = eeprom_read_config(EEADR(hy));
+		int hysteresis = eeprom_read_config(EEADR_SET_MENU_ITEM(hy));
 		hysteresis2 >>= 2; // Halve hysteresis 2
 		if ((temperature > setpoint + hysteresis) && (!probe2 || (temperature2 >= setpoint - hysteresis2))) {
 			if (cooling_delay) {
@@ -491,11 +491,11 @@ void main(void) __naked {
 			// Close enough to 1s for our purposes.
 			if((millisx60 & 0xf) == 0) {
 
-				temperature = ad_to_temp(ad_filter) + eeprom_read_config(EEADR(tc));
-				temperature2 = ad_to_temp(ad_filter2) + eeprom_read_config(EEADR(tc2));
+				temperature = ad_to_temp(ad_filter) + eeprom_read_config(EEADR_SET_MENU_ITEM(tc));
+				temperature2 = ad_to_temp(ad_filter2) + eeprom_read_config(EEADR_SET_MENU_ITEM(tc2));
 
 				// Alarm on sensor error (AD result out of range)
-				LATA0 = ((ad_filter>>8) >= 248 || (ad_filter>>8) <= 8) || (eeprom_read_config(EEADR(Pb)) && ((ad_filter2>>8) >= 248 || (ad_filter2>>8) <= 8));
+				LATA0 = ((ad_filter>>8) >= 248 || (ad_filter>>8) <= 8) || (eeprom_read_config(EEADR_SET_MENU_ITEM(Pb)) && ((ad_filter2>>8) >= 248 || (ad_filter2>>8) <= 8));
 
 				if(LATA0){ // On alarm, disable outputs
 					led_10.raw = LED_A;
@@ -507,7 +507,7 @@ void main(void) __naked {
 				} else {
 					// Update running profile every hour (if there is one)
 					// and handle reset of millis x60 counter
-					if(((unsigned char)eeprom_read_config(EEADR(rn))) < 6){
+					if(((unsigned char)eeprom_read_config(EEADR_SET_MENU_ITEM(rn))) < THERMOSTAT_MODE){
 						// Indicate profile mode
 						led_e.e_set = 0;
 						// Update profile every hour
