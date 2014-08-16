@@ -413,7 +413,7 @@ chk_cfg_acc_label:
 						// When setting runmode, clear current step & duration
 						eeprom_write_config(EEADR_SET_MENU_ITEM(St), 0);
 						eeprom_write_config(EEADR_SET_MENU_ITEM(dh), 0);
-						if(config_value != THERMOSTAT_MODE){
+						if(config_value < THERMOSTAT_MODE){
 							unsigned char eeadr_sp = EEADR_PROFILE_SETPOINT(((unsigned char)config_value), 0);
 							// Set intial value for SP
 							eeprom_write_config(EEADR_SET_MENU_ITEM(SP), eeprom_read_config(eeadr_sp));
