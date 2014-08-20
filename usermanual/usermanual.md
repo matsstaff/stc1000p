@@ -105,7 +105,7 @@ Only when the sketch is uploaded correctly is it safe to make the connections to
 
 *Table 1: Connections between STC-1000 and Arduino boards*
 
-See also *Fig 5*, *Fig 6, Fig 7* and *Fig 8 *for illustrations.
+See also *Fig 5*, *Fig 6, Fig 7* and *Fig 8* for illustrations.
 
 The connections can be made using pretty much any electrical wire, but a solid core or Dupont style wires make it a lot easier. Pin headers and Dupont wires can be found cheap on eBay and Amazon. 
 
@@ -113,43 +113,29 @@ The connections can be made using pretty much any electrical wire, but a solid c
 
 *Fig 8: Example setup (note: sensor is not connected, but it should be).*
 
-When the sketch is uploaded and connections are made between the boards, open the serial monitor in the Arduino IDE (Tools -> Serial Monitor). Make sure it is set to **115200 baud** and **No line ending**. 
+When the sketch is uploaded and connections are made between the boards, open the serial monitor in the Arduino IDE (*Tools -> Serial Monitor*). Make sure it is set to **115200 baud** and **No line ending**. 
 
 You should be greeted with the following output:
 
-STC-1000+ firmware sketch.
-
-Copyright 2014 Mats Staffansson
-
-Send 'd' to check for STC-1000
-
-Enter ‘d’ (without the apostrophes) in the serial monitor input field and press ‘Send’ button. You should then receive:
-
-Enter low voltage programming mode
-
-Leaving programming mode
-
-Device ID is: 0x27C5
-
-STC-1000 detected.
-
-No previous STC-1000+ firmware detected.
-
-Consider initializing EEPROM when flashing.
-
-Sketch has version 1.06
-
-Send 'a' to upload Celsius version and initialize EEPROM data.
-
-Send 'b' to upload Celsius version (program memory only).
-
-Send 'f' to upload Fahrenheit version and initialize EEPROM data.
-
-Send 'g' to upload Fahrenheit version (program memory only).
+*STC-1000+ firmware sketch.*<br>
+*Copyright 2014 Mats Staffansson*<br>
+*Send 'd' to check for STC-1000*<br>
+*Enter ‘d’ (without the apostrophes) in the serial monitor input field and press ‘Send’ button. You should then receive:*<br>
+*Enter low voltage programming mode*<br>
+*Leaving programming mode*<br>
+*Device ID is: 0x27C5*<br>
+*STC-1000 detected.*<br>
+*No previous STC-1000+ firmware detected.*<br>
+*Consider initializing EEPROM when flashing.*<br>
+*Sketch has version 1.06*<br>
+*Send 'a' to upload Celsius version and initialize EEPROM data.*<br>
+*Send 'b' to upload Celsius version (program memory only).*<br>
+*Send 'f' to upload Fahrenheit version and initialize EEPROM data.*<br>
+*Send 'g' to upload Fahrenheit version (program memory only).*<br>
 
 If you see this (well, version number may differ), then you are good to go. If you instead see:
 
-STC-1000 NOT detected. Check wiring.
+*STC-1000 NOT detected. Check wiring.*
 
 Then check your connections and try again, until you get the correct output.
 
