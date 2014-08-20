@@ -516,6 +516,19 @@ void main(void) __naked {
 							millisx60 = 0;
 						}
 					} else {
+						unsigned char sa = eeprom_read_config(EEADR_SET_MENU_ITEM(SA));
+						// Alarm on setpoint reached
+						if(sa > 1){
+							LATA0 = 1;
+						} else if(sa==1){
+							int diff = temperature - eeprom_read_config(EEADR_SET_MENU_ITEM(SP));
+							if(diff < 0){
+								diff = -diff;
+							} 
+							if(diff <= eeprom_read_config(EEADR_SET_MENU_ITEM(hy))){
+								eeprom_write_config(EEADR_SET_MENU_ITEM(SA), 2);
+							}
+						}
 						led_e.e_set = 1;
 						millisx60 = 0;
 					}

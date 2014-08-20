@@ -96,6 +96,7 @@
     _(hd, 	LED_h, 	LED_d, 	LED_OFF, 	0,				60,					2,		2)		\
     _(rP, 	LED_r, 	LED_P, 	LED_OFF, 	0,				1,					0,		0)		\
     _(Pb, 	LED_P, 	LED_b, 	LED_OFF, 	0,				1,					0,		0)		\
+    _(SA, 	LED_S, 	LED_A, 	LED_OFF, 	0,				1,					0,		0)		\
     _(rn, 	LED_r, 	LED_n, 	LED_OFF, 	0,				6,					6,		6) 		\
 
 #define ENUM_VALUES(name, led10ch, led1ch, led01ch, minv, maxv, dvc, dvf) \
