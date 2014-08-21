@@ -111,7 +111,7 @@ You should be greeted with the following output:
 *Copyright 2014 Mats Staffansson*<br>
 *Send 'd' to check for STC-1000*
 
-Enter ‘d’ (without the apostrophes) in the serial monitor input field and press ‘Send’ button. You should then receive:
+Enter 'd' (without the apostrophes) in the serial monitor input field and press 'Send' button. You should then receive:
 
 *Enter low voltage programming mode*<br>
 *Leaving programming mode*<br>
@@ -131,7 +131,7 @@ If you see this (well, version number may differ), then you are good to go. If y
 
 Then check your connections and try again, until you get the correct output.
 
-Send ‘a’ or ‘f’ to upload the version you want (Celsius or Fahrenheit). If you are upgrading from a previous version of STC-1000+, you may want to use the ‘b’ or ‘g’ command instead. The difference is that all the data will be retained in EEPROM (i.e. profiles, temperature correction et.c.). When upgrading, the sketch will indicate (on the ‘d’ command output) if there are changes that might invalidate your current EEPROM data, and if so you might want to use the ‘a’/’f’ command even when upgrading, to make sure the data has sane defaults.
+Send 'a' or 'f' to upload the version you want (Celsius or Fahrenheit). If you are upgrading from a previous version of STC-1000+, you may want to use the 'b' or 'g' command instead. The difference is that all the data will be retained in EEPROM (i.e. profiles, temperature correction et.c.). When upgrading, the sketch will indicate (on the 'd' command output) if there are changes that might invalidate your current EEPROM data, and if so you might want to use the 'a'/'f' command even when upgrading, to make sure the data has sane defaults.
 
 After sending the upload command, a lot of output will appear in the serial monitor (that might be useful, should there be a problem) and due to how the the hardware is designed, it will also make some noise during programming (this takes ~20 seconds).
 
@@ -232,7 +232,7 @@ Pr0-5 submenus have the following items:
 |SP9|Set setpoint 9|-40.0 to 140°C or -40.0 to 250°F|
 *Table 3: Profile sub-menu items*
 
-You can change all the setpoints and durations associated with that profile from here. When running the programmed profile, *SP0* will be the initial setpoint, it will be held for *dh0* hours (unless ramping is used). After that *SP1* will be used as setpoint for dh1 hours. The profile will stop running when a duration (*dh*) of 0 hours OR last step is reached (consider '*dh9*' implicitly 0). When the profile has ended, STC-1000+ will automatically switch to thermostat mode with the last reached setpoint. (So I guess you could also consider a '*dh*' value of 0 as infinite hours).
+You can change all the setpoints and durations associated with that profile from here. When running the programmed profile, *SP0* will be the initial setpoint, it will be held for *dh0* hours (unless ramping is used). After that *SP1* will be used as setpoint for dh1 hours. The profile will stop running when a duration (*dh*) of 0 hours OR last step is reached (consider *dh9* implicitly 0). When the profile has ended, STC-1000+ will automatically switch to thermostat mode with the last reached setpoint. (So I guess you could also consider a *dh* value of 0 as infinite hours).
 
 The settings menu has the following items:
 
@@ -250,7 +250,7 @@ The settings menu has the following items:
 |rP|Ramping|0 = off, 1 = on|
 |Pb|Enable second temp probe for use in thermostat control|0 = off, 1 = on|
 |SA|Setpoint alarm|0 = off, 1 = on|
-|rn|Set run mode|'Pr0' to 'Pr5' and 'th'|
+|rn|Set run mode|Pr0 to Pr5 and th|
 *Table 4: Settings sub-menu items*
 
 **Hysteresis**, is the allowable temperature range around the setpoint where the thermostat will not change state. For example, if temperature is greater than setpoint + hysteresis AND the time passed since last cooling cycle is greater than cooling delay, then cooling relay will be engaged. Once the temperature reaches setpoint again, cooling relay will be disengaged.
@@ -263,35 +263,35 @@ The settings menu has the following items:
 
 **Setpoint**, well... The desired temperature to keep. The way STC-1000+ firmware works, setpoint is *always* the value the thermostat strives towards, even when running a profile. What the profile does is simply setting the setpoint at given times.
 
-**Current profile step** and **current profile duration**, allows 'jumping' in the profile. Step and duration are updated automatically when running the profile, but can also be set manually at any time. Note that profile step and profile duration are the variables directly used to keep track of progress in a profile. Little or no validation is made of what values are entered. It is up to the user to know what he/she is doing by changing these values. Changing these values will not take effect until next point in profile is calculated, which could be as much as one hour. Every hour, current duration, '*dh*' (and if next step is reached, also current step, '*St*') is updated with new value(s). That means in case of a power outage, STC-1000+ will pick up (to within the hour) from where it left off. Current profile step and current profile duration are only available in the menu when a profile is currently running.
+**Current profile step** and **current profile duration**, allows 'jumping' in the profile. Step and duration are updated automatically when running the profile, but can also be set manually at any time. Note that profile step and profile duration are the variables directly used to keep track of progress in a profile. Little or no validation is made of what values are entered. It is up to the user to know what he/she is doing by changing these values. Changing these values will not take effect until next point in profile is calculated, which could be as much as one hour. Every hour, current duration, *dh* (and if next step is reached, also current step, *St*) is updated with new value(s). That means in case of a power outage, STC-1000+ will pick up (to within the hour) from where it left off. Current profile step and current profile duration are only available in the menu when a profile is currently running.
 
-**Cooling** and **heating delay** is the minimum 'off time' for each relay, to spare the compressor and relays from short cycling. If the the temperature is too high or too low, but the delay has not yet been met, the corresponding LED (heating/cooling) will blink, indicating that the controller is waiting to for the delay to pass before it will start heating or cooling. When the controller is powered on, the initial delay (for both heating and cooling) will **always** be approximately 1 minute, regardless of the settings. That is because even if your system could tolerate no heating or cooling delays during normal control (i.e. ‘*cd*’ and/or ‘*hd*’ set to zero), it would be undesirable for the relay to rapidly turn on and off in the event of a power outage causing mains power to fluctuate. Both cooling and heating delays are loaded when either cooling/heating relays switched off. So, for instance if you set cooling delay to 60 minutes and setpoint is reached, turning cooling relay off, it will be approximately one hour until cooling relay will be allowed to switch on again, even if you change your mind and change the setting in EEPROM (i.e. it will not affect the current cycle).
+**Cooling** and **heating delay** is the minimum 'off time' for each relay, to spare the compressor and relays from short cycling. If the the temperature is too high or too low, but the delay has not yet been met, the corresponding LED (heating/cooling) will blink, indicating that the controller is waiting to for the delay to pass before it will start heating or cooling. When the controller is powered on, the initial delay (for both heating and cooling) will **always** be approximately 1 minute, regardless of the settings. That is because even if your system could tolerate no heating or cooling delays during normal control (i.e. *cd* and/or *hd* set to zero), it would be undesirable for the relay to rapidly turn on and off in the event of a power outage causing mains power to fluctuate. Both cooling and heating delays are loaded when either cooling/heating relays switched off. So, for instance if you set cooling delay to 60 minutes and setpoint is reached, turning cooling relay off, it will be approximately one hour until cooling relay will be allowed to switch on again, even if you change your mind and change the setting in EEPROM (i.e. it will not affect the current cycle).
 
-The delay can be used to prevent oscillation (hunting). For example, setting an appropriately long heating delay can prevent the heater coming on if the cooling cycle causes an undershoot that would otherwise cause heater to run. What is ‘appropriate’ depends on your setup.
+The delay can be used to prevent oscillation (hunting). For example, setting an appropriately long heating delay can prevent the heater coming on if the cooling cycle causes an undershoot that would otherwise cause heater to run. What is 'appropriate' depends on your setup.
 
 **Setpoint alarm**, if setpoint alarm is enabled (*SA* = 1) and unit is in thermostat mode (*rn* = *th*, i.e. not running a profile), then the alarm will sound once temperature reaches *SP* ± *hy*. The alarm will sound until *SA* is reset to 0, it will not however disengage the outputs and the unit will continue to work in thermostat mode. This feature can be useful if you use the fermentation chamber to bring wort down to pitching temp and want an audible reminder when it is time to pitch.
 
-**Run mode**, selecting '*Pr0*' to '*Pr5*' will start the corresponding profile running from step 0, duration 0. Selecting '*th*' will switch to thermostat mode, the last setpoint from the previously running profile will be retained as the current setpoint when switching from a profile to thermostat mode.
+**Run mode**, selecting *Pr0* to *Pr5* will start the corresponding profile running from step 0, duration 0. Selecting *th* will switch to thermostat mode, the last setpoint from the previously running profile will be retained as the current setpoint when switching from a profile to thermostat mode.
 
 **Thermostat mode**
 
-When mode is set to thermostat, setpoint, ‘*SP*’, will not change and the controller will aim to keep the temperature to within the range of *SP* ± *hy*. Much like how the normal STC-1000 firmware works.
+When mode is set to thermostat, setpoint, *SP*, will not change and the controller will aim to keep the temperature to within the range of *SP* ± *hy*. Much like how the normal STC-1000 firmware works.
 
 The thermostat control runs approximately once every second.
 
 **Running profiles**
 
-By entering the ‘rn’ submenu under settings and selecting a profile, the current duration, ‘*dh*’, and current step, ‘*St*’, is reset to zero and the initial setpoint for that profile, ‘*SP0*’, is loaded into ‘*SP*’. Even when running a profile, ‘*SP*’ will always be the value the controller aims to keep. The profile simple updates ‘*SP*’ during its course. When a profile is running the ‘*Set*’ LED on the display will be lit as an indication.
+By entering the 'rn' submenu under settings and selecting a profile, the current duration, *dh*, and current step, *St*, is reset to zero and the initial setpoint for that profile, *SP0*, is loaded into *SP*. Even when running a profile, *SP* will always be the value the controller aims to keep. The profile simple updates *SP* during its course. When a profile is running the 'Set' LED on the display will be lit as an indication.
 
-From the instant the profile is started a timer will be running, and every time that timer indicates that one hour has passed, current duration, ‘*dh*’, will be incremented. If and only if, it has reached the current step duration, ‘*dhx*’, current duration will be reset to zero and the current step, ‘*St*’, will be incremented and the next setpoint in the profile will be loaded into ‘*SP*’.  Note that all this only happens on one hour marks after the profile is started.
+From the instant the profile is started a timer will be running, and every time that timer indicates that one hour has passed, current duration, *dh*, will be incremented. If and only if, it has reached the current step duration, *dhx*, current duration will be reset to zero and the current step, *St*, will be incremented and the next setpoint in the profile will be loaded into *SP*.  Note that all this only happens on one hour marks after the profile is started.
 
-So, what will happen if the profile data is updated while the profile is running? Well, if that point has not been reached the data will be used. For example profile is running step 3 (with the first step being step 0). Then ‘*SP3*’ has already been loaded into ‘*SP*’, so changing ‘*SP0*’ - ‘*SP3*’ will not have any effect on the current run. However, the duration ‘*dh3*’ is still being evaluated every hour against the current duration, so changing it will have effect. 
+So, what will happen if the profile data is updated while the profile is running? Well, if that point has not been reached the data will be used. For example profile is running step 3 (with the first step being step 0). Then *SP3* has already been loaded into *SP*, so changing *SP0* - *SP3* will not have any effect on the current run. However, the duration *dh3* is still being evaluated every hour against the current duration, so changing it will have effect. 
 
-Changing the current duration, ‘*dh*’, and current step, ‘*St*’, will also have effect, but the change will not be immediate, only on the next one hour mark will these new values be used in the calculation. You will need to know what you are doing when changing these values manually, but correctly used, it could come in handy.
+Changing the current duration, *dh*, and current step, *St*, will also have effect, but the change will not be immediate, only on the next one hour mark will these new values be used in the calculation. You will need to know what you are doing when changing these values manually, but correctly used, it could come in handy.
 
-Changing the setpoint, ‘*SP*’, when running a profile, will have immediate effect (as it is used by thermostat control), but it will be overwritten by profile when it reaches a new step.
+Changing the setpoint, *SP*, when running a profile, will have immediate effect (as it is used by thermostat control), but it will be overwritten by profile when it reaches a new step.
 
-Once the profile reaches the final setpoint, ‘*SP9*’, or a duration of zero hours, it will switch over to thermostat mode and maintain the last known setpoint indefinitely.
+Once the profile reaches the final setpoint, *SP9*, or a duration of zero hours, it will switch over to thermostat mode and maintain the last known setpoint indefinitely.
 
 Finally, to stop a running profile, simply switch to thermostat mode.
 
@@ -328,17 +328,17 @@ The resistor must be 10kOhm and have as good accuracy as possible (1%). If you g
 
 ## Additional features
 
-**Sensor alarm**, if the measured temperature is out of range (indicating the sensor is not connected properly or broken), the internal buzzer will sound and display will show ‘AL’. If secondary probe is enabled for thermostat control (*Pb* = 1), then alarm will go off if that temperature goes out of range as well. On alarm, both relays will be disengaged and the heating and cooling delay will be reset to 1 minute. So, once the temperature in in range again (i.e. sensor is reconnected), temperature readings can stabilize before thermostat control takes over.
+**Sensor alarm**, if the measured temperature is out of range (indicating the sensor is not connected properly or broken), the internal buzzer will sound and display will show 'AL'. If secondary probe is enabled for thermostat control (*Pb* = 1), then alarm will go off if that temperature goes out of range as well. On alarm, both relays will be disengaged and the heating and cooling delay will be reset to 1 minute. So, once the temperature in in range again (i.e. sensor is reconnected), temperature readings can stabilize before thermostat control takes over.
 
 **Power off**, pressing and holding power button for a few seconds when the controller is not in menu (showing current temperature), will disable the relays (soft power off) and show 'OFF' on the display. To really power off, you need to cut mains power to the device. The soft power off state will remain after a power cycle. Long pressing the power off button again will bring it out of soft power off mode.
 
 **Switch temperature display**, pressing and releasing the power button quickly will switch which temperature probe's value is being shown on the display. If temperature from the secondary probe is showing an additional LED (between the first two digits) will be lit as an indication.
 
-By pressing and holding ‘up’ button when temperature is showing, current setpoint will be displayed. 
+By pressing and holding 'up' button when temperature is showing, current setpoint will be displayed. 
 
-By pressing and holding ‘down’ button when temperature is showing, ‘*th*’ will be displayed if the controller is in thermostat mode. If a profile is running, it will cycle through ‘*Prx*’ (where *x* is the profile number), current profile step and current profile duration, to indicate which profile is running and the progress made.
+By pressing and holding 'down' button when temperature is showing, *th* will be displayed if the controller is in thermostat mode. If a profile is running, it will cycle through *Prx* (where *x* is the profile number), current profile step and current profile duration, to indicate which profile is running and the progress made.
 
-By pressing and holding ‘up’ and ‘down’ button simultaneously when temperature is showing, the firmware version number will be displayed.
+By pressing and holding 'up' and 'down' button simultaneously when temperature is showing, the firmware version number will be displayed.
 
 # Development
 
@@ -364,7 +364,7 @@ make all clean
 
 * Avoid multiplication and division, especially by variable
 
-* HEX files can be uploaded directly to STC-1000, via the sketch, over serial (without having to create and upload a new sketch with the HEX data embedded), by using the ‘u’ command (or ‘v’ for EEPROM data HEX). However, the 115200 baudrate is too fast, so delays need to be inserted. I use CuteCom in Linux and set the character delay to 2ms, just send the ‘u’ and press ‘send file’ and select the HEX. 
+* HEX files can be uploaded directly to STC-1000, via the sketch, over serial (without having to create and upload a new sketch with the HEX data embedded), by using the 'u' command (or 'v' for EEPROM data HEX). However, the 115200 baudrate is too fast, so delays need to be inserted. I use CuteCom in Linux and set the character delay to 2ms, just send the 'u' and press 'send file' and select the HEX. 
 
 # Other resources
 
