@@ -190,11 +190,11 @@ The last step is optional, but will make it more durable and a bit neater. Cut a
 
 ![image alt text](image_15.jpg)
 
-*Fig 15: Hot glue bits placed around and under the wires.*
+*Fig 16: Hot glue bits placed around and under the wires.*
 
 ![image alt text](image_16.jpg)
 
-*Fig 16: The finished 'product'.*
+*Fig 17: The finished 'product'.*
 
 # Using the STC-1000+ firmware
 
@@ -327,9 +327,23 @@ You can think of the ramping as being true, even if this approximation is being 
 
 Another tip would be to try to design your profiles with ramping in mind, if possible (that is include the extra setpoints when keeping constant temperature is desired), even if you will not use ramping. That way, the profiles will work as expected even if ramping is enabled.
 
-## Secondary temperature probe input
+# Secondary temperature probe input
 
-Limit over/undershoot by putting limits on fridge air temperature. Todo, explain better what the idea is and how the hysteresis work and that swings needs be larger and more rapid than for t1.
+The STC-1000 (A400_P) hardware seems to have been designed to allow for two temperature probes to be connected, but the stock firmware only uses one and it alo only ships with one sensor. Also the screw type terminal for the second sensor is not populated as well as the voltage divider resistor and the noise reduction capacitor.
+
+![Temperature probe header](probeterm.jpg)
+
+*Fig 18: The temperature probe connections (note: the transformer is removed, for a better view)*
+
+In *Fig 18*, you can see that there is room on the PCB for a three pole screw terminal and that R3 and and C3 is unpopulated. I find that the best way is to desolder the two pole screw terminal, solder in the missing resistor and solder back a three pole screw terminal. To solder in the missing SMD resistor is fiddly work though, you'll need a fine tip soldering iron and good eyes. The capacitor can be left out, as its only purpose is to reduce noise (and the STC-1000+ firmware does filtering). It will also interfere with flashing new firmware (the rise time of ICSPCLK becomes unacceptably slow and firmware upload fails). 
+
+There is an easier route however, all the connections required can also be found on the programming header. Connect the resistor between ground (gnd) and ICSPCLK, and the thermistor between Vcc and ICSPCLK.
+
+The resistor must be 10kOhm and have as good accuracy as possible (1%). If you go for the SMD route, you'll need a 0603 formfactor resistor. If you need an additional probe, what you are looking for is a 10k NTC probe with a beta value of 3435 (I'm guessing that is between 25-85C, but the retailers rarely specify). 
+
+## Using secondary temperature probe input
+
+**TODO**
 
 ## Additional features
 
