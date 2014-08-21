@@ -269,6 +269,8 @@ The settings menu has the following items:
 
 The delay can be used to prevent oscillation (hunting). For example, setting an appropriately long heating delay can prevent the heater coming on if the cooling cycle causes an undershoot that would otherwise cause heater to run. What is ‘appropriate’ depends on your setup.
 
+**Setpoint alarm**, if setpoint alarm is enabled (*SA* = 1) and unit is in thermostat mode (*rn* = *th*, i.e. not running a profile), then the alarm will sound once temperature reaches *SP* ± *hy*. The alarm will sound until *SA* is reset to 0, it will not however disengage the outputs and the unit will continue to work in thermostat mode. This feature can be useful if you use the fermentation chamber to bring wort down to pitching temp and want an audible reminder when it is time to pitch.
+
 **Run mode**, selecting '*Pr0*' to '*Pr5*' will start the corresponding profile running from step 0, duration 0. Selecting '*th*' will switch to thermostat mode, the last setpoint from the previously running profile will be retained as the current setpoint when switching from a profile to thermostat mode.
 
 **Thermostat mode**
@@ -307,7 +309,7 @@ You can think of the ramping as being true, even if this approximation is being 
 
 Another tip would be to try to design your profiles with ramping in mind, if possible (that is include the extra setpoints when keeping constant temperature is desired), even if you will not use ramping. That way, the profiles will work as expected even if ramping is enabled.
 
-# Secondary temperature probe input
+## Secondary temperature probe input
 
 The STC-1000 (A400_P) hardware seems to have been designed to allow for two temperature probes to be connected, but the stock firmware only uses one and it alo only ships with one sensor. Also the screw type terminal for the second sensor is not populated as well as the voltage divider resistor and the noise reduction capacitor.
 
@@ -331,8 +333,6 @@ The resistor must be 10kOhm and have as good accuracy as possible (1%). If you g
 **Power off**, pressing and holding power button for a few seconds when the controller is not in menu (showing current temperature), will disable the relays (soft power off) and show 'OFF' on the display. To really power off, you need to cut mains power to the device. The soft power off state will remain after a power cycle. Long pressing the power off button again will bring it out of soft power off mode.
 
 **Switch temperature display**, pressing and releasing the power button quickly will switch which temperature probe's value is being shown on the display. If temperature from the secondary probe is showing an additional LED (between the first two digits) will be lit as an indication.
-
-**Setpoint alarm**, if setpoint alarm is enabled (*SA* = 1) and unit is in thermostat mode (*rn* = *th*, i.e. not running a profile), then the alarm will sound once temperature reaches *SP* ± *hy*. The alarm will sound until *SA* is reset to 0, it will not however disengage the outputs and the unit will continue to work in thermostat mode. This feature can be useful if you use the fermentation chamber to bring wort down to pitching temp and want an audible reminder when it is time to pitch.
 
 By pressing and holding ‘up’ button when temperature is showing, current setpoint will be displayed. 
 
