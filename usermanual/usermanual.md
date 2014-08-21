@@ -42,34 +42,28 @@ You will need the following equipment:
 
 You will of course also need a computer and the proper USB cable to connect the Arduino. 
 
-![image alt text](image_0.jpg)
-
+![image alt text](image_0.jpg)<br>
 *Fig1: Pin header (1x5, 0.1inch/2.54mm pitch)*
 
-![image alt text](image_1.jpg)
-
+![image alt text](image_1.jpg)<br>
 *Fig 2: Dupont wires (male)*
 
-Start by opening the STC-1000. Cut or remove the sticker. ![image alt text](image_2.jpg)
-
+Start by opening the STC-1000. Cut or remove the sticker. ![image alt text](image_2.jpg)<br>
 *Fig 3: Cut or remove sticker.*
 
 Lift the tabs that hold the front panel in place and slide the board out.
 
-![image alt text](image_3.jpg)
-
+![image alt text](image_3.jpg)<br>
 *Fig 4: Lift the tabs and pull board out.*
 
 Check the board version (upper left corner in image) and locate the programming header.
 
-![image alt text](image_4.jpg)
-
+![image alt text](image_4.jpg)<br>
 *Fig 5: Locate programming header connections..*
 
 It might be easier to access from the bottom of the board.
 
-![image alt text](image_5.jpg)
-
+![image alt text](image_5.jpg)<br>
 *Fig 6: Programming header can be accessed from bottom of the board as well.*
 
 The best way to proceed is to use a vacuum solder sucker and a soldering iron to clean out the solder from the programmer header pads, exposing the holes. You might also be able to clear the holes by heating the pad from underneath with the soldering iron, then rapidly remove the iron once the solder is liquid and quickly blowing out the solder. Just take proper precautions, if trying this method.
@@ -78,8 +72,7 @@ Then the programming header can be inserted from the top of the board and solder
 
 If you are not able to solder, a temporary connection for programming can be made by simply pressing the pins of the pin header against the pads by hand. The board is coated, so you may need to clean the solder pads to make the connection. 
 
-![image alt text](image_6.jpg)
-
+![image alt text](image_6.jpg)<br>
 *Fig 7: Programming without soldering (image courtesy of wilconrad)*
 
 ## Performing the upload
@@ -101,15 +94,13 @@ Only when the sketch is uploaded correctly is it safe to make the connections to
 |GND     |GND    |
 |VCC  	 |5V     |
 |nMCLR	 |D3     |
-
 *Table 1: Connections between STC-1000 and Arduino boards*
 
 See also *Fig 5*, *Fig 6, Fig 7* and *Fig 8* for illustrations.
 
 The connections can be made using pretty much any electrical wire, but a solid core or Dupont style wires make it a lot easier. Pin headers and Dupont wires can be found cheap on eBay and Amazon. 
 
-![image alt text](image_7.jpg)
-
+![image alt text](image_7.jpg)<br>
 *Fig 8: Example setup (note: sensor is not connected, but it should be).*
 
 When the sketch is uploaded and connections are made between the boards, open the serial monitor in the Arduino IDE (*Tools -> Serial Monitor*). Make sure it is set to **115200 baud** and **No line ending**. 
@@ -148,52 +139,43 @@ After sending the upload command, a lot of output will appear in the serial moni
 
 If you are able to do some light soldering, then it is possible to build a programmer to flash the STC-1000 very cheaply using an Arduino pro mini and CP2102 (USB to TTL serial converter). Currently, this will cost around $5 on eBay. Search for "arduino pro mini 5V 16M CP2102" and you should find suitable matches. If you are running Windows (but why would you?), then you may need to download drivers for the CP2102, you can find them [at Silicon Labs](http://www.silabs.com/products/mcu/pages/usbtouartbridgevcpdrivers.aspx). You will also need some wire. I find it easiest to use a 5 pin dupont cable. I will show how I build the programmer.
 
-![image alt text](image_8.jpg)
-
+![image alt text](image_8.jpg)<br>
 *Fig 9: The material I use, Arduino pro mini, CP2102, 5 pin dupont cable and heat shrink tubing (optional).*
 
 First I use a flat nose plier to bend the 90 degree pin header on the CP2102 back straight.
 
-![image alt text](image_9.jpg)
-
+![image alt text](image_9.jpg)<br>
 *Fig 10: CP2102 with straightened pinheader.*
 
 The 3.3V pin needs to go. You could probably just cut it, but I heat up the solder with the soldering iron while at the same time pulling it from the other end with some pliers.
 
-![image alt text](image_10.jpg)
-
+![image alt text](image_10.jpg)<br>
 *Fig 11: Instruments of destruction, awaiting their next victim (Oh, no! Aaargh...).*
 
-![image alt text](image_11.jpg)
-
+![image alt text](image_11.jpg)<br>
 *Fig 12: -He was so young. -Yes he was, who will inform the family? Wait, that's us!.*
 
 Ok, enough stupid captions. Flip the pro mini upside down, and the pins should line up (note: rx goes to tx and tx to rx, the others should match)
 
-![image alt text](image_12.jpg)
-
+![image alt text](image_12.jpg)<br>
 *Fig 13: Pro mini lined up on the pin header, note the empty spot for the 3.3V pin.*
 
 Solder it in and cut the excess of the pins.
 
-![image alt text](image_13.jpg)
-
+![image alt text](image_13.jpg)<br>
 *Fig 14: CP2102 and pro mini joined together.*
 
 Then just cut off one end of the dupont cable. Strip just a little bit of insulation off the end of each cable and pre tin. Solder each cable in the correct position (D9, D8, GND, VCC, D3). Best to feed it from below the board, as the reset button (which will still work) and other stuff is on the other side.
 
-![image alt text](image_14.jpg)
-
+![image alt text](image_14.jpg)<br>
 *Fig 15: This will function as a programmer.*
 
 The last step is optional, but will make it more durable and a bit neater. Cut a few pieces off of a hot glue stick and put around and under the wires. Then feed it through an appropriately cut length of heat shrink tubing (usb connector first). 15mm diameter heat shrink tubing is a snug fit. When heating the tubing, the glue will melt and make a cheapish stress relief for the cables. A hot air gun works well to shrink the tubing, an electric hot plate (stove) also work very well. In pinch, you can even use a lighter.
 
-![image alt text](image_15.jpg)
-
+![image alt text](image_15.jpg)<br>
 *Fig 16: Hot glue bits placed around and under the wires.*
 
-![image alt text](image_16.jpg)
-
+![image alt text](image_16.jpg)<br>
 *Fig 17: The finished 'product'.*
 
 # Using the STC-1000+ firmware
@@ -269,8 +251,6 @@ The settings menu has the following items:
 |Pb|Enable second temp probe for use in thermostat control|0 = off, 1 = on|
 |SA|Setpoint alarm|0 = off, 1 = on|
 |rn|Set run mode|'Pr0' to 'Pr5' and 'th'|
-
-
 *Table 4: Settings sub-menu items*
 
 **Hysteresis**, is the allowable temperature range around the setpoint where the thermostat will not change state. For example, if temperature is greater than setpoint + hysteresis AND the time passed since last cooling cycle is greater than cooling delay, then cooling relay will be engaged. Once the temperature reaches setpoint again, cooling relay will be disengaged.
@@ -331,8 +311,7 @@ Another tip would be to try to design your profiles with ramping in mind, if pos
 
 The STC-1000 (A400_P) hardware seems to have been designed to allow for two temperature probes to be connected, but the stock firmware only uses one and it alo only ships with one sensor. Also the screw type terminal for the second sensor is not populated as well as the voltage divider resistor and the noise reduction capacitor.
 
-![Temperature probe header](probeterm.jpg)
-
+![Temperature probe header](probeterm.jpg)<br>
 *Fig 18: The temperature probe connections (note: the transformer is removed, for a better view)*
 
 In *Fig 18*, you can see that there is room on the PCB for a three pole screw terminal and that R3 and and C3 is unpopulated. I find that the best way is to desolder the two pole screw terminal, solder in the missing resistor and solder back a three pole screw terminal. To solder in the missing SMD resistor is fiddly work though, you'll need a fine tip soldering iron and good eyes. The capacitor can be left out, as its only purpose is to reduce noise (and the STC-1000+ firmware does filtering). It will also interfere with flashing new firmware (the rise time of ICSPCLK becomes unacceptably slow and firmware upload fails). 
