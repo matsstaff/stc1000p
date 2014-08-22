@@ -11,7 +11,7 @@ Mats Staffansson
 2014-06-30:	Updated heating and cooling delay (reset on either cycle)<br>
 2014-08-12:	Added info on second temp probe and the very cheap programmer<br>
 2014-08-20:	Added info on setpoint alarm and made formatting changes<br>
-2014-08-20:	Added more info on using the second temp probe<br>
+2014-08-22:	Added more info on using the second temp probe<br>
 
 # Introduction
 
