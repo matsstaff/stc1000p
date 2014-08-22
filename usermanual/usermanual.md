@@ -11,6 +11,7 @@ Mats Staffansson
 2014-06-30:	Updated heating and cooling delay (reset on either cycle)<br>
 2014-08-12:	Added info on second temp probe and the very cheap programmer<br>
 2014-08-20:	Added info on setpoint alarm and made formatting changes<br>
+2014-08-20:	Added more info on using the second temp probe<br>
 
 # Introduction
 
@@ -150,12 +151,12 @@ First I use a flat nose plier to bend the 90 degree pin header on the CP2102 bac
 The 3.3V pin needs to go. You could probably just cut it, but I heat up the solder with the soldering iron while at the same time pulling it from the other end with some pliers.
 
 ![image alt text](image_10.jpg)<br>
-*Fig 11: Instruments of destruction, awaiting their next victim (Oh, no! Aaargh...).*
+*Fig 11: Before desoldering the 3.3V pin.*
 
 ![image alt text](image_11.jpg)<br>
-*Fig 12: -He was so young. -Yes he was, who will inform the family? Wait, that's us!.*
+*Fig 12: After desoldering.*
 
-Ok, enough stupid captions. Flip the pro mini upside down, and the pins should line up (note: rx goes to tx and tx to rx, the others should match)
+Flip the pro mini upside down and the pins should line up (note: rx goes to tx and tx to rx, the others should match)
 
 ![image alt text](image_12.jpg)<br>
 *Fig 13: Pro mini lined up on the pin header, note the empty spot for the 3.3V pin.*
@@ -324,7 +325,11 @@ The resistor must be 10kOhm and have as good accuracy as possible (1%). If you g
 
 ## Using secondary temperature probe input
 
-**TODO**
+The idea is to use the secondary temperature probe to measure the fridge air temperature or the temperature of a smaller thermal mass (water or sand) in the fridge. This should respond faster to the temperature fluctuations than the beer. By carefully limiting how far this temperature is allowed to deviate from the setpoint, it should be possible to limit the over/under-shoot that can occur as the heater/cooler continues to operate until the beer has reached the setpoint. Ther correct value for *hy2* will be dependent of the specific setup (and also the *hy* value) and will need to be set by trial and error or by analyzing how much over/under-shoot is seen and how far off setpoint the fridge temperature will go. This is a double edged sword, you do not want to set too tight hysteresis for the second temp probe as it will put more stress on the compressor and may make it harder to reach setpoint. But you also want to constrain it enough to be effective. Err on the safe side to begin with (using a larger *hy2* setting) and constrain it more as needed.
+
+It should also be noted, that it would be a very good idea to make sure the two temperature probes are calibrated (at least in respect to each other) around the setpoint.
+
+To enable use of the second temp probe in the thermostat logic (i.e. to enable *hy2* limits on temperature2), set *Pb*=1. Even with with it disabled it is still possible to switch to display the second temperature input using a short press on the power button.  
 
 ## Additional features
 
