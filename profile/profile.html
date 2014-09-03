@@ -1,0 +1,191 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+<title>Profile test</title>
+ 
+<style type="text/css">
+body { font-family: Verdana, Arial, sans-serif; font-size: 12px; }
+#placeholder { width: 1000px; height: 600px; }
+</style>
+
+<script src="jquery.min.js"></script>
+<script src="jquery.flot.min.js"></script>
+<!--script src="jquery.flot.hiddengraphs.js"></script -->
+
+<script type="text/javascript">
+
+function ramp(step, dur){
+	var t = (dur << 6);
+	var sp = 32;
+	var i;
+	var profile_step_dur = $('#dH' + step).val();
+	var profile_step_sp = Math.round($('#sp' + step).val() * 10.0);
+	step++;
+	var profile_next_step_sp = Math.round($('#sp' + step).val() * 10.0);
+
+	// Linear interpolation calculation of new setpoint (64 substeps)
+	for (i = 0; i < 64; i++) {
+		if (t >= profile_step_dur) {
+			t -= profile_step_dur;
+			sp += profile_next_step_sp;
+		} else {
+			sp += profile_step_sp;
+		}
+	}
+	sp >>= 6;
+
+	return (sp / 10.0);
+}
+
+
+function calc(){
+	var i,j;
+	var x = 0;
+	var y = Math.round($('#sp' + 0).val() * 10) / 10.0;
+	var d1 = [];
+
+	for(i=0; i<9; i++) {
+		var dh = $('#dH' + i).val();
+		y = Math.round($('#sp' + i).val() * 10.0) / 10.0;
+		d1.push([x/24.0, y]);
+		if(dh==0){
+			break;
+		}
+		for(j=0; j < dh; j++){
+			if($('#rP').is(":checked")){
+				y = ramp(i, j);
+				d1.push([x/24.0, y]);
+			}
+			x++;
+		}
+		d1.push([x/24.0, y]);
+	}
+
+	var d2 = [];
+	d2.push([x/24.0, y]);
+	d2.push([(x + x/8)/24.0, y]);
+
+	$.plot(
+				$("#placeholder"), 
+				[ 	{ label: "Setpoint", data: d1 },
+					{ label: "Thermostat", data: d2 }
+				],
+				{ 
+					series: {
+        				points: { show: false },
+        				lines: { show: true }
+    				},
+					legend: { 
+//						hideable: true 
+					} 
+				} 
+			);
+}
+
+function switch_cf(){
+	if($("#tempscale").val() == "F"){
+		$("span.tscale").html("[&deg;C]");
+		$(".setpoints").each(	function(){
+			var t = $(this).val();
+			$(this).val(Math.round(((t-32.0)*5.0)/0.9) / 10.0);
+		});
+		$("#tempscale").val("C");
+	} else {
+		$("span.tscale").html("[&deg;F]");
+		$(".setpoints").each(	function(){
+			var t = $(this).val();
+			$(this).val(Math.round(((t*9.0)/0.5)+320.0) / 10.0);
+		});
+		$("#tempscale").val("F");
+	}
+	calc();
+}
+
+$(document).ready(function () {
+    calc();
+});
+
+
+
+</script>
+</head>
+ 
+<body>
+
+	<table>
+	<thead>
+	<tr>
+	<td><h3>Setpoint</h3></td>
+	<td><h3>Duration</h3></td>
+	<td><h3>Cheatsheet</h3></td>
+	</tr>
+	</thead>
+	<tr>
+
+	<td valign="top">
+	<table>
+	<tr><td>SP0:</td><td><input class="setpoints" type="text" id="sp0" name="sp0" maxlength="4" size="4" value="18.0"><span class="tscale">[&deg;C]</span></td></tr>
+	<tr><td>SP1:</td><td><input class="setpoints" type="text" id="sp1" name="sp1" maxlength="4" size="4" value="18.0"><span class="tscale">[&deg;C]</span></td></tr>
+	<tr><td>SP2:</td><td><input class="setpoints" type="text" id="sp2" name="sp2" maxlength="4" size="4" value="21.0"><span class="tscale">[&deg;C]</span></td></tr>
+	<tr><td>SP3:</td><td><input class="setpoints" type="text" id="sp3" name="sp3" maxlength="4" size="4" value="21.0"><span class="tscale">[&deg;C]</span></td></tr>
+	<tr><td>SP4:</td><td><input class="setpoints" type="text" id="sp4" name="sp4" maxlength="4" size="4" value="24.0"><span class="tscale">[&deg;C]</span></td></tr>
+	<tr><td>SP5:</td><td><input class="setpoints" type="text" id="sp5" name="sp5" maxlength="4" size="4" value="24.0"><span class="tscale">[&deg;C]</span></td></tr>
+	<tr><td>SP6:</td><td><input class="setpoints" type="text" id="sp6" name="sp6" maxlength="4" size="4" value="5.0"><span class="tscale">[&deg;C]</span></td></tr>
+	<tr><td>SP7:</td><td><input class="setpoints" type="text" id="sp7" name="sp7" maxlength="4" size="4" value="0.0"><span class="tscale">[&deg;C]</span></td></tr>
+	<tr><td>SP8:</td><td><input class="setpoints" type="text" id="sp8" name="sp8" maxlength="4" size="4" value="0.0"><span class="tscale">[&deg;C]</span></td></tr>
+	<tr><td>SP9:</td><td><input class="setpoints" type="text" id="sp9" name="sp9" maxlength="4" size="4" value="0.0"><span class="tscale">[&deg;C]</span></td></tr>
+	</table>
+	</td>
+
+	<td valign="top">
+	<table>
+	<tr><td>dH0:</td><td><input type="text" id="dH0" name="dH0" maxlength="4" size="4" value="24">[hours]</td></tr>
+	<tr><td>dH1:</td><td><input type="text" id="dH1" name="dH1" maxlength="4" size="4" value="24">[hours]</td></tr>
+	<tr><td>dH2:</td><td><input type="text" id="dH2" name="dH2" maxlength="4" size="4" value="120">[hours]</td></tr>
+	<tr><td>dH3:</td><td><input type="text" id="dH3" name="dH3" maxlength="4" size="4" value="48">[hours]</td></tr>
+	<tr><td>dH4:</td><td><input type="text" id="dH4" name="dH4" maxlength="4" size="4" value="24">[hours]</td></tr>
+	<tr><td>dH5:</td><td><input type="text" id="dH5" name="dH5" maxlength="4" size="4" value="24">[hours]</td></tr>
+	<tr><td>dH6:</td><td><input type="text" id="dH6" name="dH6" maxlength="4" size="4" value="0">[hours]</td></tr>
+	<tr><td>dH7:</td><td><input type="text" id="dH7" name="dH7" maxlength="4" size="4" value="0">[hours]</td></tr>
+	<tr><td>dH8:</td><td><input type="text" id="dH8" name="dH8" maxlength="4" size="4" value="0">[hours]</td></tr>
+	<tr><td>dH9:</td><td><input type="text" id="dH9" name="dH9" maxlength="4" size="4" value="0">[hours]</td></tr>
+	</table>
+	</td>
+
+	<td valign="top">
+	<table>
+	<tr><td>1 day = 24 hours</td></tr>
+	<tr><td>2 days = 48 hours</td></tr>
+	<tr><td>3 days = 72 hours</td></tr>
+	<tr><td>4 days = 96 hours</td></tr>
+	<tr><td>5 days = 120 hours</td></tr>
+	<tr><td>6 days = 144 hours</td></tr>
+	<tr><td>7 days = 168 hours</td></tr>
+	<tr><td>8 days = 192 hours</td></tr>
+	<tr><td>9 days = 216 hours</td></tr>
+	<tr><td>10 days = 240 hours</td></tr>
+	<tr><td>11 days = 264 hours</td></tr>
+	<tr><td>12 days = 288 hours</td></tr>
+	<tr><td>13 days = 312 hours</td></tr>
+	<tr><td>14 days = 336 hours</td></tr>
+	<tr><td>15 days = 360 hours</td></tr>
+	<tr><td>16 days = 384 hours</td></tr>
+	<tr><td>17 days = 408 hours</td></tr>
+	<tr><td>18 days = 432 hours</td></tr>
+	<tr><td>19 days = 456 hours</td></tr>
+	<tr><td>20 days = 480 hours</td></tr>
+	</table>
+	</td>
+
+	</tr>
+	</table>
+
+	<input type="checkbox" id="rP" name="ramping" checked>Ramping (Rp)</input>
+	<input type="button" id="update" name="update" value="update" onclick="calc();">
+	<input type="button" id="tempscale" name="switchcf" value="C" onclick="switch_cf();">
+	<p>
+
+    <div id="placeholder"></div>
+</body>
+</html>
