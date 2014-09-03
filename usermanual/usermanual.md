@@ -12,6 +12,7 @@ Mats Staffansson
 2014-08-12:	Added info on second temp probe and the very cheap programmer<br>
 2014-08-20:	Added info on setpoint alarm and made formatting changes<br>
 2014-08-22:	Added more info on using the second temp probe<br>
+2014-09-04:	Changed setpoint alarm functionality<br>
 
 # Introduction
 
@@ -243,14 +244,14 @@ The settings menu has the following items:
 |hy2|Set hysteresis for second temp probe|0.0 to 25.0°C or 0.0 to 50.0°F|
 |tc|Set temperature correction|-2.5 to 2.5°C or -5.0 to 5.0°F|
 |tc2|Set temperature correction for second temp probe|-2.5 to 2.5°C or -5.0 to 5.0°F|
+|SA|Setpoint alarm|0 = off, -40 to 40°C or -80 to 80°F|
 |SP|Set setpoint|-40 to 140°C or -40 to 250°F|
 |St|Set current profile step|0 to 8|
 |dh|Set current profile duration|0 to 999 hours|
 |cd|Set cooling delay|0 to 60 minutes|
 |hd|Set heating delay|0 to 60 minutes|
 |rP|Ramping|0 = off, 1 = on|
-|Pb|Enable second temp probe for use in thermostat control|0 = off, 1 = on|
-|SA|Setpoint alarm|0 = off, 1 = on|
+|Pb2|Enable second temp probe for use in thermostat control|0 = off, 1 = on|
 |rn|Set run mode|Pr0 to Pr5 and th|
 *Table 4: Settings sub-menu items*
 
@@ -262,6 +263,8 @@ The settings menu has the following items:
 
 **Temperature correction 2**, same as tc but for secondary temp probe.
 
+**Setpoint alarm**, if setpoint alarm is greater than 0.0, then the alarm will sound once temperature differs from *SP* by more than *SA* degrees (this can be useful to warn against malfunctions, such as fridge door not closed or probe not attached to carboy). If *SA* is less than 0.0, then the alarm will sound if the temperature does **NOT** differ by more than (-) *SA* degrees (this could be used as an indication that wort has finally reached pitching temp). If *SA* is set to 0.0, the alarm will be disabled. If the alarm is tripped, then the buzzer will sound and the display will flash between temperature display and showing "SA", it will not however disengage the outputs and the unit will continue to work as normal. Please note, that care needs to be taken when running a profile (especially when not using ramping or with steep ramps) to allow for a sufficiently large margin, or the alarm could be tripped when setpoint changes.
+
 **Setpoint**, well... The desired temperature to keep. The way STC-1000+ firmware works, setpoint is *always* the value the thermostat strives towards, even when running a profile. What the profile does is simply setting the setpoint at given times.
 
 **Current profile step** and **current profile duration**, allows 'jumping' in the profile. Step and duration are updated automatically when running the profile, but can also be set manually at any time. Note that profile step and profile duration are the variables directly used to keep track of progress in a profile. Little or no validation is made of what values are entered. It is up to the user to know what he/she is doing by changing these values. Changing these values will not take effect until next point in profile is calculated, which could be as much as one hour. Every hour, current duration, *dh* (and if next step is reached, also current step, *St*) is updated with new value(s). That means in case of a power outage, STC-1000+ will pick up (to within the hour) from where it left off. Current profile step and current profile duration are only available in the menu when a profile is currently running.
@@ -269,8 +272,6 @@ The settings menu has the following items:
 **Cooling** and **heating delay** is the minimum 'off time' for each relay, to spare the compressor and relays from short cycling. If the the temperature is too high or too low, but the delay has not yet been met, the corresponding LED (heating/cooling) will blink, indicating that the controller is waiting to for the delay to pass before it will start heating or cooling. When the controller is powered on, the initial delay (for both heating and cooling) will **always** be approximately 1 minute, regardless of the settings. That is because even if your system could tolerate no heating or cooling delays during normal control (i.e. *cd* and/or *hd* set to zero), it would be undesirable for the relay to rapidly turn on and off in the event of a power outage causing mains power to fluctuate. Both cooling and heating delays are loaded when either cooling/heating relays switched off. So, for instance if you set cooling delay to 60 minutes and setpoint is reached, turning cooling relay off, it will be approximately one hour until cooling relay will be allowed to switch on again, even if you change your mind and change the setting in EEPROM (i.e. it will not affect the current cycle).
 
 The delay can be used to prevent oscillation (hunting). For example, setting an appropriately long heating delay can prevent the heater coming on if the cooling cycle causes an undershoot that would otherwise cause heater to run. What is 'appropriate' depends on your setup.
-
-**Setpoint alarm**, if setpoint alarm is enabled (*SA* = 1) and unit is in thermostat mode (*rn* = *th*, i.e. not running a profile), then the alarm will sound once temperature reaches *SP* ± *hy*. The alarm will sound until *SA* is reset to 0, it will not however disengage the outputs and the unit will continue to work in thermostat mode. This feature can be useful if you use the fermentation chamber to bring wort down to pitching temp and want an audible reminder when it is time to pitch.
 
 **Run mode**, selecting *Pr0* to *Pr5* will start the corresponding profile running from step 0, duration 0. Selecting *th* will switch to thermostat mode, the last setpoint from the previously running profile will be retained as the current setpoint when switching from a profile to thermostat mode.
 
@@ -329,11 +330,11 @@ The idea is to use the secondary temperature probe to measure the fridge air tem
 
 It should also be noted, that it would be a very good idea to make sure the two temperature probes are calibrated (at least in respect to each other) around the setpoint.
 
-To enable use of the second temp probe in the thermostat logic (i.e. to enable *hy2* limits on temperature2), set *Pb*=1. Even with with it disabled it is still possible to switch to display the second temperature input using a short press on the power button.  
+To enable use of the second temp probe in the thermostat logic (i.e. to enable *hy2* limits on temperature2), set *Pb2* = 1. Even with with it disabled it is still possible to switch to display the second temperature input using a short press on the power button.  
 
 ## Additional features
 
-**Sensor alarm**, if the measured temperature is out of range (indicating the sensor is not connected properly or broken), the internal buzzer will sound and display will show 'AL'. If secondary probe is enabled for thermostat control (*Pb* = 1), then alarm will go off if that temperature goes out of range as well. On alarm, both relays will be disengaged and the heating and cooling delay will be reset to 1 minute. So, once the temperature in in range again (i.e. sensor is reconnected), temperature readings can stabilize before thermostat control takes over.
+**Sensor alarm**, if the measured temperature is out of range (indicating the sensor is not connected properly or broken), the internal buzzer will sound and display will show 'AL'. If secondary probe is enabled for thermostat control (*Pb2* = 1), then alarm will go off if that temperature goes out of range as well. On alarm, both relays will be disengaged and the heating and cooling delay will be reset to 1 minute. So, once the temperature in in range again (i.e. sensor is reconnected), temperature readings can stabilize before thermostat control takes over.
 
 **Power off**, pressing and holding power button for a few seconds when the controller is not in menu (showing current temperature), will disable the relays (soft power off) and show 'OFF' on the display. To really power off, you need to cut mains power to the device. The soft power off state will remain after a power cycle. Long pressing the power off button again will bring it out of soft power off mode.
 
