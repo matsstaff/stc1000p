@@ -516,21 +516,24 @@ void main(void) __naked {
 							millisx60 = 0;
 						}
 					} else {
-						unsigned char sa = eeprom_read_config(EEADR_SET_MENU_ITEM(SA));
-						// Alarm on setpoint reached
-						if(sa > 1){
-							LATA0 = 1;
-						} else if(sa==1){
+						led_e.e_set = 1;
+						millisx60 = 0;
+					}
+
+					{
+						int sa = eeprom_read_config(EEADR_SET_MENU_ITEM(SA));
+						if(sa){
 							int diff = temperature - eeprom_read_config(EEADR_SET_MENU_ITEM(SP));
 							if(diff < 0){
 								diff = -diff;
 							} 
-							if(diff <= eeprom_read_config(EEADR_SET_MENU_ITEM(hy))){
-								eeprom_write_config(EEADR_SET_MENU_ITEM(SA), 2);
+							if(sa < 0){
+								sa = -sa;
+								LATA0 = diff <= sa;
+							} else {
+								LATA0 = diff >= sa;
 							}
 						}
-						led_e.e_set = 1;
-						millisx60 = 0;
 					}
 
 					// Run thermostat
@@ -538,12 +541,19 @@ void main(void) __naked {
 
 					// Show temperature if menu is idle
 					if(TMR1GE){
-						led_e.e_point = !TX9;
-						if(TX9){
-							temperature_to_led(temperature2);
+						if(LATA0 && RX9){
+							led_10.raw = LED_S;
+							led_1.raw = LED_A;
+							led_01.raw = LED_OFF;
 						} else {
-							temperature_to_led(temperature);
+							led_e.e_point = !TX9;
+							if(TX9){
+								temperature_to_led(temperature2);
+							} else {
+								temperature_to_led(temperature);
+							}
 						}
+						RX9 = !RX9;
 					}
 				}
 

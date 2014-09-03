@@ -68,6 +68,8 @@
 #define TEMP_CORR_MIN	(-100)
 #define TEMP_HYST_1_MAX	(100)
 #define TEMP_HYST_2_MAX	(500)
+#define SP_ALARM_MIN	(-800)
+#define SP_ALARM_MAX	(800)
 #else  // CELSIUS
 #define TEMP_MAX		(1400)
 #define TEMP_MIN		(-400)
@@ -75,6 +77,8 @@
 #define TEMP_CORR_MIN	(-50)
 #define TEMP_HYST_1_MAX	(50)
 #define TEMP_HYST_2_MAX	(250)
+#define SP_ALARM_MIN	(-400)
+#define SP_ALARM_MAX	(400)
 #endif
 
 /* The data needed for the 'Set' menu
@@ -89,14 +93,14 @@
     _(hy2, 	LED_h, 	LED_y, 	LED_2, 		0, 				TEMP_HYST_2_MAX, 	50,		100)	\
     _(tc, 	LED_t, 	LED_c, 	LED_OFF, 	TEMP_CORR_MIN, 	TEMP_CORR_MAX,		0,		0)		\
     _(tc2, 	LED_t, 	LED_c, 	LED_2, 		TEMP_CORR_MIN,	TEMP_CORR_MAX,		0,		0)		\
+    _(SA, 	LED_S, 	LED_A, 	LED_OFF, 	SP_ALARM_MIN,	SP_ALARM_MAX,		0,		0)		\
     _(SP, 	LED_S, 	LED_P, 	LED_OFF, 	TEMP_MIN,		TEMP_MAX,			200,	680)	\
     _(St, 	LED_S, 	LED_t, 	LED_OFF, 	0,				8,					0,		0)		\
     _(dh, 	LED_d, 	LED_h, 	LED_OFF, 	0,				999,				0,		0)		\
     _(cd, 	LED_c, 	LED_d, 	LED_OFF, 	0,				60,					5,		5)		\
     _(hd, 	LED_h, 	LED_d, 	LED_OFF, 	0,				60,					2,		2)		\
     _(rP, 	LED_r, 	LED_P, 	LED_OFF, 	0,				1,					0,		0)		\
-    _(Pb, 	LED_P, 	LED_b, 	LED_OFF, 	0,				1,					0,		0)		\
-    _(SA, 	LED_S, 	LED_A, 	LED_OFF, 	0,				1,					0,		0)		\
+    _(Pb, 	LED_P, 	LED_b, 	LED_2, 		0,				1,					0,		0)		\
     _(rn, 	LED_r, 	LED_n, 	LED_OFF, 	0,				6,					6,		6) 		\
 
 #define ENUM_VALUES(name, led10ch, led1ch, led01ch, minv, maxv, dvc, dvf) \
@@ -131,7 +135,8 @@ enum set_menu_enum {
 #define LED_7	0x37
 #define LED_8	0x1
 #define LED_9	0x21
-#define LED_A	0x5
+#define LED_A	0x11
+#define LED_a	0x5
 #define LED_b	0xc1
 #define LED_C	0x4b
 #define LED_c	0xcd
