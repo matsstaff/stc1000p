@@ -25,6 +25,7 @@ Features
 * Somewhat intuitive menus for configuring
 * Separate delay settings for cooling and heating
 * Configurable hysteresis (allowable temp swing) from 0.0 to 2.5°C or 0.0 to 5.0°F
+* User definable alarm when temperature is out of or within range
 * Optionally limit heating and cooling by input from 2nd temp probe
 * Approximative ramping
 * Button acceleration, for frustrationless programming by buttons

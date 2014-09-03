@@ -198,6 +198,8 @@ The last step is optional, but will make it more durable and a bit neater. Cut a
 
 * Configurable hysteresis (allowable temp swing)
 
+* User definable alarm when temperature is out of or within range
+
 * Optionally use a second temperature input (fridge air temp) to limit over/undershoot.
 
 * Optionally use approximative linear ramping between setpoints
