@@ -11,7 +11,7 @@ The goal of this project is twofold
  * To create the means to reprogram the STC-1000 with a custom firmware
  * To create a custom firmware, suited for fermenting beer
 
-The first goal is achieved by using an Arduino (UNO and Pro Mini verified to work) with a sketch to act as a programmer, and the second by using the SDCC compiler and GPUTILS. 
+The first goal is achieved by using an Arduino (UNO and Pro Mini 5v verified to work) with a sketch to act as a programmer, and the second by using the SDCC compiler and GPUTILS. 
 
 Download by visiting the [releases page](https://github.com/matsstaff/stc1000p/releases)
 and start by reading [the user manual](/usermanual/usermanual.md)
