@@ -56,4 +56,4 @@ Updates
 2014-04-16 Release v1.03 Added leaky integration filtering, improved averaging (+ bugfix)  
 2014-05-25 Release v1.04 A couple of minor improvements and a minor bugfix  
 2014-08-02 Release v1.05 Reset both heating and cooling delay when either heating or cooling cycle ends. Improved power off functionality, increased button debounce time, allow longer heating delays.   
-2014-09-?? Release v1.06 Add functionality for 2nd temp probe (to limit heating/cooling). Display 'OFF' in soft off mode. Added user definable temperature alarm.
+2014-09-?? Release v1.06 Add functionality for 2nd temp probe (to limit heating/cooling). Display 'OFF' in soft off mode. Added user definable temperature alarm. Added profile 'editor' webpage.
