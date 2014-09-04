@@ -30,6 +30,19 @@ Features
 * Approximative ramping
 * Button acceleration, for frustrationless programming by buttons
 
+Updates
+-------
+
+|Date|Release|Description|
+|----|-------|-----------|
+|2014-04-04|v1.00|First release|
+|2014-04-11|v1.01|Increase approximative ramping steps to 64|
+|2014-04-15|v1.02|Improved temperature averaging|
+|2014-04-16|v1.03|Added leaky integration filtering, improved averaging (+ bugfix)|
+|2014-05-25|v1.04|A couple of minor improvements and a minor bugfix|
+|2014-08-02|v1.05|Reset both heating and cooling delay when either heating or cooling cycle ends. Improved power off| functionality, increased button debounce time, allow longer heating delays.|  
+|2014-09-??|v1.06|Add functionality for 2nd temp probe (to limit heating/cooling). Display 'OFF' in soft off mode. Added user definable temperature alarm. Added profile 'editor' webpage.|
+
 Some excellent user provided content
 ------------------------------------
 STC-1000+ Menu Navigation by Will Conrad   
@@ -45,17 +58,3 @@ STC-1000+ Flashing Firmware by Will Conrad
 
 STC-1000+ Firmware upload by Matt Hall   
 [![STC-1000+ Firmware upload by Matt Hall](http://img.youtube.com/vi/oAZKI5U_SoM/0.jpg)](http://youtu.be/oAZKI5U_SoM)
-
-
-Updates
-=======
-
-|Date|Release|Description|
-|----|-------|-----------|
-|2014-04-04|v1.00|First release|
-|2014-04-11|v1.01|Increase approximative ramping steps to 64|
-|2014-04-15|v1.02|Improved temperature averaging|
-|2014-04-16|v1.03|Added leaky integration filtering, improved averaging (+ bugfix)|
-|2014-05-25|v1.04|A couple of minor improvements and a minor bugfix|
-|2014-08-02|v1.05|Reset both heating and cooling delay when either heating or cooling cycle ends. Improved power off| functionality, increased button debounce time, allow longer heating delays.|  
-|2014-09-??|v1.06|Add functionality for 2nd temp probe (to limit heating/cooling). Display 'OFF' in soft off mode. Added user definable temperature alarm. Added profile 'editor' webpage.|
