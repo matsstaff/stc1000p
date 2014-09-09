@@ -48,10 +48,10 @@ The settings (Set) menu:
 
 |Menu item|Description|Values|
 |---|---|---|
-|hy|Set hysteresis|0.0 to 2.5°C or 0.0 to 5.0°F|
+|hy|Set hysteresis|0.0 to 5.0°C or 0.0 to 10.0°F|
 |hy2|Set hysteresis for second temp probe|0.0 to 25.0°C or 0.0 to 50.0°F|
-|tc|Set temperature correction|-2.5 to 2.5°C or -5.0 to 5.0°F|
-|tc2|Set temperature correction for second temp probe|-2.5 to 2.5°C or -5.0 to 5.0°F|
+|tc|Set temperature correction|-5.0 to 5.0°C or -10.0 to 10.0°F|
+|tc2|Set temperature correction for second temp probe|-5.0 to 5.0°C or -10.0 to 10.0°F|
 |SA|Setpoint alarm|0 = off, -40 to 40°C or -80 to 80°F|
 |SP|Set setpoint|-40 to 140°C or -40 to 250°F|
 |St|Set current profile step|0 to 8|
