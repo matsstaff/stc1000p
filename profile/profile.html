@@ -54,6 +54,7 @@ function calc(){
 		}
 		for(j=0; j < dh; j++){
 			if($('#rP').is(":checked")){
+				d1.push([x/24.0, y]);
 				y = ramp(i, j);
 				d1.push([x/24.0, y]);
 			}
