@@ -22,13 +22,46 @@ Features
 * Both Fahrenheit and Celsius versions
 * Up to 6 profiles with up to 10 setpoints.
 * Each setpoint can be held for 1-999 hours (i.e. up to ~41 days).
+* [Web browser profile editor](http://goo.gl/gS4p1U) 
+* Approximative ramping
 * Somewhat intuitive menus for configuring
 * Separate delay settings for cooling and heating
 * Configurable hysteresis (allowable temp swing) from 0.0 to 2.5°C or 0.0 to 5.0°F
 * User definable alarm when temperature is out of or within range
 * Optionally limit heating and cooling by input from 2nd temp probe
-* Approximative ramping
 * Button acceleration, for frustrationless programming by buttons
+
+Quick Reference for the menus
+-----------------------------
+
+Profile (Pr0-5) menus:
+
+|Menu item|Description|Values|
+|--------|-------|-------|
+|SP0|Set setpoint 0|-40.0 to 140͒°C or -40.0 to 250°F|
+|dh0|Set duration 0|0 to 999 hours|
+|...|Set setpoint/duration x|...|
+|dh8|Set duration 8|0 to 999 hours|
+|SP9|Set setpoint 9|-40.0 to 140°C or -40.0 to 250°F|
+
+The settings (Set) menu:
+
+|Menu item|Description|Values|
+|---|---|---|
+|hy|Set hysteresis|0.0 to 2.5°C or 0.0 to 5.0°F|
+|hy2|Set hysteresis for second temp probe|0.0 to 25.0°C or 0.0 to 50.0°F|
+|tc|Set temperature correction|-2.5 to 2.5°C or -5.0 to 5.0°F|
+|tc2|Set temperature correction for second temp probe|-2.5 to 2.5°C or -5.0 to 5.0°F|
+|SA|Setpoint alarm|0 = off, -40 to 40°C or -80 to 80°F|
+|SP|Set setpoint|-40 to 140°C or -40 to 250°F|
+|St|Set current profile step|0 to 8|
+|dh|Set current profile duration|0 to 999 hours|
+|cd|Set cooling delay|0 to 60 minutes|
+|hd|Set heating delay|0 to 60 minutes|
+|rP|Ramping|0 = off, 1 = on|
+|Pb2|Enable second temp probe for use in thermostat control|0 = off, 1 = on|
+|rn|Set run mode|Pr0 to Pr5 and th|
+
 
 Updates
 -------
