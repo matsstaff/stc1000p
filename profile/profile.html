@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
-<title>Profile test</title>
+<title>STC-1000+ Profile editor</title>
  
 <style type="text/css">
 body { font-family: Verdana, Arial, sans-serif; font-size: 12px; }
@@ -69,8 +69,8 @@ function calc(){
 
 	$.plot(
 				$("#placeholder"), 
-				[ 	{ label: "Setpoint", data: d1 },
-					{ label: "Thermostat", data: d2 }
+				[ 	{ label: "Profile mode", data: d1 },
+					{ label: "Thermostat mode", data: d2 }
 				],
 				{ 
 					series: {
@@ -79,31 +79,43 @@ function calc(){
     				},
 					legend: { 
 //						hideable: true 
-					} 
+					},
+					xaxis: {
+						tickFormatter: function(val, axis) { return val < axis.max -1  ? val : "Days";}
+					}, 
+					yaxis: {
+						tickFormatter: function(val, axis) { return val < axis.max ? val.toFixed(2) : "Temperature";}
+					}
 				} 
 			);
 }
 
 function switch_cf(){
-	if($("#tempscale").val() == "F"){
+	if($("#tempscale").val() == "C"){
 		$("span.tscale").html("[&deg;C]");
 		$(".setpoints").each(	function(){
 			var t = $(this).val();
 			$(this).val(Math.round(((t-32.0)*5.0)/0.9) / 10.0);
 		});
-		$("#tempscale").val("C");
+		$("#tempscale").val("F");
 	} else {
 		$("span.tscale").html("[&deg;F]");
 		$(".setpoints").each(	function(){
 			var t = $(this).val();
 			$(this).val(Math.round(((t*9.0)/0.5)+320.0) / 10.0);
 		});
-		$("#tempscale").val("F");
+		$("#tempscale").val("C");
 	}
 	calc();
 }
 
 $(document).ready(function () {
+	$( ".setpoints" ).change(function() {
+		calc();
+	});
+	$( ".durations" ).change(function() {
+		calc();
+	});
     calc();
 });
 
@@ -120,6 +132,7 @@ $(document).ready(function () {
 	<td><h3>Setpoint</h3></td>
 	<td><h3>Duration</h3></td>
 	<td><h3>Cheatsheet</h3></td>
+	<td><h3>About</h3></td>
 	</tr>
 	</thead>
 	<tr>
@@ -141,16 +154,16 @@ $(document).ready(function () {
 
 	<td valign="top">
 	<table>
-	<tr><td>dH0:</td><td><input type="text" id="dH0" name="dH0" maxlength="4" size="4" value="24">[hours]</td></tr>
-	<tr><td>dH1:</td><td><input type="text" id="dH1" name="dH1" maxlength="4" size="4" value="24">[hours]</td></tr>
-	<tr><td>dH2:</td><td><input type="text" id="dH2" name="dH2" maxlength="4" size="4" value="120">[hours]</td></tr>
-	<tr><td>dH3:</td><td><input type="text" id="dH3" name="dH3" maxlength="4" size="4" value="48">[hours]</td></tr>
-	<tr><td>dH4:</td><td><input type="text" id="dH4" name="dH4" maxlength="4" size="4" value="24">[hours]</td></tr>
-	<tr><td>dH5:</td><td><input type="text" id="dH5" name="dH5" maxlength="4" size="4" value="24">[hours]</td></tr>
-	<tr><td>dH6:</td><td><input type="text" id="dH6" name="dH6" maxlength="4" size="4" value="0">[hours]</td></tr>
-	<tr><td>dH7:</td><td><input type="text" id="dH7" name="dH7" maxlength="4" size="4" value="0">[hours]</td></tr>
-	<tr><td>dH8:</td><td><input type="text" id="dH8" name="dH8" maxlength="4" size="4" value="0">[hours]</td></tr>
-	<tr><td>dH9:</td><td><input type="text" id="dH9" name="dH9" maxlength="4" size="4" value="0">[hours]</td></tr>
+	<tr><td>dH0:</td><td><input class="durations" type="text" id="dH0" name="dH0" maxlength="4" size="4" value="24">[hours]</td></tr>
+	<tr><td>dH1:</td><td><input class="durations" type="text" id="dH1" name="dH1" maxlength="4" size="4" value="24">[hours]</td></tr>
+	<tr><td>dH2:</td><td><input class="durations" type="text" id="dH2" name="dH2" maxlength="4" size="4" value="120">[hours]</td></tr>
+	<tr><td>dH3:</td><td><input class="durations" type="text" id="dH3" name="dH3" maxlength="4" size="4" value="48">[hours]</td></tr>
+	<tr><td>dH4:</td><td><input class="durations" type="text" id="dH4" name="dH4" maxlength="4" size="4" value="24">[hours]</td></tr>
+	<tr><td>dH5:</td><td><input class="durations" type="text" id="dH5" name="dH5" maxlength="4" size="4" value="24">[hours]</td></tr>
+	<tr><td>dH6:</td><td><input class="durations" type="text" id="dH6" name="dH6" maxlength="4" size="4" value="0">[hours]</td></tr>
+	<tr><td>dH7:</td><td><input class="durations" type="text" id="dH7" name="dH7" maxlength="4" size="4" value="0">[hours]</td></tr>
+	<tr><td>dH8:</td><td><input class="durations" type="text" id="dH8" name="dH8" maxlength="4" size="4" value="0">[hours]</td></tr>
+	<tr><td>dH9:</td><td><input class="durations" type="text" id="dH9" name="dH9" maxlength="4" size="4" value="0">[hours]</td></tr>
 	</table>
 	</td>
 
@@ -179,12 +192,21 @@ $(document).ready(function () {
 	</table>
 	</td>
 
+	<td valign="top">
+STC-1000+ Profile editor<br>
+&copy; 2014 Mats Staffansson<p>
+This page is a part of the <a href="https:\\github.com\matsstaff\stc1000p">STC-1000+ project.</a><p>
+The purpose of this page it to visualize how the setpoint will be updated over time, <br>when running a profile (with the specified settings) on an STC-1000+ modified thermostat.<br>
+It will accurately show substeps when ramping is enabled.<p>
+Note that it only shows the calculated setpoints, not the actual temperature of the FV.
+	</td>
+
 	</tr>
 	</table>
 
-	<input type="checkbox" id="rP" name="ramping" checked>Ramping (Rp)</input>
-	<input type="button" id="update" name="update" value="update" onclick="calc();">
-	<input type="button" id="tempscale" name="switchcf" value="C" onclick="switch_cf();">
+	<input type="checkbox" id="rP" name="ramping" onchange="calc();" checked title="Enable/disable ramping (Rp) setting">Ramping (Rp)</input>
+	&nbsp;
+	<input type="button" id="tempscale" name="switchcf" value="F" onclick="switch_cf();" title="Switch between Fahrenheit and Celsius scale">
 	<p>
 
     <div id="placeholder"></div>
