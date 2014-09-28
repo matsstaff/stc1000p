@@ -78,10 +78,10 @@ extern const char hex_fahrenheit[] PROGMEM;
 extern const char hex_eeprom_celsius[] PROGMEM;
 extern const char hex_eeprom_fahrenheit[] PROGMEM;
 
-/* Uncomment to enable automatic upload of Fahrenheit version */
-//#define AUTOMATIC_UPLOAD_FAHRENHEIT
-/* Uncomment to enable automatic upload of Celsius version */
-//#define AUTOMATIC_UPLOAD_CELSIUS
+/* Set to 1 to enable automatic upload of Fahrenheit version */
+#define AUTOMATIC_UPLOAD_FAHRENHEIT		0
+/* Set to 1 to enable automatic upload of Celsius version */
+#define AUTOMATIC_UPLOAD_CELSIUS		0
 
 void setup() {
 	pinMode(ICSPCLK, INPUT);
@@ -100,7 +100,7 @@ void setup() {
 	Serial.println("");
 	Serial.println("Send 'd' to check for STC-1000");
 
-#ifdef AUTOMATIC_UPLOAD_CELSIUS || AUTOMATIC_UPLOAD_FAHRENHEIT
+#if AUTOMATIC_UPLOAD_CELSIUS || AUTOMATIC_UPLOAD_FAHRENHEIT
 	{
 		unsigned int magic, ver, deviceid;
 		delay(100); // Make sure STC has time to wake up.
