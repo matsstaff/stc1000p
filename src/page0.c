@@ -269,8 +269,8 @@ static void update_profile(){
  * properly, so the variables below were moved from temperature_control()
  * and made global.
  */
-static unsigned int cooling_delay = 60;  // Initial cooling delay
-static unsigned int heating_delay = 60;  // Initial heating delay
+unsigned int cooling_delay = 60;  // Initial cooling delay
+unsigned int heating_delay = 60;  // Initial heating delay
 static void temperature_control(){
 	int setpoint = eeprom_read_config(EEADR_SET_MENU_ITEM(SP));
 	int hysteresis2 = eeprom_read_config(EEADR_SET_MENU_ITEM(hy2));
