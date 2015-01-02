@@ -41,6 +41,9 @@
 /* Help to convert menu item number and config item number to an EEPROM config address */
 #define EEADR_MENU_ITEM(mi, ci)	((mi)*19 + (ci))
 
+extern unsigned int heating_delay;
+extern unsigned int cooling_delay;
+
 /* Set menu struct */
 struct s_setmenu {
     unsigned char led_c_10;
@@ -70,6 +73,9 @@ static int RANGE(int x, int min, int max){
 /* Check and constrain a configuration value */
 static int check_config_value(int config_value, unsigned char eeadr){
 	if(eeadr < EEADR_SET_MENU){
+		while(eeadr >= 19){
+			eeadr-=19;
+		}
 		if(eeadr & 0x1){
 			config_value = RANGE(config_value, 0, 999);
 		} else {
@@ -216,7 +222,9 @@ void button_menu_fsm(){
 				TMR4ON = 0;
 				TMR4IF = 0;
 			} else {
-				reset();
+				heating_delay=60;
+				cooling_delay=60;
+				TMR4ON = 1;
 			}
 			state = state_idle;
 		} else if(!BTN_HELD(BTN_PWR)){
