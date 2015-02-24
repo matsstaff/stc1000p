@@ -22,7 +22,7 @@ Features
 * Both Fahrenheit and Celsius versions
 * Up to 6 profiles with up to 10 setpoints.
 * Each setpoint can be held for 1-999 hours (i.e. up to ~41 days).
-* [Web browser profile editor](http://goo.gl/gS4p1U) 
+* [Web browser profile editor](http://goo.gl/z1KEoi) 
 * Approximative ramping
 * Somewhat intuitive menus for configuring
 * Separate delay settings for cooling and heating
