@@ -85,10 +85,11 @@ STC-1000+ Menu Navigation by Will Conrad
 STC-1000+ Temp Profile Programming by Will Conrad   
 [![STC-1000+ Temp Profile Programming by Will Conrad](http://img.youtube.com/vi/nZst7ETP-w8/0.jpg)](http://youtu.be/nZst7ETP-w8)
 
-[STC-1000+ Profile Builder Spreadsheet by Will Conrad](http://www.blackboxbrew.com/s/STC-1000-Profile-Builder.xlsx "STC-1000+ Profile Builder Spreadsheet by Will Conrad")   
-
 STC-1000+ Flashing Firmware by Will Conrad   
 [![STC-1000+ Firmware Flashing by Will Conrad](http://img.youtube.com/vi/-DdTweLYyN0/0.jpg)](http://youtu.be/-DdTweLYyN0)
+
+STC-1000+ PRO by Greg Smith<br>
+[![STC-1000+ PRO by Greg Smith](http://img.youtube.com/vi/Uo-KlZ5Eo0w/0.jpg)](https://www.youtube.com/watch?v=Uo-KlZ5Eo0w)
 
 STC-1000+ Firmware upload by Matt Hall   
 [![STC-1000+ Firmware upload by Matt Hall](http://img.youtube.com/vi/oAZKI5U_SoM/0.jpg)](http://youtu.be/oAZKI5U_SoM)
