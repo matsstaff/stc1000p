@@ -1,0 +1,635 @@
+<!--
+STC1000+, improved firmware and Arduino based firmware uploader for the STC-1000 dual stage thermostat.
+
+Copyright 2014 Mats Staffansson
+
+This file is part of STC1000+.
+
+STC1000+ is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+STC1000+ is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with STC1000+. If not, see <http://www.gnu.org/licenses/>.
+
+Special thanks to StPug on homebrewtalk for helping out creating this.
+-->
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+<title>STC-1000+ EEPROM Hex Editor</title>
+<style type="text/css">
+body { font-family: Verdana, Arial, sans-serif; font-size: 12px; }
+#placeholder0 { width: 800px; height: 600px; }
+#placeholder1 { width: 800px; height: 600px; }
+#placeholder2 { width: 800px; height: 600px; }
+#placeholder3 { width: 800px; height: 600px; }
+#placeholder4 { width: 800px; height: 600px; }
+#placeholder5 { width: 800px; height: 600px; }
+</style>
+<link rel="stylesheet" href="jquery-ui.min.css">
+<script src="jquery.min.js"></script>
+<script src="jquery-ui.min.js"></script>
+<script src="jquery.flot.min.js"></script>
+<script src="jquery.flot.axislabels.js"></script>
+<script src="picprog.js"></script>
+
+<script type="text/javascript">
+function download() {
+  var eeprom1 = generate_hex(); 
+  switch_cf();
+  var eeprom2 = generate_hex(); 
+  switch_cf();
+  var pom = document.createElement('a');
+  pom.setAttribute('href', 'data:text/x-arduino;charset=utf-8,' + encodeURIComponent(sketch + eeprom1 + eeprom2));
+  pom.setAttribute('download', "picprog.ino");
+  document.body.appendChild(pom);
+  pom.click();
+  document.body.removeChild(pom)
+}
+
+function ramp(prog, step, dur){
+	var t = (dur << 6);
+	var sp = 32;
+	var i;
+	var profile_step_dur = $('#dh' + prog + '_' + step).val();
+	var profile_step_sp = Math.round($('#sp' + prog + '_'  + step).val() * 10.0);
+	step++;
+	var profile_next_step_sp = Math.round($('#sp' + prog + '_'  + step).val() * 10.0);
+
+	// Linear interpolation calculation of new setpoint (64 substeps)
+	for (i = 0; i < 64; i++) {
+		if (t >= profile_step_dur) {
+			t -= profile_step_dur;
+			sp += profile_next_step_sp;
+		} else {
+			sp += profile_step_sp;
+		}
+	}
+	sp >>= 6;
+
+	return (sp / 10.0);
+}
+
+function calc(){
+	var i,j,k;
+
+	$('#hexdata').html('');
+
+	for(k=0; k<6; k++) {
+		var x = 0;
+		var y = Math.round($('#sp' + k + '_' + 0).val() * 10) / 10.0;
+		var plotdata = [];
+		var xmax=0;
+
+		for(i=0; i<9; i++){
+			var dh = Math.round($('#dh' + k + '_' + i).val());
+			if(dh===0){
+				break;
+			}
+			xmax += dh;
+		}
+
+		var unit = "Hours";
+		var divisor = 1.0;
+		if(xmax >= (24*7*4)){ // 4 weeks or more?
+			unit = "Weeks";
+			divisor = (7*24.0);
+		} else if(xmax >= (24*2)){ // 2 Days or more?
+			unit = "Days";
+			divisor = 24.0;
+		}
+
+		for(i=0; i<9; i++) {
+			var d1 = [];
+			var dh = $('#dh' + k + '_' + i).val();
+			y = Math.round($('#sp' + k + '_' + i).val() * 10.0) / 10.0;
+			d1.push([x/divisor, y]);
+			if(dh==0){
+				break;
+			}
+			for(j=0; j < dh; j++){
+				if($('#set10').val() != "0"){
+					d1.push([x/divisor, y]);
+					y = ramp(k, i, j);
+					d1.push([x/divisor, y]);
+				}
+				x++;
+			}
+			d1.push([x/divisor, y]);
+			y = Math.round($('#sp' + k + '_' + (i+1)).val() * 10.0) / 10.0;
+			d1.push([x/divisor, y]);
+			plotdata.push({label: "Profile step: "+i, data: d1});
+		}
+
+		var d2 = [];
+		d2.push([x/divisor, y]);
+		d2.push([(x + x/8)/divisor, y]);
+		plotdata.push({label: "Thermostat", data: d2});
+
+		var activeTab = $("#tabs").tabs("option", "active");
+		$("#tabs").tabs("option", "active", k);
+
+			$.plot(
+						$("#placeholder" + k), 
+						plotdata,
+						{ 
+							series: {
+								points: { show: false },
+								lines: { show: true }
+							},
+							axisLabels: {
+								show: true
+							},
+							xaxes: [{
+								axisLabel: unit,
+								tickFormatter: function(val, axis) { return val.toFixed(1);}
+							}],
+							yaxes: [{
+								position: 'left',
+								axisLabel: 'Temperature',
+								axisLabelPadding: 8,
+								tickFormatter: function(val, axis) { return val.toFixed(2);}
+							}]
+
+						} 
+					);
+
+		$("#tabs").tabs("option", "active", activeTab);
+
+	}
+}
+
+function switch_cf(){
+	if($("#tempscalestate").val() == "C"){
+		$("span.tscale").html("[&deg;C]");
+		$("span.tscalename").html("Celsius");
+		$(".temperature").each(	function(){
+			var t = $(this).val();
+			$(this).val((Math.round(((t-32.0)*5.0)/0.9) / 10.0).toFixed(1));
+		});
+		$(".tempdiff").each(	function(){
+			var t = $(this).val();
+			$(this).val(Math.round(t*0.5).toFixed(1));
+		});
+		$("#tempscalestate").val("F");
+	} else {
+		$("span.tscale").html("[&deg;F]");
+		$("span.tscalename").html("Fahrenheit");
+		$(".temperature").each(	function(){
+			var t = $(this).val();
+			$(this).val((Math.round(((t*9.0)/0.5)+320.0) / 10.0).toFixed(1));
+		});
+		$(".tempdiff").each(	function(){
+			var t = $(this).val();
+			$(this).val(Math.round(t*2.0).toFixed(1));
+		});
+		$("#tempscalestate").val("C");
+	}
+	calc();
+}
+
+function dec2hex(decv){
+	var hexstr="0x";
+	if(decv<16){
+		hexstr+="0";
+	}
+	return hexstr + Number(decv & 0xFF).toString(16).toUpperCase();
+}
+
+function generate_hex(){
+	var m,n;
+	var x=0;
+	var adr = [];
+	var adr_type = [];
+
+	for(m=0; m<6; m++) {
+		for(n=0; n<10; n++) {
+			var sp = $('#sp' + m + '_' + n).val();
+			adr[x] = sp;
+			var sp = $('#sp' + m + '_' + n).attr('class');
+			adr_type[x] = sp;
+			x++;
+			if(n==9){
+				break;
+			}
+			var dh = $('#dh' + m + '_' + n).val();
+			adr[x] = dh;
+			var dh = $('#dh' + m + '_' + n).attr('class');
+			adr_type[x] = dh;
+			x++;
+		}
+	}
+
+	for(m=0; m<14; m++) {
+		var sp = $('#set' + m).val();
+		adr[x] = sp;
+		var sp = $('#set' + m).attr('class');
+		adr_type[x] = sp;
+		x++;
+	}
+
+//alert(adr.join("\n"));
+//alert(adr_type.join("\n"));
+
+	var i=0;
+	var output="";
+	if($("#tempscalestate").val() == "C"){
+		output+="const char hex_eeprom_fahrenheit[] PROGMEM = {\n";
+	} else {
+		output+="const char hex_eeprom_celsius[] PROGMEM = {\n";
+	}		
+	output+="\t0x02,0x00,0x00,0x04,0x00,0x00,0xFA,\n";
+	output+="\t0x02,0x00,0x00,0x04,0x00,0x01,0xF9,\n";
+
+	for(i=0; i<128; i+=4){
+		var checksum;
+		if(i<64){
+			output+="\t0x10,0xE0,";
+			checksum = 0x10 + 0xE0;
+		} else { 
+			output+="\t0x10,0xE1,";
+			checksum = 0x10 + 0xE1;
+		}
+		var hexadr = (i%64)*4;
+		checksum += hexadr;
+		output+=dec2hex(hexadr);
+		output+=",0x00,";
+
+		var j=0;
+		for(j=0; j<4; j++){
+			var val;
+			if(adr_type[i+j] == 'temperature' || adr_type[i+j] == 'tempdiff'){
+				val = Math.round(adr[i+j]*10.0);
+			} else {
+				val = Math.round(adr[i+j]);
+			}
+			var lval = (val & 0xFF);
+			var hval = ((val>>8) & 0xFF);
+			checksum += lval + 0x34 + hval + 0x34;
+			output += dec2hex(lval) + ",0x34," + dec2hex(hval) + ",0x34,";
+		}
+
+		// Two's complement checksum
+		checksum = (0x100 - (checksum & 0xFF)) & 0xFF;
+		output+= dec2hex(checksum) + ",\n";
+	}
+
+	output+="\t0x00,0x00,0x00,0x01,0xFF\n";
+	output+="};\n";
+
+	return output;	
+}
+
+$(document).ready(function () {
+	$( "#tabs" ).tabs();
+
+	$( ".temperature" ).change(function() {
+		calc();
+	});
+	$( ".plainnumber" ).change(function() {
+		calc();
+	});
+    calc();
+});
+
+</script>
+</head>
+
+<body>
+
+<h3>About</h3>
+STC-1000+ Profile editor<br>
+&copy; 2014 Mats Staffansson<p>
+This page is a part of the <a href="https://github.com/matsstaff/stc1000p">STC-1000+ project.</a><p>
+The purpose of this page it to visualize how the setpoint will be updated over time, <br>when running a profile (with the specified settings) on an STC-1000+ modified thermostat.<br>
+It will accurately show substeps when ramping is enabled.<p>
+Note that it only shows the calculated setpoints, not the actual temperature of the FV.<br>
+All 6 profiles can be edited, but only one will be shown at any time. To switch between which profile is shown, click on the 'Pr0' to 'Pr5' link.<br>
+It is also possible to directly switch between Fahrenheit and Celsius mode. <br>
+Additionally, the parameters can be exported as the <i>picprog.ino</i> sketch, to upload directly to the Arduino and STC-1000.<br>
+To do so, simply press the 'Download INO' at the bottom of the page when you are done editing. Save the file and open with the Arduino IDE<br>
+if not prompted to open it directly.<br>
+
+	<table>
+		<thead>
+			<tr>
+				<td><h3>Pr0</h3></td>
+				<td><h3>Pr1</h3></td>
+				<td><h3>Pr2</h3></td>
+				<td><h3>Pr3</h3></td>
+				<td><h3>Pr4</h3></td>
+				<td><h3>Pr5</h3></td>
+				<td><h3>Set</h3></td>
+				<td><h3>Cheatsheet</h3></td>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td valign="top">
+					<table>
+						<tr><td>sp0:</td><td><input class="temperature" type="text" id="sp0_0" name="sp0_0" maxlength="4" size="4" autocomplete="off" value="19.0" title="Setpoint 0"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh0:</td><td><input class="plainnumber" type="text" id="dh0_0" name="dh0_0" maxlength="3" size="4" autocomplete="off" value="72" title="Duration 0"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp1:</td><td><input class="temperature" type="text" id="sp0_1" name="sp0_1" maxlength="4" size="4" autocomplete="off" value="19.0" title="Setpoint 1"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh1:</td><td><input class="plainnumber" type="text" id="dh0_1" name="dh0_1" maxlength="3" size="4" autocomplete="off" value="12" title="Duration 1"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp2:</td><td><input class="temperature" type="text" id="sp0_2" name="sp0_2" maxlength="4" size="4" autocomplete="off" value="21.0" title="Setpoint 2"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh2:</td><td><input class="plainnumber" type="text" id="dh0_2" name="dh0_2" maxlength="3" size="4" autocomplete="off" value="72" title="Duration 2"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp3:</td><td><input class="temperature" type="text" id="sp0_3" name="sp0_3" maxlength="4" size="4" autocomplete="off" value="21.0" title="Setpoint 3"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh3:</td><td><input class="plainnumber" type="text" id="dh0_3" name="dh0_3" maxlength="3" size="4" autocomplete="off" value="60" title="Duration 3"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp4:</td><td><input class="temperature" type="text" id="sp0_4" name="sp0_4" maxlength="4" size="4" autocomplete="off" value="1.0" title="Setpoint 4"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh4:</td><td><input class="plainnumber" type="text" id="dh0_4" name="dh0_4" maxlength="3" size="4" autocomplete="off" value="0" title="Duration 4"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp5:</td><td><input class="temperature" type="text" id="sp0_5" name="sp0_5" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint 5"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh5:</td><td><input class="plainnumber" type="text" id="dh0_5" name="dh0_5" maxlength="3" size="4" autocomplete="off" value="0" title="Duration 5"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp6:</td><td><input class="temperature" type="text" id="sp0_6" name="sp0_6" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint 6"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh6:</td><td><input class="plainnumber" type="text" id="dh0_6" name="dh0_6" maxlength="3" size="4" autocomplete="off" value="0" title="Duration 6"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp7:</td><td><input class="temperature" type="text" id="sp0_7" name="sp0_7" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint 7"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh7:</td><td><input class="plainnumber" type="text" id="dh0_7" name="dh0_7" maxlength="3" size="4" autocomplete="off" value="0" title="Duration 7"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp8:</td><td><input class="temperature" type="text" id="sp0_8" name="sp0_8" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint 8"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh8:</td><td><input class="plainnumber" type="text" id="dh0_8" name="dh0_8" maxlength="3" size="4" autocomplete="off" value="0" title="Duration 8"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp9:</td><td><input class="temperature" type="text" id="sp0_9" name="sp0_9" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint 9"/><span class="tscale">[&deg;C]</span></td></tr>
+					</table>
+				</td>
+				<td valign="top">
+					<table>
+						<tr><td>sp0:</td><td><input class="temperature" type="text" id="sp1_0" name="sp1_0" maxlength="4" size="4" autocomplete="off" value="14.0" title="Setpoint 0"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh0:</td><td><input class="plainnumber" type="text" id="dh1_0" name="dh1_0" maxlength="3" size="4" autocomplete="off" value="72" title="Duration 0"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp1:</td><td><input class="temperature" type="text" id="sp1_1" name="sp1_1" maxlength="4" size="4" autocomplete="off" value="14.0" title="Setpoint 1"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh1:</td><td><input class="plainnumber" type="text" id="dh1_1" name="dh1_1" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 1"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp2:</td><td><input class="temperature" type="text" id="sp1_2" name="sp1_2" maxlength="4" size="4" autocomplete="off" value="20.0" title="Setpoint 2"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh2:</td><td><input class="plainnumber" type="text" id="dh1_2" name="dh1_2" maxlength="3" size="4" autocomplete="off" value="120" title="Duration 2"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp3:</td><td><input class="temperature" type="text" id="sp1_3" name="sp1_3" maxlength="4" size="4" autocomplete="off" value="20.0" title="Setpoint 3"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh3:</td><td><input class="plainnumber" type="text" id="dh1_3" name="dh1_3" maxlength="3" size="4" autocomplete="off" value="48" title="Duration 3"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp4:</td><td><input class="temperature" type="text" id="sp1_4" name="sp1_4" maxlength="4" size="4" autocomplete="off" value="1.0" title="Setpoint 4"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh4:</td><td><input class="plainnumber" type="text" id="dh1_4" name="dh1_4" maxlength="3" size="4" autocomplete="off" value="0" title="Duration 4"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp5:</td><td><input class="temperature" type="text" id="sp1_5" name="sp1_5" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint 5"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh5:</td><td><input class="plainnumber" type="text" id="dh1_5" name="dh1_5" maxlength="3" size="4" autocomplete="off" value="0" title="Duration 5"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp6:</td><td><input class="temperature" type="text" id="sp1_6" name="sp1_6" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint 6"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh6:</td><td><input class="plainnumber" type="text" id="dh1_6" name="dh1_6" maxlength="3" size="4" autocomplete="off" value="0" title="Duration 6"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp7:</td><td><input class="temperature" type="text" id="sp1_7" name="sp1_7" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint 7"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh7:</td><td><input class="plainnumber" type="text" id="dh1_7" name="dh1_7" maxlength="3" size="4" autocomplete="off" value="0" title="Duration 7"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp8:</td><td><input class="temperature" type="text" id="sp1_8" name="sp1_8" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint 8"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh8:</td><td><input class="plainnumber" type="text" id="dh1_8" name="dh1_8" maxlength="3" size="4" autocomplete="off" value="0" title="Duration 8"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp9:</td><td><input class="temperature" type="text" id="sp1_9" name="sp1_9" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint 9"/><span class="tscale">[&deg;C]</span></td></tr>
+					</table>
+				</td>
+				<td valign="top">
+					<table>
+						<tr><td>sp0:</td><td><input class="temperature" type="text" id="sp2_0" name="sp2_0" maxlength="4" size="4" autocomplete="off" value="9.0" title="Setpoint 0"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh0:</td><td><input class="plainnumber" type="text" id="dh2_0" name="dh2_0" maxlength="3" size="4" autocomplete="off" value="120" title="Duration 0"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp1:</td><td><input class="temperature" type="text" id="sp2_1" name="sp2_1" maxlength="4" size="4" autocomplete="off" value="9.0" title="Setpoint 1"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh1:</td><td><input class="plainnumber" type="text" id="dh2_1" name="dh2_1" maxlength="3" size="4" autocomplete="off" value="120" title="Duration 1"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp2:</td><td><input class="temperature" type="text" id="sp2_2" name="sp2_2" maxlength="4" size="4" autocomplete="off" value="18.0" title="Setpoint 2"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh2:</td><td><input class="plainnumber" type="text" id="dh2_2" name="dh2_2" maxlength="3" size="4" autocomplete="off" value="72" title="Duration 2"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp3:</td><td><input class="temperature" type="text" id="sp2_3" name="sp2_3" maxlength="4" size="4" autocomplete="off" value="18.0" title="Setpoint 3"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh3:</td><td><input class="plainnumber" type="text" id="dh2_3" name="dh2_3" maxlength="3" size="4" autocomplete="off" value="168" title="Duration 3"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp4:</td><td><input class="temperature" type="text" id="sp2_4" name="sp2_4" maxlength="4" size="4" autocomplete="off" value="1.0" title="Setpoint 4"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh4:</td><td><input class="plainnumber" type="text" id="dh2_4" name="dh2_4" maxlength="3" size="4" autocomplete="off" value="0" title="Duration 4"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp5:</td><td><input class="temperature" type="text" id="sp2_5" name="sp2_5" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint 5"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh5:</td><td><input class="plainnumber" type="text" id="dh2_5" name="dh2_5" maxlength="3" size="4" autocomplete="off" value="0" title="Duration 5"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp6:</td><td><input class="temperature" type="text" id="sp2_6" name="sp2_6" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint 6"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh6:</td><td><input class="plainnumber" type="text" id="dh2_6" name="dh2_6" maxlength="3" size="4" autocomplete="off" value="0" title="Duration 6"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp7:</td><td><input class="temperature" type="text" id="sp2_7" name="sp2_7" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint 7"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh7:</td><td><input class="plainnumber" type="text" id="dh2_7" name="dh2_7" maxlength="3" size="4" autocomplete="off" value="0" title="Duration 7"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp8:</td><td><input class="temperature" type="text" id="sp2_8" name="sp2_8" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint 8"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh8:</td><td><input class="plainnumber" type="text" id="dh2_8" name="dh2_8" maxlength="3" size="4" autocomplete="off" value="0" title="Duration 8"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp9:</td><td><input class="temperature" type="text" id="sp2_9" name="sp2_9" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint 9"/><span class="tscale">[&deg;C]</span></td></tr>
+					</table>
+				</td>
+				<td valign="top">
+					<table>
+						<tr><td>sp0:</td><td><input class="temperature" type="text" id="sp3_0" name="sp3_0" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 0"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh0:</td><td><input class="plainnumber" type="text" id="dh3_0" name="dh3_0" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 0"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp1:</td><td><input class="temperature" type="text" id="sp3_1" name="sp3_1" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 1"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh1:</td><td><input class="plainnumber" type="text" id="dh3_1" name="dh3_1" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 1"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp2:</td><td><input class="temperature" type="text" id="sp3_2" name="sp3_2" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 2"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh2:</td><td><input class="plainnumber" type="text" id="dh3_2" name="dh3_2" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 2"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp3:</td><td><input class="temperature" type="text" id="sp3_3" name="sp3_3" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 3"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh3:</td><td><input class="plainnumber" type="text" id="dh3_3" name="dh3_3" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 3"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp4:</td><td><input class="temperature" type="text" id="sp3_4" name="sp3_4" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 4"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh4:</td><td><input class="plainnumber" type="text" id="dh3_4" name="dh3_4" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 4"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp5:</td><td><input class="temperature" type="text" id="sp3_5" name="sp3_5" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 5"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh5:</td><td><input class="plainnumber" type="text" id="dh3_5" name="dh3_5" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 5"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp6:</td><td><input class="temperature" type="text" id="sp3_6" name="sp3_6" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 6"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh6:</td><td><input class="plainnumber" type="text" id="dh3_6" name="dh3_6" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 6"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp7:</td><td><input class="temperature" type="text" id="sp3_7" name="sp3_7" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 7"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh7:</td><td><input class="plainnumber" type="text" id="dh3_7" name="dh3_7" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 7"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp8:</td><td><input class="temperature" type="text" id="sp3_8" name="sp3_8" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 8"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh8:</td><td><input class="plainnumber" type="text" id="dh3_8" name="dh3_8" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 8"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp9:</td><td><input class="temperature" type="text" id="sp3_9" name="sp3_9" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 9"/><span class="tscale">[&deg;C]</span></td></tr>
+					</table>
+				</td>
+				<td valign="top">
+					<table>
+						<tr><td>sp0:</td><td><input class="temperature" type="text" id="sp4_0" name="sp4_0" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 0"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh0:</td><td><input class="plainnumber" type="text" id="dh4_0" name="dh4_0" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 0"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp1:</td><td><input class="temperature" type="text" id="sp4_1" name="sp4_1" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 1"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh1:</td><td><input class="plainnumber" type="text" id="dh4_1" name="dh4_1" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 1"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp2:</td><td><input class="temperature" type="text" id="sp4_2" name="sp4_2" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 2"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh2:</td><td><input class="plainnumber" type="text" id="dh4_2" name="dh4_2" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 2"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp3:</td><td><input class="temperature" type="text" id="sp4_3" name="sp4_3" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 3"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh3:</td><td><input class="plainnumber" type="text" id="dh4_3" name="dh4_3" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 3"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp4:</td><td><input class="temperature" type="text" id="sp4_4" name="sp4_4" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 4"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh4:</td><td><input class="plainnumber" type="text" id="dh4_4" name="dh4_4" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 4"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp5:</td><td><input class="temperature" type="text" id="sp4_5" name="sp4_5" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 5"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh5:</td><td><input class="plainnumber" type="text" id="dh4_5" name="dh4_5" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 5"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp6:</td><td><input class="temperature" type="text" id="sp4_6" name="sp4_6" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 6"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh6:</td><td><input class="plainnumber" type="text" id="dh4_6" name="dh4_6" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 6"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp7:</td><td><input class="temperature" type="text" id="sp4_7" name="sp4_7" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 7"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh7:</td><td><input class="plainnumber" type="text" id="dh4_7" name="dh4_7" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 7"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp8:</td><td><input class="temperature" type="text" id="sp4_8" name="sp4_8" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 8"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh8:</td><td><input class="plainnumber" type="text" id="dh4_8" name="dh4_8" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 8"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp9:</td><td><input class="temperature" type="text" id="sp4_9" name="sp4_9" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 9"/><span class="tscale">[&deg;C]</span></td></tr>
+					</table>
+				</td>
+				<td valign="top">
+					<table>
+						<tr><td>sp0:</td><td><input class="temperature" type="text" id="sp5_0" name="sp5_0" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 0"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh0:</td><td><input class="plainnumber" type="text" id="dh5_0" name="dh5_0" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 0"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp1:</td><td><input class="temperature" type="text" id="sp5_1" name="sp5_1" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 1"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh1:</td><td><input class="plainnumber" type="text" id="dh5_1" name="dh5_1" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 1"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp2:</td><td><input class="temperature" type="text" id="sp5_2" name="sp5_2" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 2"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh2:</td><td><input class="plainnumber" type="text" id="dh5_2" name="dh5_2" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 2"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp3:</td><td><input class="temperature" type="text" id="sp5_3" name="sp5_3" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 3"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh3:</td><td><input class="plainnumber" type="text" id="dh5_3" name="dh5_3" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 3"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp4:</td><td><input class="temperature" type="text" id="sp5_4" name="sp5_4" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 4"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh4:</td><td><input class="plainnumber" type="text" id="dh5_4" name="dh5_4" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 4"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp5:</td><td><input class="temperature" type="text" id="sp5_5" name="sp5_5" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 5"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh5:</td><td><input class="plainnumber" type="text" id="dh5_5" name="dh5_5" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 5"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp6:</td><td><input class="temperature" type="text" id="sp5_6" name="sp5_6" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 6"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh6:</td><td><input class="plainnumber" type="text" id="dh5_6" name="dh5_6" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 6"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp7:</td><td><input class="temperature" type="text" id="sp5_7" name="sp5_7" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 7"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh7:</td><td><input class="plainnumber" type="text" id="dh5_7" name="dh5_7" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 7"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp8:</td><td><input class="temperature" type="text" id="sp5_8" name="sp5_8" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 8"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh8:</td><td><input class="plainnumber" type="text" id="dh5_8" name="dh5_8" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 8"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp9:</td><td><input class="temperature" type="text" id="sp5_9" name="sp5_9" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 9"/><span class="tscale">[&deg;C]</span></td></tr>					</table>
+				</td>
+				<td valign="top">
+					<table>
+						<tr><td>hy:</td><td><input class="tempdiff" type="text" id="set0" name="hy" maxlength="4" size="4" autocomplete="off" value="0.0" title="Hysteresis"><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>hy2:</td><td><input class="tempdiff" type="text" id="set1" name="hy2" maxlength="4" size="4" autocomplete="off" value="0.0" title="Hysteresis probe 2"><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>tc:</td><td><input class="tempdiff" type="text" id="set2" name="tc" maxlength="4" size="4" autocomplete="off" value="0.0" title="Temperature correction"><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>tc2:</td><td><input class="tempdiff" type="text" id="set3" name="tc2" maxlength="4" size="4" autocomplete="off" value="0.0" title="Temperature correction probe 2"><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>SA:</td><td><input class="tempdiff" type="text" id="set4" name="SA" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint Alarm"><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>SP:</td><td><input class="temperature" type="text" id="set5" name="SP" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint"><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>St:</td><td><input class="plainnumber" type="text" id="set6" name="St" maxlength="1" size="4" autocomplete="off" value="0" title="Running profile step number"><span class="nscale">[#]</span></td></tr>
+						<tr><td>dh:</td><td><input class="plainnumber" type="text" id="set7" name="dh" maxlength="3" size="4" autocomplete="off" value="0" title="Running profile duration"><span class="durscale">[h]</span></td></tr>
+						<tr><td>cd:</td><td><input class="plainnumber" type="text" id="set8" name="cd" maxlength="2" size="4" autocomplete="off" value="2" title="Cooling delay"><span class="mscale">[min]</span></td></tr>
+						<tr><td>hd:</td><td><input class="plainnumber" type="text" id="set9" name="hd" maxlength="2" size="4" autocomplete="off" value="2" title="Heating delay"><span class="mscale">[min]</span></td></tr>
+						<tr><td>rP:</td><td><input class="plainnumber" type="text" id="set10" name="rP" maxlength="1" size="4" autocomplete="off" value="1" title="Ramping enabled"><span class="bscale">[b]</span></td></tr>
+						<tr><td>Pb:</td><td><input class="plainnumber" type="text" id="set11" name="Pb" maxlength="1" size="4" autocomplete="off" value="0" title="Probe 2 regulation enabled"><span class="bscale">[b]</span></td></tr>
+						<tr><td>rn:</td><td><input class="plainnumber" type="text" id="set12" name="rn" maxlength="1" size="4" autocomplete="off" value="6" title="Run mode [0-5 = profile, 6=thermostat]"><span class="nscale">[#]</span></td></tr>
+						<tr><td>on:</td><td><input class="plainnumber" type="text" id="set13" name="on" maxlength="1" size="4" autocomplete="off" value="1" title="On [1=On, 0=Soft off]]"><span class="bscale">[b]</span></td></tr>
+					</table>
+				</td>
+				<td valign="top">
+					<table>
+						<tr><td>1 day = 24 hours</td></tr>
+						<tr><td>2 days = 48 hours</td></tr>
+						<tr><td>3 days = 72 hours</td></tr>
+						<tr><td>4 days = 96 hours</td></tr>
+						<tr><td>5 days = 120 hours</td></tr>
+						<tr><td>6 days = 144 hours</td></tr>
+						<tr><td>7 days = 168 hours</td></tr>
+						<tr><td>8 days = 192 hours</td></tr>
+						<tr><td>9 days = 216 hours</td></tr>
+						<tr><td>10 days = 240 hours</td></tr>
+						<tr><td>11 days = 264 hours</td></tr>
+						<tr><td>12 days = 288 hours</td></tr>
+						<tr><td>13 days = 312 hours</td></tr>
+						<tr><td>14 days = 336 hours</td></tr>
+						<tr><td>15 days = 360 hours</td></tr>
+						<tr><td>16 days = 384 hours</td></tr>
+						<tr><td>17 days = 408 hours</td></tr>
+						<tr><td>18 days = 432 hours</td></tr>
+						<tr><td>19 days = 456 hours</td></tr>
+						<tr><td>20 days = 480 hours</td></tr>
+					</table>
+				</td>
+			</tr>
+		</tbody>
+	</table>
+
+
+
+<br />
+
+	<h1>Working in: <span class="tscalename">Celsius</span></h1>
+	<h3>Want to switch temperature scale? <input type="button" id="tempscale" name="switchcf" value="Switch scale" onclick="switch_cf();" title="Switch between Fahrenheit and Celsius scale"></h3>
+	<input type="hidden" id="tempscalestate" autocomplete="off" value="F">
+
+
+
+
+<div id="tabs">
+	<ul>
+		<li><a href="#tabs-0">Pr0</a></li>
+		<li><a href="#tabs-1">Pr1</a></li>
+		<li><a href="#tabs-2">Pr2</a></li>
+		<li><a href="#tabs-3">Pr3</a></li>
+		<li><a href="#tabs-4">Pr4</a></li>
+		<li><a href="#tabs-5">Pr5</a></li>
+	</ul><div id="tabs-0">
+		<table>
+			<thead>
+				<tr>
+					<td><h3>Pr0</h3></td>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td><div id="placeholder0"></div></td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+	<div id="tabs-1">
+		<table>
+			<thead>
+				<tr>
+					<td><h3>Pr1</h3></td>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td><div id="placeholder1"></div></td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+	<div id="tabs-2">
+		<table>
+			<thead>
+				<tr>
+					<td><h3>Pr2</h3></td>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td><div id="placeholder2"></div></td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+	<div id="tabs-3">
+		<table>
+			<thead>
+				<tr>
+					<td><h3>Pr3</h3></td>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td><div id="placeholder3"></div></td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+	<div id="tabs-4">
+		<table>
+			<thead>
+				<tr>
+					<td><h3>Pr4</h3></td>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td><div id="placeholder4"></div></td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+	<div id="tabs-5">
+		<table>
+			<thead>
+				<tr>
+					<td><h3>Pr5</h3></td>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td><div id="placeholder5"></div></td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+</div>
+
+<br />
+
+<input type="button" id="downloadino" name="downloadino" value="Download INO" onclick="download();" title="Generate picprog.ino for download">
+<!--
+Generate HEX data: <input type="button" id="genhex" name="genhex" value="Generate HEX" onclick="generate_hex();" title="Generate HEX data output">
+
+	<pre id="hexdata">
+	</pre>
+-->
+</body>
+
