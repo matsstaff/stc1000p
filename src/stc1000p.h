@@ -58,27 +58,27 @@
 /* Define STC-1000+ version number (XYY, X=major, YY=minor) */
 /* Also, keep track of last version that has changes in EEPROM layout */
 #define STC1000P_VERSION		107
-#define STC1000P_EEPROM_VERSION	11
+#define STC1000P_EEPROM_VERSION		11
 
 /* Define limits for temperatures */
 #ifdef FAHRENHEIT
 #define TEMP_MAX		(2500)
 #define TEMP_MIN		(-400)
-#define TEMP_CORR_MAX	(100)
-#define TEMP_CORR_MIN	(-100)
-#define TEMP_HYST_1_MAX	(100)
-#define TEMP_HYST_2_MAX	(500)
-#define SP_ALARM_MIN	(-800)
-#define SP_ALARM_MAX	(800)
+#define TEMP_CORR_MAX		(100)
+#define TEMP_CORR_MIN		(-100)
+#define TEMP_HYST_1_MAX		(100)
+#define TEMP_HYST_2_MAX		(500)
+#define SP_ALARM_MIN		(-800)
+#define SP_ALARM_MAX		(800)
 #else  // CELSIUS
 #define TEMP_MAX		(1400)
 #define TEMP_MIN		(-400)
-#define TEMP_CORR_MAX	(50)
-#define TEMP_CORR_MIN	(-50)
-#define TEMP_HYST_1_MAX	(50)
-#define TEMP_HYST_2_MAX	(250)
-#define SP_ALARM_MIN	(-400)
-#define SP_ALARM_MAX	(400)
+#define TEMP_CORR_MAX		(50)
+#define TEMP_CORR_MIN		(-50)
+#define TEMP_HYST_1_MAX		(50)
+#define TEMP_HYST_2_MAX		(250)
+#define SP_ALARM_MIN		(-400)
+#define SP_ALARM_MAX		(400)
 #endif
 
 /* The data needed for the 'Set' menu
@@ -89,19 +89,19 @@
  * 	name, LED data 10, LED data 1, LED data 01, min value, max value, default value celsius, default value fahrenheit
  */
 #define SET_MENU_DATA(_) \
-    _(hy, 	LED_h, 	LED_y, 	LED_OFF, 	0, 				TEMP_HYST_1_MAX,	5,		10) 	\
-    _(hy2, 	LED_h, 	LED_y, 	LED_2, 		0, 				TEMP_HYST_2_MAX, 	50,		100)	\
-    _(tc, 	LED_t, 	LED_c, 	LED_OFF, 	TEMP_CORR_MIN, 	TEMP_CORR_MAX,		0,		0)		\
-    _(tc2, 	LED_t, 	LED_c, 	LED_2, 		TEMP_CORR_MIN,	TEMP_CORR_MAX,		0,		0)		\
-    _(SA, 	LED_S, 	LED_A, 	LED_OFF, 	SP_ALARM_MIN,	SP_ALARM_MAX,		0,		0)		\
-    _(SP, 	LED_S, 	LED_P, 	LED_OFF, 	TEMP_MIN,		TEMP_MAX,			200,	680)	\
-    _(St, 	LED_S, 	LED_t, 	LED_OFF, 	0,				8,					0,		0)		\
-    _(dh, 	LED_d, 	LED_h, 	LED_OFF, 	0,				999,				0,		0)		\
-    _(cd, 	LED_c, 	LED_d, 	LED_OFF, 	0,				60,					5,		5)		\
-    _(hd, 	LED_h, 	LED_d, 	LED_OFF, 	0,				60,					2,		2)		\
-    _(rP, 	LED_r, 	LED_P, 	LED_OFF, 	0,				1,					0,		0)		\
-    _(Pb, 	LED_P, 	LED_b, 	LED_2, 		0,				1,					0,		0)		\
-    _(rn, 	LED_r, 	LED_n, 	LED_OFF, 	0,				6,					6,		6) 		\
+    _(hy, 	LED_h, 	LED_y, 	LED_OFF, 	0, 		TEMP_HYST_1_MAX,	5,		10) 	\
+    _(hy2, 	LED_h, 	LED_y, 	LED_2, 		0, 		TEMP_HYST_2_MAX, 	50,		100)	\
+    _(tc, 	LED_t, 	LED_c, 	LED_OFF, 	TEMP_CORR_MIN, 	TEMP_CORR_MAX,		0,		0)	\
+    _(tc2, 	LED_t, 	LED_c, 	LED_2, 		TEMP_CORR_MIN,	TEMP_CORR_MAX,		0,		0)	\
+    _(SA, 	LED_S, 	LED_A, 	LED_OFF, 	SP_ALARM_MIN,	SP_ALARM_MAX,		0,		0)	\
+    _(SP, 	LED_S, 	LED_P, 	LED_OFF, 	TEMP_MIN,	TEMP_MAX,		200,		680)	\
+    _(St, 	LED_S, 	LED_t, 	LED_OFF, 	0,		8,			0,		0)	\
+    _(dh, 	LED_d, 	LED_h, 	LED_OFF, 	0,		999,			0,		0)	\
+    _(cd, 	LED_c, 	LED_d, 	LED_OFF, 	0,		60,			5,		5)	\
+    _(hd, 	LED_h, 	LED_d, 	LED_OFF, 	0,		60,			2,		2)	\
+    _(rP, 	LED_r, 	LED_P, 	LED_OFF, 	0,		1,			0,		0)	\
+    _(Pb, 	LED_P, 	LED_b, 	LED_2, 		0,		1,			0,		0)	\
+    _(rn, 	LED_r, 	LED_n, 	LED_OFF, 	0,		6,			6,		6) 	\
 
 #define ENUM_VALUES(name, led10ch, led1ch, led01ch, minv, maxv, dvc, dvf) \
     name,
@@ -111,18 +111,18 @@ enum set_menu_enum {
     SET_MENU_DATA(ENUM_VALUES)
 };
 
-#define NO_OF_PROFILES							6
-#define SET_MENU_ITEM_NO						NO_OF_PROFILES
-#define THERMOSTAT_MODE							NO_OF_PROFILES
+#define NO_OF_PROFILES			6
+#define SET_MENU_ITEM_NO		NO_OF_PROFILES
+#define THERMOSTAT_MODE			NO_OF_PROFILES
 
 /* Defines for EEPROM config addresses */
 #define EEADR_PROFILE_SETPOINT(profile, step)	(((profile)*19) + ((step)<<1))
 #define EEADR_PROFILE_DURATION(profile, step)	EEADR_PROFILE_SETPOINT(profile, step) + 1
-#define EEADR_SET_MENU							EEADR_PROFILE_SETPOINT(NO_OF_PROFILES, 0)
-#define EEADR_SET_MENU_ITEM(name)				(EEADR_SET_MENU + (name))
-#define EEADR_POWER_ON							127
+#define EEADR_SET_MENU				EEADR_PROFILE_SETPOINT(NO_OF_PROFILES, 0)
+#define EEADR_SET_MENU_ITEM(name)		(EEADR_SET_MENU + (name))
+#define EEADR_POWER_ON				127
 
-#define SET_MENU_SIZE							(sizeof(setmenu)/sizeof(setmenu[0]))
+#define SET_MENU_SIZE				(sizeof(setmenu)/sizeof(setmenu[0]))
 
 #define LED_OFF	0xff
 #define LED_0	0x3
@@ -183,14 +183,14 @@ typedef union
 
 	struct
 	  {
-	  unsigned decimal				: 1;
-	  unsigned middle				: 1;
-	  unsigned upper_left			: 1;
+	  unsigned decimal		: 1;
+	  unsigned middle		: 1;
+	  unsigned upper_left		: 1;
 	  unsigned lower_right          : 1;
-	  unsigned bottom				: 1;
-	  unsigned lower_left			: 1;
-	  unsigned upper_right			: 1;
-	  unsigned top					: 1;
+	  unsigned bottom		: 1;
+	  unsigned lower_left		: 1;
+	  unsigned upper_right		: 1;
+	  unsigned top			: 1;
 	  };
 } led_t;
 
@@ -201,8 +201,8 @@ extern unsigned const char led_lookup[];
 extern unsigned int eeprom_read_config(unsigned char eeprom_address);
 extern void eeprom_write_config(unsigned char eeprom_address,unsigned int data);
 extern void value_to_led(int value, unsigned char decimal);
-#define int_to_led(v)			value_to_led(v, 0);
-#define temperature_to_led(v)	value_to_led(v, 1);
+#define int_to_led(v)		value_to_led(v, 0)
+#define temperature_to_led(v)	value_to_led(v, 1)
 
 /* Declare functions and variables from Page 1 */
 extern void button_menu_fsm();
