@@ -29,7 +29,7 @@ v=`cat stc1000p.h | grep STC1000P_VERSION`
 e=`cat stc1000p.h | grep STC1000P_EEPROM_VERSION`
 
 # Remove embedded HEX data from previous sketch and insert version info
-cat ../picprog.ino | sed -n '/^const char hex_celsius\[\] PROGMEM/q;p' | sed "s/^#define STC1000P_VERSION.*/$v/" | sed "s/^#define STC1000P_EEPROM_REV.*/$e/" >> picprog.tmp
+cat ../picprog.ino | sed -n '/^const char hex_celsius\[\] PROGMEM/q;p' | sed "s/^#define STC1000P_VERSION.*/$v/" | sed "s/^#define STC1000P_EEPROM_VERSION.*/$e/" >> picprog.tmp
 
 # Insert new HEX data
 echo "const char hex_celsius[] PROGMEM = {" >> picprog.tmp; 
@@ -55,6 +55,15 @@ for l in `cat build/eedata_fahrenheit.hex | sed 's/^://' | sed 's/\(..\)/0\x\1\,
 	echo "   $l" | sed 's/0x00,0x00,0x00,0x01,0xFF,/0x00,0x00,0x00,0x01,0xFF/' >> picprog.tmp; 
 done; 
 echo "};" >> picprog.tmp
+
+# Create picprog.js
+cat picprog.tmp | sed -n '/^const char hex_eeprom_celsius\[\] PROGMEM/q;p' | sed "s/'/\\\\\\\'/g" > picprog.js.tmp
+echo "var sketch='' +" > ../profile/picprog.js
+while IFS= read r; do
+	echo "'$r\n' +"; 
+done < picprog.js.tmp >> ../profile/picprog.js
+echo "'';" >> ../profile/picprog.js
+rm -f picprog.js.tmp
 
 # Rename old sketch and replace with new
 mv -f ../picprog.ino picprog.bkp

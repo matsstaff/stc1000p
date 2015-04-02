@@ -133,7 +133,6 @@ void eeprom_write_config(unsigned char eeprom_address,unsigned int data)
 
 }
 
-#if 1
 static unsigned int divu10(unsigned int n) {
 	unsigned int q, r;
 	q = (n >> 1) + (n >> 2);
@@ -143,9 +142,6 @@ static unsigned int divu10(unsigned int n) {
 	r = n - ((q << 3) + (q << 1));
 	return q + ((r + 6) >> 4);
 }
-#else
-#define divu10(x)	((x)/10)
-#endif
 
 /* Update LED globals with temperature or integer data.
  * arguments: value (actual temperature multiplied by 10 or an integer)

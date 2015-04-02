@@ -32,14 +32,14 @@
 #define BTN_UP			0x22
 #define BTN_DOWN		0x11
 
-#define BTN_IDLE(btn)				((_buttons & (btn)) == 0x00)
-#define BTN_PRESSED(btn)			((_buttons & (btn)) == ((btn) & 0x0f))
-#define BTN_HELD(btn)				((_buttons & (btn)) == (btn))
-#define BTN_RELEASED(btn)			((_buttons & (btn)) == ((btn) & 0xf0))
+#define BTN_IDLE(btn)			((_buttons & (btn)) == 0x00)
+#define BTN_PRESSED(btn)		((_buttons & (btn)) == ((btn) & 0x0f))
+#define BTN_HELD(btn)			((_buttons & (btn)) == (btn))
+#define BTN_RELEASED(btn)		((_buttons & (btn)) == ((btn) & 0xf0))
 #define BTN_HELD_OR_RELEASED(btn)	((_buttons & (btn) & 0xf0))
 
 /* Help to convert menu item number and config item number to an EEPROM config address */
-#define EEADR_MENU_ITEM(mi, ci)	((mi)*19 + (ci))
+#define EEADR_MENU_ITEM(mi, ci)		((mi)*19 + (ci))
 
 extern unsigned int heating_delay;
 extern unsigned int cooling_delay;
@@ -93,7 +93,7 @@ static void prx_to_led(unsigned char run_mode, unsigned char is_menu){
 	led_e.e_deg = 1;
 	led_e.e_c = 1;
 	led_e.e_point = 1;
-	if(run_mode<6){
+	if(run_mode<NO_OF_PROFILES){
 		led_10.raw = LED_P;
 		led_1.raw = LED_r;
 		led_01.raw = led_lookup[run_mode];
@@ -111,7 +111,7 @@ static void prx_to_led(unsigned char run_mode, unsigned char is_menu){
 }
 
 #define run_mode_to_led(x)	prx_to_led(x,0)
-#define menu_to_led(x)	prx_to_led(x,1)
+#define menu_to_led(x)		prx_to_led(x,1)
 
 /* States for the menu FSM */
 enum menu_states {
@@ -228,9 +228,7 @@ void button_menu_fsm(){
 			}
 			state = state_idle;
 		} else if(!BTN_HELD(BTN_PWR)){
-//			if((unsigned char)eeprom_read_config(EEADR_2ND_PROBE)){
-					TX9 = !TX9;
-//			}
+			TX9 = !TX9;
 			state = state_idle;
 		}
 		break;
