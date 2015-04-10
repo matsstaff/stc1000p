@@ -435,7 +435,7 @@ static void interrupt_service_routine(void) __interrupt 0 {
 		
 		/* If receive */
 		if(!com_status.write){
-			com_data = (com_data >> 1) | RA2;
+			com_data = (com_data << 1) | RA2;
 			com_status.count++;
 		}
 
