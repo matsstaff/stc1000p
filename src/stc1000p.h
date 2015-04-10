@@ -60,6 +60,8 @@
 #define STC1000P_VERSION		107
 #define STC1000P_EEPROM_VERSION		11
 
+#define ENABLE_COM
+
 /* Define limits for temperatures */
 #ifdef FAHRENHEIT
 #define TEMP_MAX		(2500)
@@ -159,6 +161,27 @@ enum set_menu_enum {
 #define LED_y	0xa1
 
 /* Declare functions and variables from Page 0 */
+
+#define COM_HANDSHAKE	0xC5
+#define COM_ACK		0x9A
+
+typedef union
+{
+	unsigned char raw;
+
+	struct
+	  {
+	  unsigned write		: 1;
+	  unsigned tmout		: 3;
+	  unsigned done			: 1;
+	  unsigned res2			: 3;
+	  };
+	struct
+	  {
+	  unsigned res3			: 4;
+	  unsigned count		: 4;
+	  };
+} com_t;
 
 typedef union
 {
