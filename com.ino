@@ -112,10 +112,19 @@ bool read_address(const unsigned char address, int *data){
 
 
 void loop() {
+	int data;
+
 	if (Serial.available() > 0) {
 		char command = Serial.read();
 		switch (command) {
-		case 'x':
+		case 't':
+			if(read_address(125, &data)){
+				Serial.print("T:");
+				Serial.print(data);
+				Serial.println();
+			} else {
+				Serial.println("Error");
+			}
 			break;
 		default:
 			break;
