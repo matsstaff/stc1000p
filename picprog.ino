@@ -110,7 +110,7 @@ void setup() {
 			Serial.println("STC-1000 detected");
 			lvp_entry();
 			bulk_erase_device();
-#ifdef AUTOMATIC_UPLOAD_FAHRENHEIT
+#if AUTOMATIC_UPLOAD_FAHRENHEIT
 			upload_hex_from_progmem(hex_fahrenheit);
 			upload_hex_from_progmem(hex_eeprom_fahrenheit);
 			write_magic(STC1000P_MAGIC_F);
