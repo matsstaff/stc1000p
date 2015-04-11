@@ -358,7 +358,11 @@ static void init() {
 	TRISC = 0;
 
 	// Analog input on thermistor
-	ANSELA = _ANSA1 | _ANSA2;
+#ifdef ENABLE_COM
+	ANSELA =  _ANSA2 ;
+#else
+	ANSELA = _ANSA1 |  _ANSA2 ;
+#endif
 	// Select AD channel AN2
 //	ADCON0bits.CHS = 2;
 	// AD clock FOSC/8 (FOSC = 4MHz)
@@ -394,11 +398,15 @@ static void init() {
 #ifdef ENABLE_COM
 	// Timer 0
 	TMR0CS = 0; // Timer mode
+	PSA = 1;
+	PS0 = 0;
+	PS1 = 0;
+	PS2 = 0;
 
-	// Set PEIE (enable peripheral interrupts, that is for timer2) and GIE (enable global interrupts), (TMR0IE), INTE
-	INTCON = 0b11010000;
-
-	INTEDG = 1;	// Rising edge detect
+	// Set PEIE and GIE (enable global interrupts), IOCIE
+	INTCON = 0b11001000;
+	
+	IOCAP1 = 1;	// Rising edge detect
 #else
 	// Set PEIE (enable peripheral interrupts, that is for timer2) and GIE (enable global interrupts)
 	INTCON = 0b11000000;
@@ -413,32 +421,45 @@ static void init() {
 static void interrupt_service_routine(void) __interrupt 0 {
 
 #ifdef ENABLE_COM
-	if(INTF){
+	if(IOCAF){
 		/* If send, then RA2 output and drive, set timer */
+#if 0
 		if(com_status.write){
-			TRISA2 = 0;
-			LATA2 = (com_data & 0x80);
+			TRISA1 = 0;
+			LATA1 = (com_data & 0x80);
 			com_data <<= 1;
 			com_status.count++;
 		}
 
 		com_status.tmout = 7;
+#else
+		IOCIE = 0;
+		IOCAP1 = 0;
+		TRISA1 = 0; // Output
+		LATA1 = 1; // High
+#endif
+		led_e.e_point = 0;
 
 		TMR0 = 0;
+		TMR0IF = 0;
 		TMR0IE = 1;
-		INTF = 0;
+		IOCAF = 0;
 	}
 
 	if(TMR0IF){
-		TRISA2 = 1; // Input
+		TRISA1 = 1; // Input
+		LATA1 = 0;
 		TMR0IE = 0;		
-		
+		IOCAP1 = 1;
+		IOCIE = 1;
+		led_e.e_point = 1;
+#if 0
 		/* If receive */
 		if(!com_status.write){
 			com_data = (com_data << 1) | RA2;
 			com_status.count++;
 		}
-
+#endif
 		TMR0IF = 0;
 	}
 #endif
@@ -623,13 +644,17 @@ void main(void) __naked {
 			millisx60++;
 
 #ifdef ENABLE_COM
+#if 0
+			GIE = 0;
 			if(com_status.tmout){
-				GIE = 0;
 				com_status.tmout--;
-				GIE = 1;
 			} else {
 				com_state = 0;
+				com_status.raw = 0;
+				led_e.e_point = 1;
 			}
+			GIE = 1;
+#endif
 #endif
 
 			if(millisx60 & 0x1){
@@ -638,8 +663,8 @@ void main(void) __naked {
 				START_TCONV_2();
 			} else {
 				ad_filter2 = read_ad(ad_filter2);
-				START_TCONV_1();
 #endif
+				START_TCONV_1();
 			}
 
 			// Only run every 16th time called, that is 16x60ms = 960ms
