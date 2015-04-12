@@ -14,7 +14,7 @@ The goal of this project is twofold
 The first goal is achieved by using an Arduino (UNO and Pro Mini 5v verified to work) with a sketch to act as a programmer, and the second by using the SDCC compiler and GPUTILS. 
 
 Download by visiting the [releases page](https://github.com/matsstaff/stc1000p/releases)
-and start by reading [the user manual](/usermanual/usermanual.md)
+and start by reading [the user manual](/usermanual/README.md)
 
 Features
 --------
