@@ -539,6 +539,7 @@ enum com_states {
 	com_recv_data1,
 	com_recv_data2,
 	com_recv_checksum,
+	com_trans_data1,
 	com_trans_data2,
 	com_trans_checksum,
 	com_trans_ack
@@ -546,32 +547,32 @@ enum com_states {
 
 static char com_state=0;
 static void handle_com(unsigned const char rxdata){
-	static char xorsum;
+	static unsigned char command;
+	static unsigned char xorsum;
 	static unsigned int data;
-	static char addr;
+	static unsigned char addr;
 
 	xorsum ^= rxdata;
 
 	com_write = 0;
 
 	if(com_state == com_idle){
-		if(rxdata == COM_HANDSHAKE){
-			xorsum = 0;
+		command = rxdata;
+		xorsum = rxdata;
+		addr = 0;
+		if(command == COM_READ_EEPROM || command == COM_WRITE_EEPROM){
 			com_state = com_recv_addr;
+		} else if(rxdata == COM_READ_TEMP){
+			data = temperature;
+			com_state = com_trans_data1;
 		}
 	} else if(com_state == com_recv_addr){
-		addr = rxdata & 0x7f;
-		if(rxdata & 0x80){
+		addr = rxdata;
+		if(command == COM_WRITE_EEPROM){
 			com_state = com_recv_data1;
 		} else {
-			if(addr == EEADR_SET_MENU_ITEM(Pb)){
-				data = (unsigned int)temperature;
-			} else {
-				data = (unsigned int)eeprom_read_config(addr);
-			}
-			com_write = 1;
-			com_data = (data >> 8); 
-			com_state = com_trans_data2;
+			data = (unsigned int)eeprom_read_config(addr);
+			com_state = com_trans_data1;
 		}			
 	} else if(com_state == com_recv_data1 || com_state == com_recv_data2){
 		data = (data << 8) | rxdata;
@@ -581,7 +582,7 @@ static void handle_com(unsigned const char rxdata){
 			eeprom_write_config(addr, data);
 			com_data = COM_ACK;
 		} else {
-			com_data = 0x66;
+			com_data = COM_NACK;
 		}
 		com_write = 1;
 		com_state = com_idle;
@@ -590,14 +591,20 @@ static void handle_com(unsigned const char rxdata){
 		com_write = 1;
 		com_state = com_trans_checksum;
 	} else if(com_state == com_trans_checksum){
-		com_data = addr ^ ((unsigned char)(data >> 8)) ^ ((unsigned char) data);
+		com_data = command ^ addr ^ ((unsigned char)(data >> 8)) ^ ((unsigned char) data);
 		com_write = 1;
 		com_state = com_trans_ack;
 	} else if(com_state == com_trans_ack){
 		com_data = COM_ACK;
 		com_write = 1;
 		com_state = com_idle;
-	} 	
+	}
+
+	if(com_state == com_trans_data1 || com_state == com_trans_data2){
+		com_data = (data >> 8);
+		com_write = 1;
+		com_state++;
+	}
 
 }
 #else

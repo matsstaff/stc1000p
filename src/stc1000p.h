@@ -162,26 +162,11 @@ enum set_menu_enum {
 
 /* Declare functions and variables from Page 0 */
 
-#define COM_HANDSHAKE	0xC5
-#define COM_ACK		0x9A
-
-typedef union
-{
-	unsigned char raw;
-
-	struct
-	  {
-	  unsigned write		: 1;
-	  unsigned tmout		: 3;
-	  unsigned done			: 1;
-	  unsigned res2			: 3;
-	  };
-	struct
-	  {
-	  unsigned res3			: 4;
-	  unsigned count		: 4;
-	  };
-} com_t;
+#define COM_READ_EEPROM		0x20
+#define COM_WRITE_EEPROM	0xE0
+#define COM_READ_TEMP		0x01
+#define COM_ACK			0x9A
+#define COM_NACK		0x66
 
 typedef union
 {
