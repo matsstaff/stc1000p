@@ -90,27 +90,44 @@ void setup() {
 
 }
 
+void tx_bit(unsigned const char data){
+	pinMode(COM_PIN, OUTPUT);
+	digitalWrite(COM_PIN, HIGH);
+	delayMicroseconds(7);
+	if(!data){
+		pinMode(COM_PIN, INPUT);
+		digitalWrite(COM_PIN, LOW);
+		delayMicroseconds(400);
+	} else {
+		delayMicroseconds(400);
+		pinMode(COM_PIN, INPUT);
+		digitalWrite(COM_PIN, LOW);
+	}
+	delayMicroseconds(100);
+}
+
+unsigned char rx_bit(){
+	unsigned char data;
+
+	pinMode(COM_PIN, OUTPUT);
+	digitalWrite(COM_PIN, HIGH);
+	delayMicroseconds(7);
+	pinMode(COM_PIN, INPUT);
+	digitalWrite(COM_PIN, LOW);
+	delayMicroseconds(200);
+	data = digitalRead(COM_PIN);
+	delayMicroseconds(300);
+
+	return data;
+}
 
 
-
-
-void write_byte(const unsigned char data){
+void write_byte(unsigned const char data){
 	unsigned char i;
 	
-	pinMode(COM_PIN, OUTPUT);
-	digitalWrite(COM_PIN, LOW);
-
 	for(i=0;i<8;i++){
-		digitalWrite(COM_PIN, HIGH);
-		delayMicroseconds(1);
-		if(((data << i) & 0x80) == 0){
-			digitalWrite(COM_PIN, LOW);
-		}
-		delayMicroseconds(300);
-		digitalWrite(COM_PIN, LOW);
-		delayMicroseconds(100);		
+		tx_bit(((data << i) & 0x80));
 	}
-	pinMode(COM_PIN, INPUT);
 	delayMicroseconds(500);
 }
 
@@ -118,16 +135,14 @@ unsigned char read_byte(){
 	unsigned char i, data;
 	
 	for(i=0;i<8;i++){
-		pinMode(COM_PIN, OUTPUT);
-		digitalWrite(COM_PIN, HIGH);
-		delayMicroseconds(1);
-		pinMode(COM_PIN, INPUT);
-		digitalWrite(COM_PIN, LOW);
-		delayMicroseconds(100);
-		data = (data << 1) | digitalRead(COM_PIN);
-		delayMicroseconds(300);		
+		data <<= 1;
+		if(rx_bit()){
+			data |= 1;
+		}
 	}
 	delayMicroseconds(500);
+
+	return data;
 }
 
 
@@ -170,6 +185,7 @@ void loop() {
         int count = 0;
         char a, b;
 
+/*
        	pinMode(COM_PIN, OUTPUT);
        	digitalWrite(COM_PIN, HIGH);
         delayMicroseconds(7);
@@ -184,6 +200,7 @@ void loop() {
           Serial.println(count);
           count=0;
         }
+*/
 
 	if (Serial.available() > 0) {
 		char command = Serial.read();
@@ -202,6 +219,15 @@ void loop() {
 			write_version(STC1000P_VERSION);
 			p_exit();
 			break;
+		case 's':
+			if(read_address(122, &data)){
+				Serial.print("s:");
+				Serial.print(data);
+				Serial.println();
+			} else {
+				Serial.println("Error");
+			}
+			break;
 		case 't':
 			if(read_address(125, &data)){
 				Serial.print("T:");
@@ -211,17 +237,30 @@ void loop() {
 				Serial.println("Error");
 			}
 			break;
+		case 'h':
+			write_byte(165);
+			break;
+		case 'g':
+			write_byte(90);
+			break;
+		case 'j':
+			write_byte(0);
+			break;
+		case 'k':
+			write_byte(255);
+			break;
                 case 'q':
                         Serial.println("Sending pulse");
                   	pinMode(COM_PIN, OUTPUT);
                   	digitalWrite(COM_PIN, HIGH);
+			delayMicroseconds(7);
           		pinMode(COM_PIN, INPUT);
           		digitalWrite(COM_PIN, LOW);
                         {
                             unsigned char a, b;
                             delayMicroseconds(200);
                             a = digitalRead(COM_PIN);
-                            delayMicroseconds(200);
+                            delayMicroseconds(300);
                             b = digitalRead(COM_PIN);
                             Serial.println(a);
                             Serial.println(b);
@@ -275,23 +314,26 @@ unsigned char handle_hex_file_line(unsigned char bytecount,
 		}
 	} else if (recordtype == 00) {
 		if (address >= 0xE000) {
-			Serial.print("Programming ");
-			Serial.print(bytecount >> 1, DEC);
-			Serial.print(" bytes at EEPROM address 0x");
-			Serial.println((address & 0x1FFF) >> 1, HEX);
-
 			if (device_address != ((address & 0x1FFF) >> 1)
 					|| ((address & 0x1FFF) >> 1) == 0) {
 				Serial.println("Resetting address for EEPROM");
 				reset_address();
 				device_address = 0;
 			}
-			while (device_address != ((address & 0x1FFF) >> 1)) {
-				increment_address();
-				device_address++;
+
+			if(device_address != ((address & 0x1FFF) >> 1)){
 				Serial.print("Incrementing address to 0x");
-				Serial.println(device_address, HEX);
+				Serial.println(((address & 0x1FFF) >> 1), HEX);
+				while (device_address != ((address & 0x1FFF) >> 1)) {
+					increment_address();
+					device_address++;
+				}
 			}
+
+			Serial.print("Programming ");
+			Serial.print(bytecount >> 1, DEC);
+			Serial.print(" bytes at EEPROM address 0x");
+			Serial.println((address & 0x1FFF) >> 1, HEX);
 
 			for (i = 0; i < bytecount; i += 2) {
 				unsigned char data_out = data[i];
@@ -312,17 +354,19 @@ unsigned char handle_hex_file_line(unsigned char bytecount,
 				device_address++;
 			}
 		} else {
+			if(device_address != (address >> 1)){
+				Serial.print("Incrementing address to 0x");
+				Serial.println((address >> 1), HEX);
+				while (device_address != (address >> 1)) {
+					increment_address();
+					device_address++;
+				}
+			}
+
 			Serial.print("Programming ");
 			Serial.print(bytecount >> 1, DEC);
 			Serial.print(" words at address 0x");
 			Serial.println(address >> 1, HEX);
-
-			while (device_address != (address >> 1)) {
-				increment_address();
-				device_address++;
-				Serial.print("Incrementing address to 0x");
-				Serial.println(device_address, HEX);
-			}
 
 			for (i = 0; i < bytecount; i += 2) {
 				unsigned int data_word_out = (((unsigned int) data[i + 1]) << 8)
@@ -360,6 +404,7 @@ void upload_hex_file_to_device() {
 		unsigned char data[16];
 		unsigned char checksum;
 		unsigned char i;
+		unsigned char rchecksum;
 
 		// Read start of line
 		while (1) {
@@ -391,8 +436,8 @@ void upload_hex_file_to_device() {
 		}
 
 		// Read checksum
-		i = parse_hex();
-		checksum += i;
+		rchecksum = parse_hex();
+		checksum += rchecksum;
 
 		if (checksum) {
 			Serial.println("Checksum error!");

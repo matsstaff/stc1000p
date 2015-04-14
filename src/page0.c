@@ -51,8 +51,11 @@ static int temperature=0;
 #ifndef ENABLE_COM
 static int temperature2=0;
 #else
-static volatile com_t com_status={0x0};
 static volatile unsigned char com_data=0x0;
+static volatile unsigned char com_write=0x0;
+static volatile unsigned char com_tmout=0x0;
+static volatile unsigned char com_count=0x0;
+
 #endif //ENABLE_COM
 
 
@@ -397,7 +400,7 @@ static void init() {
 
 #ifdef ENABLE_COM
 	// Timer 0
-	TMR0CS = 0; // Timer mode
+//	TMR0CS = 0; // Timer mode
 	PSA = 1;
 	PS0 = 0;
 	PS1 = 0;
@@ -406,7 +409,8 @@ static void init() {
 	// Set PEIE and GIE (enable global interrupts), IOCIE
 	INTCON = 0b11001000;
 	
-	IOCAP1 = 1;	// Rising edge detect
+	IOCAP = 2;	// Rising edge detect
+	IOCAN = 0;
 #else
 	// Set PEIE (enable peripheral interrupts, that is for timer2) and GIE (enable global interrupts)
 	INTCON = 0b11000000;
@@ -421,45 +425,42 @@ static void init() {
 static void interrupt_service_routine(void) __interrupt 0 {
 
 #ifdef ENABLE_COM
-	if(IOCAF){
-		/* If send, then RA2 output and drive, set timer */
-#if 0
-		if(com_status.write){
-			TRISA1 = 0;
-			LATA1 = (com_data & 0x80);
-			com_data <<= 1;
-			com_status.count++;
-		}
+	if(IOCAF1){
 
-		com_status.tmout = 7;
-#else
 		IOCIE = 0;
 		IOCAP1 = 0;
-		TRISA1 = 0; // Output
-		LATA1 = 1; // High
-#endif
-		led_e.e_point = 0;
 
-		TMR0 = 0;
+		/* If send 1 */
+		if(com_write && (com_data & 0x80)){
+			TRISA1 = 0;
+			LATA1 = 1;
+		}
+		com_tmout = 7;
+
+		TMR0 = 5;
 		TMR0IF = 0;
+		TMR0CS = 0;
 		TMR0IE = 1;
 		IOCAF = 0;
 	}
 
 	if(TMR0IF){
+		TMR0CS = 1;
+		TMR0IE = 0;
 		TRISA1 = 1; // Input
 		LATA1 = 0;
-		TMR0IE = 0;		
+
+		com_data <<= 1;
+		com_count++;
+
+		/* If receive */
+		if(!com_write && RA1){
+			com_data |= 1;
+		}
+
+		IOCAF = 0;
 		IOCAP1 = 1;
 		IOCIE = 1;
-		led_e.e_point = 1;
-#if 0
-		/* If receive */
-		if(!com_status.write){
-			com_data = (com_data << 1) | RA2;
-			com_status.count++;
-		}
-#endif
 		TMR0IF = 0;
 	}
 #endif
@@ -531,6 +532,7 @@ static int ad_to_temp(unsigned int adfilter){
 }
 
 #ifdef ENABLE_COM
+#if 1
 enum com_states {
 	com_idle = 0,
 	com_recv_addr,
@@ -543,23 +545,23 @@ enum com_states {
 };
 
 static char com_state=0;
-static void handle_com(){
+static void handle_com(unsigned const char rxdata){
 	static char xorsum;
 	static unsigned int data;
 	static char addr;
 
-	xorsum ^= com_data;
+	xorsum ^= rxdata;
 
-	com_status.write = 0;
+	com_write = 0;
 
 	if(com_state == com_idle){
-		if(com_data == COM_HANDSHAKE){
+		if(rxdata == COM_HANDSHAKE){
 			xorsum = 0;
 			com_state = com_recv_addr;
 		}
 	} else if(com_state == com_recv_addr){
-		addr = com_data & 0x7f;
-		if(com_data & 0x80){
+		addr = rxdata & 0x7f;
+		if(rxdata & 0x80){
 			com_state = com_recv_data1;
 		} else {
 			if(addr == EEADR_SET_MENU_ITEM(Pb)){
@@ -567,12 +569,12 @@ static void handle_com(){
 			} else {
 				data = (unsigned int)eeprom_read_config(addr);
 			}
-			com_status.write = 1;
+			com_write = 1;
 			com_data = (data >> 8); 
 			com_state = com_trans_data2;
 		}			
 	} else if(com_state == com_recv_data1 || com_state == com_recv_data2){
-		data = (data << 8) | com_data;
+		data = (data << 8) | rxdata;
 		com_state++;
 	} else if(com_state == com_recv_checksum){
 		if(xorsum == 0){
@@ -581,23 +583,42 @@ static void handle_com(){
 		} else {
 			com_data = 0x66;
 		}
-		com_status.write = 1;
+		com_write = 1;
 		com_state = com_idle;
 	} else if(com_state == com_trans_data2){
 		com_data = (unsigned char) data; 
-		com_status.write = 1;
+		com_write = 1;
 		com_state = com_trans_checksum;
 	} else if(com_state == com_trans_checksum){
 		com_data = addr ^ ((unsigned char)(data >> 8)) ^ ((unsigned char) data);
-		com_status.write = 1;
+		com_write = 1;
 		com_state = com_trans_ack;
 	} else if(com_state == com_trans_ack){
 		com_data = COM_ACK;
-		com_status.write = 1;
+		com_write = 1;
 		com_state = com_idle;
 	} 	
 
 }
+#else
+
+static char com_state=0;
+static void handle_com(unsigned char rxdata){
+	if(com_state == 0){
+		led_e.e_point = 0;
+		int_to_led(rxdata);
+		inc++;
+		if(inc>=5){
+			inc = 0;
+		}
+		return;
+	}
+	com_state++;
+}
+
+#endif // if 0
+
+
 #endif
 
 /*
@@ -618,10 +639,14 @@ void main(void) __naked {
 	while (1) {
 
 #ifdef ENABLE_COM
-		if(com_status.done){
-			handle_com();
-			com_status.done = 0;
+		GIE = 0;
+		if(com_count >= 8){
+			char rxdata = com_data;
+			com_count = 0;
+			GIE = 1;
+ 			handle_com(rxdata);
 		}
+		GIE = 1;
 #endif
 
 		if(TMR6IF) {
@@ -643,18 +668,18 @@ void main(void) __naked {
 
 			millisx60++;
 
+
 #ifdef ENABLE_COM
-#if 0
 			GIE = 0;
-			if(com_status.tmout){
-				com_status.tmout--;
+			if(com_tmout){
+				com_tmout--;
 			} else {
 				com_state = 0;
-				com_status.raw = 0;
+				com_count = 0;
+				com_write = 0;
 				led_e.e_point = 1;
 			}
 			GIE = 1;
-#endif
 #endif
 
 			if(millisx60 & 0x1){
@@ -746,7 +771,6 @@ void main(void) __naked {
 						RX9 = !RX9;
 					}
 				}
-
 			} // End 1 sec section
 
 			// Reset timer flag
