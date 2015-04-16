@@ -204,8 +204,66 @@ void error(){
 	Serial.println("?Syntax error");
 }
 
+void print_temperature(int temperature){
+	char i, buf[5]="    ";
+
+	if(temperature < 0){
+		temperature = -temperature;
+		Serial.print('-');
+	}
+
+	i=1;
+	if(temperature >= 1000){
+		temperature /= 10;
+		i=2;
+	} else {
+		buf[2] = '.';
+		buf[3] = (temperature % 10) + '0';
+	}
+	temperature /=10;
+	
+	while(temperature>0 && i>=0){
+		buf[i] = temperature % 10 + '0';
+		temperature /= 10;
+		i--;
+	}
+
+	Serial.println(buf);
+}
+
+
+bool parse_temperature(const char *str, int *temperature){
+	bool neg = false;
+	if(*str == '-'){
+		neg = true;
+		str++;
+	}
+
+
+	if(!isDigit(*str)){
+		return false;
+	}
+
+	*temperature = 0;
+	while(isDigit(*str)){
+		*temperature = *temperature * 10 + (*str - '0');
+		str++;
+	}
+	*temperature *= 10;
+	if(*str == '.'){
+		str++;
+		if(isDigit(*str)){
+			*temperature += (*str - '0');
+		} else {
+			return false;
+		} 
+	}
+
+	return true;
+} 
+
 unsigned char parse_address(const char *cmd, unsigned char *addr){
-	unsigned char i;	
+	char i;	
 
 	if(!strncmp("SP", cmd, 2)){
 		if(isDigit(cmd[2]) && isDigit(cmd[3]) && cmd[2] < '6'){
@@ -221,7 +279,7 @@ unsigned char parse_address(const char *cmd, unsigned char *addr){
 		}
 	}
 
-	for(i=0; i< (sizeof(menu_opt)/sizeof(menu_opt[0])); i++){
+	for(i=(sizeof(menu_opt)/sizeof(menu_opt[0]))-1; i>=0; i--){
 		if(!strncmp(cmd, &menu_opt[i][0], strlen(menu_opt[i]))){
 			*addr = EEADR_SET_MENU + i;
 			return strlen(menu_opt[i]);
@@ -258,9 +316,8 @@ void parse_command(char *cmd){
 
 	if(cmd[0] == 't'){
 		if(read_temp(&data)){
-			Serial.print("T:");
-			Serial.print(data/10.0);
-			Serial.println();
+			Serial.print("T: ");
+			print_temperature(data);
 		} else {
 			Serial.println("Communication error");
 		}
