@@ -51,19 +51,6 @@ enum set_menu_enum {
 #define EEADR_SET_MENU_ITEM(name)		(EEADR_SET_MENU + (name))
 #define EEADR_POWER_ON				127
 
-
-void setup() {
-	Serial.begin(115200);
-
-	delay(2);
-
-	Serial.println("STC-1000+ communication sketch.");
-	Serial.println("Copyright 2015 Mats Staffansson");
-	Serial.println("");
-	Serial.println("Send 't' to read temperature");
-
-}
-
 void write_bit(unsigned const char data){
 	pinMode(COM_PIN, OUTPUT);
 	digitalWrite(COM_PIN, HIGH);
@@ -92,7 +79,6 @@ unsigned char read_bit(){
 
 	return data;
 }
-
 
 void write_byte(unsigned const char data){
 	unsigned char i;
@@ -125,6 +111,7 @@ bool write_eeprom(const unsigned char address, unsigned const int value){
 	write_byte(((unsigned char)(value >> 8)));
 	write_byte((unsigned char)value);
 	write_byte(COM_WRITE_EEPROM ^ address ^ ((unsigned char)(value >> 8)) ^ ((unsigned char)value));
+	delay(6); // Longer delay needed here for EEPROM write to finish, but must be shorter than 10ms
 	ack = read_byte();
 	return ack == COM_ACK; 
 }
@@ -164,31 +151,146 @@ bool read_temp(int *temperature){
 	return false;
 }
 
-void loop() {
+/* End of communication implementation */
+
+/* From here example implementation begins, this can be exchanged for your specific needs */
+
+bool isBlank(char c){
+	return c == ' ' || c == '\t';
+}
+
+bool isDigit(char c){
+	return c >= '0' && c <= '9';
+}
+
+bool isEOL(char c){
+	return c == '\r' || c == '\n';
+}
+
+void error(){
+	Serial.println("?Syntax error");
+}
+
+void parse_command(char *cmd){
 	int data;
 
-	if (Serial.available() > 0) {
-		char command = Serial.read();
-		switch (command) {
-		case 't':
-			if(read_temp(&data)){
-				Serial.print("T:");
-				Serial.print(data/10.0);
-				Serial.println();
-			} else {
-				Serial.println("Error");
+	if(cmd[0] == 't'){
+		if(read_temp(&data)){
+			Serial.print("T:");
+			Serial.print(data/10.0);
+			Serial.println();
+		} else {
+			Serial.println("Communication error");
+		}
+	} else if(cmd[0] == 'r' || cmd[0] == 'w') {
+		unsigned char address=0;
+		unsigned char i;
+		bool neg = false;
+
+		if(!isBlank(cmd[1])){
+			return error();
+		}
+
+		for(i=2; i<32; i++){
+			if(isBlank(cmd[i]) || isEOL(cmd[i])){
+				break;
 			}
-			break;
-                case 's':
-			if(read_eeprom(EEADR_SET_MENU_ITEM(setpoint), &data)){
-				Serial.print("SP: ");
-				Serial.println(data/10.0);
+			if(isDigit(cmd[i])){
+				if(address>12){
+					return error();
+				} else {
+					address = address * 10 + (cmd[i] - '0');
+			 	}
 			} else {
-				Serial.println("Error");
+				return error();
 			}
-                        break;
-		default:
-			break;
+		}
+
+		if(address > 127){
+			return error();
+		}
+
+		if(cmd[0] == 'r'){
+			if(read_eeprom(address, &data)){
+				Serial.print("EEPROM[");
+				Serial.print(address);
+				Serial.print("]=");
+				Serial.println(data);
+			} else {
+				Serial.println("Communication error");
+			}
+			return;
+		}
+
+		if(!isBlank(cmd[i])){
+			return error();
+		}
+		i++;
+
+		if(cmd[i] == '-'){
+			neg = true;
+			i++;
+		}
+
+		if(!isDigit(cmd[i])){
+			return error();
+		}
+
+		for(data=0; i<32; i++){
+			if(isEOL(cmd[i])){
+				break;
+			}
+			if(isDigit(cmd[i]) && data < 3276){
+				data = data * 10 + (cmd[i] - '0');
+			} else {
+				return error();
+			}
+		}
+
+		if((neg && data > 32768) || (!neg && data > 32767)){
+			return error();
+		}
+
+		if(write_eeprom(address, data)){
+			Serial.println("Ok");
+		} else {
+			Serial.println("Communication error");
+		}
+	}
+		
+}
+
+void setup() {
+	Serial.begin(115200);
+
+	delay(2);
+
+	Serial.println("STC-1000+ communication sketch.");
+	Serial.println("Copyright 2015 Mats Staffansson");
+	Serial.println("");
+	Serial.println("Commands: 't' to read temperature");
+	Serial.println("          'r [addr (0-127)]' to read EEPROM address");
+	Serial.println("          'w [addr (0-127)] [data]' to write EEPROM address");
+
+}
+
+void loop() {
+	static char cmd[32], rxchar=' ';
+	static unsigned char index=0; 	
+
+	if(Serial.available() > 0){
+		char c = Serial.read();
+		if(!(isBlank(rxchar) && isBlank(c))){
+			cmd[index] = c;
+			rxchar = c;
+			index++;
+		}
+
+		if(index>=31 || isEOL(rxchar)){
+			cmd[index] = '\0';
+			parse_command(cmd);
+			index = 0;
+			rxchar = ' ';
 		}
 	}
 
