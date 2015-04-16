@@ -51,11 +51,11 @@ static int temperature=0;
 #ifndef COM
 static int temperature2=0;
 #else
-static volatile unsigned char com_data=0x0;
-static volatile unsigned char com_write=0x0;
-static volatile unsigned char com_tmout=0x0;
-static volatile unsigned char com_count=0x0;
-
+static volatile unsigned char com_data=0;
+static volatile unsigned char com_write=0;
+static volatile unsigned char com_tmout=0;
+static volatile unsigned char com_count=0;
+static volatile unsigned char com_state=0;
 #endif //COM
 
 
@@ -435,7 +435,7 @@ static void interrupt_service_routine(void) __interrupt 0 {
 			TRISA1 = 0;
 			LATA1 = 1;
 		}
-		com_tmout = 7;
+		com_tmout = 10;
 
 		TMR0 = 5;
 		TMR0IF = 0;
@@ -497,6 +497,16 @@ static void interrupt_service_routine(void) __interrupt 0 {
 		// Enable new LED
 		LATB = latb;
 
+#ifdef COM
+		if(com_tmout){
+			com_tmout--;
+		} else {
+			com_state = 0;
+			com_count = 0;
+			com_write = 0;
+		}
+#endif //COM
+
 		// Clear interrupt flag
 		TMR2IF = 0;
 	}
@@ -532,7 +542,6 @@ static int ad_to_temp(unsigned int adfilter){
 }
 
 #ifdef COM
-#if 1
 enum com_states {
 	com_idle = 0,
 	com_recv_addr,
@@ -545,7 +554,6 @@ enum com_states {
 	com_trans_ack
 };
 
-static char com_state=0;
 static void handle_com(unsigned const char rxdata){
 	static unsigned char command;
 	static unsigned char xorsum;
@@ -579,7 +587,7 @@ static void handle_com(unsigned const char rxdata){
 		com_state++;
 	} else if(com_state == com_recv_checksum){
 		if(xorsum == 0){
-			eeprom_write_config(addr, data);
+			eeprom_write_config(addr, (int)data);
 			com_data = COM_ACK;
 		} else {
 			com_data = COM_NACK;
@@ -607,25 +615,6 @@ static void handle_com(unsigned const char rxdata){
 	}
 
 }
-#else
-
-static char com_state=0;
-static void handle_com(unsigned char rxdata){
-	if(com_state == 0){
-		led_e.e_point = 0;
-		int_to_led(rxdata);
-		inc++;
-		if(inc>=5){
-			inc = 0;
-		}
-		return;
-	}
-	com_state++;
-}
-
-#endif // if 0
-
-
 #endif
 
 /*
@@ -674,20 +663,6 @@ void main(void) __naked {
 		if(TMR4IF) {
 
 			millisx60++;
-
-
-#ifdef COM
-			GIE = 0;
-			if(com_tmout){
-				com_tmout--;
-			} else {
-				com_state = 0;
-				com_count = 0;
-				com_write = 0;
-				led_e.e_point = 1;
-			}
-			GIE = 1;
-#endif
 
 			if(millisx60 & 0x1){
 				ad_filter = read_ad(ad_filter);
