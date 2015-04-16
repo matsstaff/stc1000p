@@ -60,8 +60,6 @@
 #define STC1000P_VERSION		107
 #define STC1000P_EEPROM_VERSION		11
 
-#define ENABLE_COM
-
 /* Define limits for temperatures */
 #ifdef FAHRENHEIT
 #define TEMP_MAX		(2500)

@@ -48,7 +48,7 @@ led_e_t led_e = {0xff};
 led_t led_10, led_1, led_01;
 
 static int temperature=0;
-#ifndef ENABLE_COM
+#ifndef COM
 static int temperature2=0;
 #else
 static volatile unsigned char com_data=0x0;
@@ -56,7 +56,7 @@ static volatile unsigned char com_write=0x0;
 static volatile unsigned char com_tmout=0x0;
 static volatile unsigned char com_count=0x0;
 
-#endif //ENABLE_COM
+#endif //COM
 
 
 /* Functions.
@@ -278,7 +278,7 @@ unsigned int cooling_delay = 60;  // Initial cooling delay
 unsigned int heating_delay = 60;  // Initial heating delay
 static void temperature_control(){
 	int setpoint = eeprom_read_config(EEADR_SET_MENU_ITEM(SP));
-#ifndef ENABLE_COM
+#ifndef COM
 	int hysteresis2 = eeprom_read_config(EEADR_SET_MENU_ITEM(hy2));
 	unsigned char probe2 = eeprom_read_config(EEADR_SET_MENU_ITEM(Pb));
 #endif
@@ -296,11 +296,11 @@ static void temperature_control(){
 
 	// This is the thermostat logic
 	if((LATA4 && (temperature <= setpoint 
-#ifndef ENABLE_COM
+#ifndef COM
 		|| (probe2 && (temperature2 < (setpoint - hysteresis2)))
 #endif
 		)) || (LATA5 && (temperature >= setpoint 
-#ifndef ENABLE_COM
+#ifndef COM
 		|| (probe2 && (temperature2 > (setpoint + hysteresis2)))
 #endif
 		))){
@@ -313,11 +313,11 @@ static void temperature_control(){
 	}
 	else if(LATA4 == 0 && LATA5 == 0) {
 		int hysteresis = eeprom_read_config(EEADR_SET_MENU_ITEM(hy));
-#ifndef ENABLE_COM
+#ifndef COM
 		hysteresis2 >>= 2; // Halve hysteresis 2
 #endif
 		if ((temperature > setpoint + hysteresis)
-#ifndef ENABLE_COM
+#ifndef COM
 			&& (!probe2 || (temperature2 >= setpoint - hysteresis2))
 #endif
 			) {
@@ -327,7 +327,7 @@ static void temperature_control(){
 				LATA4 = 1;
 			}
 		} else if ((temperature < setpoint - hysteresis) 
-#ifndef ENABLE_COM
+#ifndef COM
 			&& (!probe2 || (temperature2 <= setpoint + hysteresis2))
 #endif
 			) {
@@ -361,7 +361,7 @@ static void init() {
 	TRISC = 0;
 
 	// Analog input on thermistor
-#ifdef ENABLE_COM
+#ifdef COM
 	ANSELA =  _ANSA2 ;
 #else
 	ANSELA = _ANSA1 |  _ANSA2 ;
@@ -398,7 +398,7 @@ static void init() {
 	// @4MHz, Timer 2 clock is FOSC/4 -> 1MHz prescale 1:64-> 15.625kHz, 250 and postscale 1:6 -> 8.93Hz or 112ms
 	PR6 = 250;
 
-#ifdef ENABLE_COM
+#ifdef COM
 	// Timer 0
 //	TMR0CS = 0; // Timer mode
 	PSA = 1;
@@ -424,7 +424,7 @@ static void init() {
  */
 static void interrupt_service_routine(void) __interrupt 0 {
 
-#ifdef ENABLE_COM
+#ifdef COM
 	if(IOCAF1){
 
 		IOCIE = 0;
@@ -531,7 +531,7 @@ static int ad_to_temp(unsigned int adfilter){
 	return (temp >> 6);
 }
 
-#ifdef ENABLE_COM
+#ifdef COM
 #if 1
 enum com_states {
 	com_idle = 0,
@@ -634,7 +634,7 @@ static void handle_com(unsigned char rxdata){
 void main(void) __naked {
 	unsigned int millisx60=0;
 	unsigned int ad_filter=0x7fff;
-#ifndef ENABLE_COM
+#ifndef COM
 	unsigned int ad_filter2=0x7fff;
 #endif
 
@@ -645,7 +645,7 @@ void main(void) __naked {
 	//Loop forever
 	while (1) {
 
-#ifdef ENABLE_COM
+#ifdef COM
 		GIE = 0;
 		if(com_count >= 8){
 			char rxdata = com_data;
@@ -676,7 +676,7 @@ void main(void) __naked {
 			millisx60++;
 
 
-#ifdef ENABLE_COM
+#ifdef COM
 			GIE = 0;
 			if(com_tmout){
 				com_tmout--;
@@ -691,7 +691,7 @@ void main(void) __naked {
 
 			if(millisx60 & 0x1){
 				ad_filter = read_ad(ad_filter);
-#ifndef ENABLE_COM
+#ifndef COM
 				START_TCONV_2();
 			} else {
 				ad_filter2 = read_ad(ad_filter2);
@@ -704,13 +704,13 @@ void main(void) __naked {
 			if((millisx60 & 0xf) == 0) {
 
 				temperature = ad_to_temp(ad_filter) + eeprom_read_config(EEADR_SET_MENU_ITEM(tc));
-#ifndef ENABLE_COM
+#ifndef COM
 				temperature2 = ad_to_temp(ad_filter2) + eeprom_read_config(EEADR_SET_MENU_ITEM(tc2));
 #endif
 
 				// Alarm on sensor error (AD result out of range)
 				LATA0 = ((ad_filter>>8) >= 248 || (ad_filter>>8) <= 8) 
-#ifndef ENABLE_COM
+#ifndef COM
 					|| (eeprom_read_config(EEADR_SET_MENU_ITEM(Pb)) && ((ad_filter2>>8) >= 248 || (ad_filter2>>8) <= 8))
 #endif
 				;
@@ -764,7 +764,7 @@ void main(void) __naked {
 							led_1.raw = LED_A;
 							led_01.raw = LED_OFF;
 						} else {
-#ifndef ENABLE_COM
+#ifndef COM
 							led_e.e_point = !TX9;
 							if(TX9){
 								temperature_to_led(temperature2);
