@@ -155,6 +155,39 @@ bool read_temp(int *temperature){
 
 /* From here example implementation begins, this can be exchanged for your specific needs */
 
+#if 0
+    _(hy, 	LED_h, 	LED_y, 	LED_OFF, 	0, 		TEMP_HYST_1_MAX,	5,		10) 	\
+    _(hy2, 	LED_h, 	LED_y, 	LED_2, 		0, 		TEMP_HYST_2_MAX, 	50,		100)	\
+    _(tc, 	LED_t, 	LED_c, 	LED_OFF, 	TEMP_CORR_MIN, 	TEMP_CORR_MAX,		0,		0)	\
+    _(tc2, 	LED_t, 	LED_c, 	LED_2, 		TEMP_CORR_MIN,	TEMP_CORR_MAX,		0,		0)	\
+    _(SA, 	LED_S, 	LED_A, 	LED_OFF, 	SP_ALARM_MIN,	SP_ALARM_MAX,		0,		0)	\
+    _(SP, 	LED_S, 	LED_P, 	LED_OFF, 	TEMP_MIN,	TEMP_MAX,		200,		680)	\
+    _(St, 	LED_S, 	LED_t, 	LED_OFF, 	0,		8,			0,		0)	\
+    _(dh, 	LED_d, 	LED_h, 	LED_OFF, 	0,		999,			0,		0)	\
+    _(cd, 	LED_c, 	LED_d, 	LED_OFF, 	0,		60,			5,		5)	\
+    _(hd, 	LED_h, 	LED_d, 	LED_OFF, 	0,		60,			2,		2)	\
+    _(rP, 	LED_r, 	LED_P, 	LED_OFF, 	0,		1,			0,		0)	\
+    _(Pb, 	LED_P, 	LED_b, 	LED_2, 		0,		1,			0,		0)	\
+    _(rn, 	LED_r, 	LED_n, 	LED_OFF, 	0,		6,			6,		6) 	\
+
+#endif
+
+const char menu_opt[][4] = {
+	"hy",
+	"hy2",
+	"tc",
+	"tc2",
+	"SA",
+	"SP",
+	"St",
+	"dh",
+	"cd",
+	"hd",
+	"rP",
+	"Pb",
+	"rn"
+};
+
 bool isBlank(char c){
 	return c == ' ' || c == '\t';
 }
@@ -169,6 +202,55 @@ bool isEOL(char c){
 
 void error(){
 	Serial.println("?Syntax error");
+}
+
+unsigned char parse_address(const char *cmd, unsigned char *addr){
+	unsigned char i;	
+
+	if(!strncmp("SP", cmd, 2)){
+		if(isDigit(cmd[2]) && isDigit(cmd[3]) && cmd[2] < '6'){
+			*addr = EEADR_PROFILE_SETPOINT(cmd[2]-'0', cmd[3]-'0');
+			return 4;
+		}
+	}
+
+	if(!strncmp("dh", cmd, 2)){
+		if(isDigit(cmd[2]) && isDigit(cmd[3]) && cmd[2] < '6'){
+			*addr = EEADR_PROFILE_DURATION(cmd[2]-'0', cmd[3]-'0');
+			return 4;
+		}
+	}
+
+	for(i=0; i< (sizeof(menu_opt)/sizeof(menu_opt[0])); i++){
+		if(!strncmp(cmd, &menu_opt[i][0], strlen(menu_opt[i]))){
+			*addr = EEADR_SET_MENU + i;
+			return strlen(menu_opt[i]);
+		}
+	}
+
+	*addr = 0;
+	for(i=0; i<30; i++){
+		if(isBlank(cmd[i]) || isEOL(cmd[i])){
+			break;
+		}
+		if(isDigit(cmd[i])){
+			if(*addr>12){
+				error();
+				return 0;
+			} else {
+				*addr = *addr * 10 + (cmd[i] - '0');
+		 	}
+		} else {
+			error();
+			return 0;
+		}
+	}
+
+	if(*addr > 127){
+		return 0;
+	}
+
+	return i;
 }
 
 void parse_command(char *cmd){
@@ -191,24 +273,13 @@ void parse_command(char *cmd){
 			return error();
 		}
 
-		for(i=2; i<32; i++){
-			if(isBlank(cmd[i]) || isEOL(cmd[i])){
-				break;
-			}
-			if(isDigit(cmd[i])){
-				if(address>12){
-					return error();
-				} else {
-					address = address * 10 + (cmd[i] - '0');
-			 	}
-			} else {
-				return error();
-			}
-		}
+		i = parse_address(&cmd[2], &address);
 
-		if(address > 127){
+		if(i==0){
 			return error();
 		}
+
+		i+=2;
 
 		if(cmd[0] == 'r'){
 			if(read_eeprom(address, &data)){
