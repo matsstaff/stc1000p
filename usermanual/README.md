@@ -339,7 +339,7 @@ To enable use of the second temp probe in the thermostat logic (i.e. to enable *
 It is possible to read temperature, cooling/heating relay status, and also both read and write from/to the EEPROM of the STC, using a simple half-duplex single wire communication protocol.
 This comes at the expense of secondary probe usage however, as both the physical pin as well as the code space is repurposed.<br>
 In order for this communication to work, a pulldown resistor is needed on the *ICSPCLK* line. 10k works out nicely, and this is the exact same resistor that will be needed for the second probe to work. Additionally, as the protocol is bidirectional it is a very good idea to add a ~1k resistor in series with the *ICSPCLK* line to protect both the STC and the communication master (Arduino) from harmful currents if both should happen to drive the line in the event of a protocol failure.<br>
-A second sketch is added to be able to upload this version of the firmware to the STC, called *picprog_com.ino*. Upload it, and flash the STC as normal.
+A second sketch is added to be able to upload this version of the firmware to the STC, called *picprog_com.ino*. Upload it  and flash the STC as normal.
 
 ## Example communication master sketch 
 An example sketch implementing a communication master and also has a simple command line parser is also provided, *com.ino*. This sketch has all the communication master details implemented to 'talk' to the STC, and can be adapted to suit specific requirements (datalogging, wireless et.c.). <br>
@@ -361,9 +361,11 @@ Also, writing with literal addressing expects literal values. So to change the s
 
 While using literal addressing can be useful, it it not very user friendly, so to make the sketch just a bit useful, mnemonic addressing is also possible. Reading the first setpoint of the first profile could also be done by issuing *r SP00*. The sketch replies *SP00=67.0*, note that the sketch now prints the temperature 'as expected' as well. The same goes for writing configuration using mnemonic addressing *w SP00 65.0*.<br>
 
-The follwing table shows the mnemonic adresses:
+The following table shows the mnemonic adresses:
+
 |Address|Mnemonic|Description|
-|0-113|SP*xy*<br>dh*xy*|Setpoint and duration of profile *x* step *y*|
+|-------|--------|-----------|
+|0-113|SP*xy* <br> dh*xy*|Setpoint and duration of profile *x* step *y*|
 |114|hy|Hysteresis|
 |115|hy2|Hysteresis probe 2|
 |116|tc|Temperature correction|
@@ -376,11 +378,11 @@ The follwing table shows the mnemonic adresses:
 |123|hd|Heating delay|
 |124|rP|Ramping|
 |125|Pb2|Probe 2 regulation|
-|126|rn|Run mode, (Pr*x*, *th*)|
-|126||Soft power|
+|126|rn|Run mode, (Pr*x*, th)|
 
-As you can see, this corresponds closely to the menu system on the STC-1000\+, so it should be intuitive if you are already familiar with it.
-Note: There is very little error checking on the supplied values, so use care. 
+As you can see, this corresponds closely to the menu system on the STC-1000\+, so it should be intuitive if you are already familiar with it.<br>
+Note1: The command parser is case sensitive.<br>
+Note2: There is very little error checking on the supplied values, so use care.<br>
 
 ## Additional features
 
