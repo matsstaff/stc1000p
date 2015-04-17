@@ -180,7 +180,7 @@ const char menu_opt[][4] = {
 	"cd",
 	"hd",
 	"rP",
-	"Pb",
+	"Pb2",
 	"rn"
 };
 
