@@ -163,6 +163,8 @@ enum set_menu_enum {
 #define COM_READ_EEPROM		0x20
 #define COM_WRITE_EEPROM	0xE0
 #define COM_READ_TEMP		0x01
+#define COM_READ_COOLING	0x02
+#define COM_READ_HEATING	0x03
 #define COM_ACK			0x9A
 #define COM_NACK		0x66
 

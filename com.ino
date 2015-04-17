@@ -25,31 +25,10 @@
 #define COM_READ_EEPROM		0x20
 #define COM_WRITE_EEPROM	0xE0
 #define COM_READ_TEMP		0x01
+#define COM_READ_COOLING	0x02
+#define COM_READ_HEATING	0x03
 #define COM_ACK			0x9A
 #define COM_NACK		0x66
-
-enum set_menu_enum {
-	hysteresis,			// hy (hysteresis)
-	hysteresis2,			// hy2 (hysteresis probe 2)
-	temperature_correction,		// tc (temperature correction)
-	temperature_correction2,	// tc2 (temperature correction probe 2)
-	setpoint_alarm,			// SA (setpoint alarm)
-	setpoint,			// SP (setpoint)
-	step,				// St (current running profile step)	
-	duration,			// dh (current running profile step duration in hours)
-	cooling_delay,			// cd (cooling delay minutes)
-	heating_delay,			// hd (heating delay minutes)
-	ramping,			// rP (0=disable, 1=enable ramping)
-	probe2,				// Pb (0=disable, 1=enable probe2 for regulation)
-	run_mode			// rn (0-5 run profile, 6=thermostat)
-};
-
-/* Defines for EEPROM config addresses */
-#define EEADR_PROFILE_SETPOINT(profile, stp)	(((profile)*19) + ((stp)<<1))
-#define EEADR_PROFILE_DURATION(profile, stp)	(EEADR_PROFILE_SETPOINT(profile, stp) + 1)
-#define EEADR_SET_MENU				EEADR_PROFILE_SETPOINT(6, 0)
-#define EEADR_SET_MENU_ITEM(name)		(EEADR_SET_MENU + (name))
-#define EEADR_POWER_ON				127
 
 void write_bit(unsigned const char data){
 	pinMode(COM_PIN, OUTPUT);
@@ -134,43 +113,60 @@ bool read_eeprom(const unsigned char address, int *value){
 	return false;
 }
 
-bool read_temp(int *temperature){
+bool read_command(unsigned char command, int *value){
 	unsigned char xorsum;
 	unsigned char ack;
         unsigned int data;
 
-	write_byte(COM_READ_TEMP);
+	write_byte(command);
 	data = read_byte();
 	data = (data << 8) | read_byte();
 	xorsum = read_byte();
         ack = read_byte();
-	if(ack == COM_ACK && xorsum == (COM_READ_TEMP ^ ((unsigned char)(data >> 8)) ^ ((unsigned char)data))){
-	        *temperature = (int)data;
+	if(ack == COM_ACK && xorsum == (command ^ ((unsigned char)(data >> 8)) ^ ((unsigned char)data))){
+	        *value = (int)data;
 		return true;
 	}
 	return false;
 }
 
+bool read_temp(int *temperature){
+	return read_command(COM_READ_TEMP, temperature); 
+}
+
+bool read_heating(int *heating){
+	return read_command(COM_READ_HEATING, heating); 
+}
+
+bool read_cooling(int *cooling){
+	return read_command(COM_READ_COOLING, cooling); 
+}
+
 /* End of communication implementation */
 
 /* From here example implementation begins, this can be exchanged for your specific needs */
+enum set_menu_enum {
+	hysteresis,			// hy (hysteresis)
+	hysteresis2,			// hy2 (hysteresis probe 2)
+	temperature_correction,		// tc (temperature correction)
+	temperature_correction2,	// tc2 (temperature correction probe 2)
+	setpoint_alarm,			// SA (setpoint alarm)
+	setpoint,			// SP (setpoint)
+	step,				// St (current running profile step)	
+	duration,			// dh (current running profile step duration in hours)
+	cooling_delay,			// cd (cooling delay minutes)
+	heating_delay,			// hd (heating delay minutes)
+	ramping,			// rP (0=disable, 1=enable ramping)
+	probe2,				// Pb (0=disable, 1=enable probe2 for regulation)
+	run_mode			// rn (0-5 run profile, 6=thermostat)
+};
 
-#if 0
-    _(hy, 	LED_h, 	LED_y, 	LED_OFF, 	0, 		TEMP_HYST_1_MAX,	5,		10) 	\
-    _(hy2, 	LED_h, 	LED_y, 	LED_2, 		0, 		TEMP_HYST_2_MAX, 	50,		100)	\
-    _(tc, 	LED_t, 	LED_c, 	LED_OFF, 	TEMP_CORR_MIN, 	TEMP_CORR_MAX,		0,		0)	\
-    _(tc2, 	LED_t, 	LED_c, 	LED_2, 		TEMP_CORR_MIN,	TEMP_CORR_MAX,		0,		0)	\
-    _(SA, 	LED_S, 	LED_A, 	LED_OFF, 	SP_ALARM_MIN,	SP_ALARM_MAX,		0,		0)	\
-    _(SP, 	LED_S, 	LED_P, 	LED_OFF, 	TEMP_MIN,	TEMP_MAX,		200,		680)	\
-    _(St, 	LED_S, 	LED_t, 	LED_OFF, 	0,		8,			0,		0)	\
-    _(dh, 	LED_d, 	LED_h, 	LED_OFF, 	0,		999,			0,		0)	\
-    _(cd, 	LED_c, 	LED_d, 	LED_OFF, 	0,		60,			5,		5)	\
-    _(hd, 	LED_h, 	LED_d, 	LED_OFF, 	0,		60,			2,		2)	\
-    _(rP, 	LED_r, 	LED_P, 	LED_OFF, 	0,		1,			0,		0)	\
-    _(Pb, 	LED_P, 	LED_b, 	LED_2, 		0,		1,			0,		0)	\
-    _(rn, 	LED_r, 	LED_n, 	LED_OFF, 	0,		6,			6,		6) 	\
-
-#endif
+/* Defines for EEPROM config addresses */
+#define EEADR_PROFILE_SETPOINT(profile, stp)	(((profile)*19) + ((stp)<<1))
+#define EEADR_PROFILE_DURATION(profile, stp)	(EEADR_PROFILE_SETPOINT(profile, stp) + 1)
+#define EEADR_SET_MENU				EEADR_PROFILE_SETPOINT(6, 0)
+#define EEADR_SET_MENU_ITEM(name)		(EEADR_SET_MENU + (name))
+#define EEADR_POWER_ON				127
 
 const char menu_opt[][4] = {
 	"hy",
@@ -200,66 +196,94 @@ bool isEOL(char c){
 	return c == '\r' || c == '\n';
 }
 
-void error(){
-	Serial.println("?Syntax error");
-}
-
 void print_temperature(int temperature){
-	char i, buf[5]="    ";
-
 	if(temperature < 0){
 		temperature = -temperature;
 		Serial.print('-');
 	}
-
-	i=1;
 	if(temperature >= 1000){
 		temperature /= 10;
-		i=2;
+		Serial.println(temperature);
 	} else {
-		buf[2] = '.';
-		buf[3] = (temperature % 10) + '0';
+		Serial.print(temperature/10);
+		Serial.print('.');
+		Serial.println(temperature%10);
 	}
-	temperature /=10;
-	
-	while(temperature>0 && i>=0){
-		buf[i] = temperature % 10 + '0';
-		temperature /= 10;
-		i--;
-	}
-
-	Serial.println(buf);
 }
 
 
-bool parse_temperature(const char *str, int *temperature){
+void print_config_value(unsigned char address, int value){
+	if(address < EEADR_SET_MENU){
+		unsigned char profile=0;
+		while(address >= 19){
+			address-=19;
+			profile++;
+		}
+		if(address & 1){
+			Serial.print("dh");
+		} else {
+			Serial.print("SP");
+		}
+		Serial.print(profile);
+		Serial.print(address >> 1);
+		Serial.print('=');
+		if(address & 1){
+			Serial.println(value);
+		} else {
+			print_temperature(value);
+		}
+	} else {
+		Serial.print(menu_opt[address-EEADR_SET_MENU]);
+		Serial.print('=');
+		if(address == EEADR_SET_MENU_ITEM(run_mode)){
+			if(value >= 0 && value <= 5){
+				Serial.print("Pr");
+				Serial.println(value);
+			} else {
+				Serial.println("th");
+			}
+		} else if(address <= EEADR_SET_MENU_ITEM(setpoint)){
+			print_temperature(value);
+		} else {
+			Serial.println(value);
+		}
+	}
+}
+
+unsigned char parse_temperature(const char *str, int *temperature){
+	unsigned char i=0;
 	bool neg = false;
-	if(*str == '-'){
+
+	if(str[i] == '-'){
 		neg = true;
-		str++;
+		i++;
 	}
 
-
-	if(!isDigit(*str)){
-		return false;
+	if(!isDigit(str[i])){
+		return 0;
 	}
 
 	*temperature = 0;
-	while(isDigit(*str)){
-		*temperature = *temperature * 10 + (*str - '0');
-		str++;
+	while(isDigit(str[i])){
+		*temperature = *temperature * 10 + (str[i] - '0');
+		i++;
 	}
 	*temperature *= 10;
-	if(*str == '.'){
-		str++;
-		if(isDigit(*str)){
-			*temperature += (*str - '0');
+	if(str[i] == '.'){
+		i++;
+		if(isDigit(str[i])){
+			*temperature += (str[i] - '0');
+			i++;
 		} else {
-			return false;
+			return 0;
 		} 
 	}
 
-	return true;
+	if(neg){
+		*temperature = -(*temperature);
+	}
+
+	return i;
 } 
 
 unsigned char parse_address(const char *cmd, unsigned char *addr){
@@ -273,14 +297,15 @@ unsigned char parse_address(const char *cmd, unsigned char *addr){
 	}
 
 	if(!strncmp("dh", cmd, 2)){
-		if(isDigit(cmd[2]) && isDigit(cmd[3]) && cmd[2] < '6'){
+		if(isDigit(cmd[2]) && isDigit(cmd[3]) && cmd[2] < '6' && cmd[3] < '9'){
 			*addr = EEADR_PROFILE_DURATION(cmd[2]-'0', cmd[3]-'0');
 			return 4;
 		}
 	}
 
-	for(i=(sizeof(menu_opt)/sizeof(menu_opt[0]))-1; i>=0; i--){
-		if(!strncmp(cmd, &menu_opt[i][0], strlen(menu_opt[i]))){
+	for(i=0; i<(sizeof(menu_opt)/sizeof(menu_opt[0])); i++){
+		unsigned char len = strlen(menu_opt[i]);
+		if(!strncmp(cmd, &menu_opt[i][0], len) && (isBlank(cmd[len]) || isEOL(cmd[len]))){
 			*addr = EEADR_SET_MENU + i;
 			return strlen(menu_opt[i]);
 		}
@@ -293,13 +318,11 @@ unsigned char parse_address(const char *cmd, unsigned char *addr){
 		}
 		if(isDigit(cmd[i])){
 			if(*addr>12){
-				error();
 				return 0;
 			} else {
 				*addr = *addr * 10 + (cmd[i] - '0');
 		 	}
 		} else {
-			error();
 			return 0;
 		}
 	}
@@ -311,15 +334,89 @@ unsigned char parse_address(const char *cmd, unsigned char *addr){
 	return i;
 }
 
+unsigned char parse_config_value(const char *cmd, int address, bool pretty, int *data){
+	unsigned char i=0;
+	bool neg=false;
+
+	if(pretty){
+		if(address < EEADR_SET_MENU){
+			while(address >= 19){
+				address-=19;
+			}
+			if((address & 1) == 0){
+				return parse_temperature(cmd, data);
+			}
+		} else if(address <= EEADR_SET_MENU_ITEM(setpoint)){
+			return parse_temperature(cmd, data);
+		} else if(address == EEADR_SET_MENU_ITEM(run_mode)) {
+			if(!strncmp(cmd, "Pr", 2)){
+				*data = cmd[2] - '0';
+				if(*data >= 0 && *data <= 5){
+					return 3;
+				}
+			} else if(!strncmp(cmd, "th", 2)){
+				*data = 6;
+				return 2;
+			}
+			return 0;
+		}
+	}	
+
+	if(cmd[i] == '-'){
+		neg = true;
+		i++;
+	}
+
+	if(!isDigit(cmd[i])){
+		return 0;
+	}
+
+	for(*data=0; i<6; i++){
+		if(!isDigit(cmd[i])){
+			break;
+		}
+		if(isDigit(cmd[i]) && *data < 3276){
+			*data = *data * 10 + (cmd[i] - '0');
+		} else {
+			return 0;
+		}
+	}
+
+	if((neg && *data > 32768) || (!neg && *data > 32767)){
+		return 0;
+	}
+
+	if(neg){
+		*data = -(*data);
+	}
+	
+	return i;
+}
+
+
 void parse_command(char *cmd){
 	int data;
 
 	if(cmd[0] == 't'){
 		if(read_temp(&data)){
-			Serial.print("T: ");
+			Serial.print("Temperature=");
 			print_temperature(data);
 		} else {
-			Serial.println("Communication error");
+			Serial.println("?Communication error");
+		}
+	} else if(cmd[0] == 'h'){
+		if(read_heating(&data)){
+			Serial.print("Heating=");
+			Serial.println(data ? "on" : "off");
+		} else {
+			Serial.println("?Communication error");
+		}
+	} else if(cmd[0] == 'c'){
+		if(read_cooling(&data)){
+			Serial.print("Cooling=");
+			Serial.println(data ? "on" : "off");
+		} else {
+			Serial.println("?Communication error");
 		}
 	} else if(cmd[0] == 'r' || cmd[0] == 'w') {
 		unsigned char address=0;
@@ -327,63 +424,54 @@ void parse_command(char *cmd){
 		bool neg = false;
 
 		if(!isBlank(cmd[1])){
-			return error();
+			Serial.println("?Syntax error");
+			return;
 		}
 
 		i = parse_address(&cmd[2], &address);
 
 		if(i==0){
-			return error();
+			Serial.println("?Syntax error");
+			return;
 		}
 
 		i+=2;
 
 		if(cmd[0] == 'r'){
 			if(read_eeprom(address, &data)){
-				Serial.print("EEPROM[");
-				Serial.print(address);
-				Serial.print("]=");
-				Serial.println(data);
+				if(isDigit(cmd[2])){
+					Serial.print("EEPROM[");
+					Serial.print(address);
+					Serial.print("]=");
+					Serial.println(data);
+				} else {
+					print_config_value(address, data);
+				}
 			} else {
-				Serial.println("Communication error");
+				Serial.println("?Communication error");
 			}
 			return;
 		}
 
 		if(!isBlank(cmd[i])){
-			return error();
+			Serial.println("?Syntax error");
+			return;
 		}
 		i++;
 
-		if(cmd[i] == '-'){
-			neg = true;
-			i++;
-		}
 
-		if(!isDigit(cmd[i])){
-			return error();
-		}
-
-		for(data=0; i<32; i++){
-			if(isEOL(cmd[i])){
-				break;
-			}
-			if(isDigit(cmd[i]) && data < 3276){
-				data = data * 10 + (cmd[i] - '0');
+		if(parse_config_value(&cmd[i], address, !isDigit(cmd[2]), &data)){
+			if(write_eeprom(address, data)){
+				Serial.println("Ok");
 			} else {
-				return error();
+				Serial.println("?Communication error");
 			}
-		}
-
-		if((neg && data > 32768) || (!neg && data > 32767)){
-			return error();
-		}
-
-		if(write_eeprom(address, data)){
-			Serial.println("Ok");
 		} else {
-			Serial.println("Communication error");
+			Serial.println("?Syntax error");
+			return;
 		}
+
+
 	}
 		
 }
@@ -397,8 +485,14 @@ void setup() {
 	Serial.println("Copyright 2015 Mats Staffansson");
 	Serial.println("");
 	Serial.println("Commands: 't' to read temperature");
-	Serial.println("          'r [addr (0-127)]' to read EEPROM address");
-	Serial.println("          'w [addr (0-127)] [data]' to write EEPROM address");
+	Serial.println("          'c' to read state of cooling relay");
+	Serial.println("          'h' to read state of heating relay");
+	Serial.println("          'r [addr]' to read EEPROM address");
+	Serial.println("          'w [addr] [data]' to write EEPROM address");
+	Serial.println("");
+	Serial.println("[addr] can be literal (0-127) or mnemonic SPxy/dhxy, hy, tc and so on");
+	Serial.println("[data] will also be literal (as stored in EEPROM) or human friendly");
+	Serial.println("depending on addressing mode");
 
 }
 

@@ -573,6 +573,12 @@ static void handle_com(unsigned const char rxdata){
 		} else if(rxdata == COM_READ_TEMP){
 			data = temperature;
 			com_state = com_trans_data1;
+		} else if(rxdata == COM_READ_COOLING){
+			data = LATA4;
+			com_state = com_trans_data1;
+		} else if(rxdata == COM_READ_HEATING){
+			data = LATA5;
+			com_state = com_trans_data1;
 		}
 	} else if(com_state == com_recv_addr){
 		addr = rxdata;
