@@ -211,7 +211,6 @@ void print_temperature(int temperature){
 	}
 }
 
-
 void print_config_value(unsigned char address, int value){
 	if(address < EEADR_SET_MENU){
 		unsigned char profile=0;
@@ -393,11 +392,14 @@ unsigned char parse_config_value(const char *cmd, int address, bool pretty, int 
 	return i;
 }
 
-
 void parse_command(char *cmd){
 	int data;
 
 	if(cmd[0] == 't'){
+		if(!isEOL(cmd[1])){
+			Serial.println("?Syntax error");
+			return;
+		}
 		if(read_temp(&data)){
 			Serial.print("Temperature=");
 			print_temperature(data);
@@ -405,6 +407,10 @@ void parse_command(char *cmd){
 			Serial.println("?Communication error");
 		}
 	} else if(cmd[0] == 'h'){
+		if(!isEOL(cmd[1])){
+			Serial.println("?Syntax error");
+			return;
+		}
 		if(read_heating(&data)){
 			Serial.print("Heating=");
 			Serial.println(data ? "on" : "off");
@@ -412,6 +418,10 @@ void parse_command(char *cmd){
 			Serial.println("?Communication error");
 		}
 	} else if(cmd[0] == 'c'){
+		if(!isEOL(cmd[1])){
+			Serial.println("?Syntax error");
+			return;
+		}
 		if(read_cooling(&data)){
 			Serial.print("Cooling=");
 			Serial.println(data ? "on" : "off");
@@ -420,7 +430,7 @@ void parse_command(char *cmd){
 		}
 	} else if(cmd[0] == 'r' || cmd[0] == 'w') {
 		unsigned char address=0;
-		unsigned char i;
+		unsigned char i=0, j;
 		bool neg = false;
 
 		if(!isBlank(cmd[1])){
@@ -428,16 +438,19 @@ void parse_command(char *cmd){
 			return;
 		}
 
-		i = parse_address(&cmd[2], &address);
+		j = parse_address(&cmd[2], &address);
+		i+=j+2;
 
-		if(i==0){
+		if(j==0){
 			Serial.println("?Syntax error");
 			return;
 		}
 
-		i+=2;
-
 		if(cmd[0] == 'r'){
+			if(!isEOL(cmd[i])){
+				Serial.println("?Syntax error");
+				return;
+			}
 			if(read_eeprom(address, &data)){
 				if(isDigit(cmd[2])){
 					Serial.print("EEPROM[");
@@ -459,21 +472,23 @@ void parse_command(char *cmd){
 		}
 		i++;
 
-
-		if(parse_config_value(&cmd[i], address, !isDigit(cmd[2]), &data)){
+		j = parse_config_value(&cmd[i], address, !isDigit(cmd[2]), &data);
+		i += j;
+		if(j == 0){
+			Serial.println("?Syntax error");
+			return;
+		} else {
+			if(!isEOL(cmd[i])){
+				Serial.println("?Syntax error");
+				return;
+			}
 			if(write_eeprom(address, data)){
 				Serial.println("Ok");
 			} else {
 				Serial.println("?Communication error");
 			}
-		} else {
-			Serial.println("?Syntax error");
-			return;
 		}
-
-
 	}
-		
 }
 
 void setup() {

@@ -56,7 +56,7 @@ static volatile unsigned char com_write=0;
 static volatile unsigned char com_tmout=0;
 static volatile unsigned char com_count=0;
 static volatile unsigned char com_state=0;
-#endif //COM
+#endif // COM
 
 
 /* Functions.
@@ -281,7 +281,7 @@ static void temperature_control(){
 #ifndef COM
 	int hysteresis2 = eeprom_read_config(EEADR_SET_MENU_ITEM(hy2));
 	unsigned char probe2 = eeprom_read_config(EEADR_SET_MENU_ITEM(Pb));
-#endif
+#endif // COM
 
 	if(cooling_delay){
 		cooling_delay--;
@@ -295,15 +295,11 @@ static void temperature_control(){
 	led_e.e_heat = !LATA5;
 
 	// This is the thermostat logic
-	if((LATA4 && (temperature <= setpoint 
 #ifndef COM
-		|| (probe2 && (temperature2 < (setpoint - hysteresis2)))
-#endif
-		)) || (LATA5 && (temperature >= setpoint 
-#ifndef COM
-		|| (probe2 && (temperature2 > (setpoint + hysteresis2)))
-#endif
-		))){
+	if((LATA4 && (temperature <= setpoint || (probe2 && (temperature2 < (setpoint - hysteresis2))))) || (LATA5 && (temperature >= setpoint || (probe2 && (temperature2 > (setpoint + hysteresis2)))))){
+#else
+	if((LATA4 && (temperature <= setpoint )) || (LATA5 && (temperature >= setpoint))){
+#endif // COM
 		cooling_delay = eeprom_read_config(EEADR_SET_MENU_ITEM(cd)) << 6;
 		cooling_delay = cooling_delay - (cooling_delay >> 4);
 		heating_delay = eeprom_read_config(EEADR_SET_MENU_ITEM(hd)) << 6;
@@ -315,22 +311,20 @@ static void temperature_control(){
 		int hysteresis = eeprom_read_config(EEADR_SET_MENU_ITEM(hy));
 #ifndef COM
 		hysteresis2 >>= 2; // Halve hysteresis 2
-#endif
-		if ((temperature > setpoint + hysteresis)
-#ifndef COM
-			&& (!probe2 || (temperature2 >= setpoint - hysteresis2))
-#endif
-			) {
+		if ((temperature > setpoint + hysteresis) && (!probe2 || (temperature2 >= setpoint - hysteresis2))) {
+#else
+		if (temperature > setpoint + hysteresis) {
+#endif // COM
 			if (cooling_delay) {
 				led_e.e_cool = led_e.e_cool ^ (cooling_delay & 0x1); // Flash to indicate cooling delay
 			} else {
 				LATA4 = 1;
 			}
-		} else if ((temperature < setpoint - hysteresis) 
 #ifndef COM
-			&& (!probe2 || (temperature2 <= setpoint + hysteresis2))
-#endif
-			) {
+		} else if ((temperature < setpoint - hysteresis) && (!probe2 || (temperature2 <= setpoint + hysteresis2))) {
+#else
+		} else if (temperature < setpoint - hysteresis) {
+#endif // COM
 			if (heating_delay) {
 				led_e.e_heat = led_e.e_heat ^ (heating_delay & 0x1); // Flash to indicate heating delay
 			} else {
@@ -346,7 +340,6 @@ static void temperature_control(){
  */
 static void init() {
 
-//   OSCCON = 0b01100010; // 2MHz
 	OSCCON = 0b01101010; // 4MHz
 
 	// Heat, cool as output, Thermistor as input, piezo output
@@ -365,17 +358,12 @@ static void init() {
 	ANSELA =  _ANSA2 ;
 #else
 	ANSELA = _ANSA1 |  _ANSA2 ;
-#endif
-	// Select AD channel AN2
-//	ADCON0bits.CHS = 2;
+#endif // COM
+
 	// AD clock FOSC/8 (FOSC = 4MHz)
 	ADCS0 = 1;
 	// Right justify AD result
 	ADFM = 1;
-	// Enable AD
-//	ADON = 1;
-	// Start conversion
-//	ADGO = 1;
 
 	// IMPORTANT FOR BUTTONS TO WORK!!! Disable analog input -> enables digital input
 	ANSELC = 0;
@@ -399,12 +387,6 @@ static void init() {
 	PR6 = 250;
 
 #ifdef COM
-	// Timer 0
-//	TMR0CS = 0; // Timer mode
-	PSA = 1;
-	PS0 = 0;
-	PS1 = 0;
-	PS2 = 0;
 
 	// Set PEIE and GIE (enable global interrupts), IOCIE
 	INTCON = 0b11001000;
@@ -414,7 +396,7 @@ static void init() {
 #else
 	// Set PEIE (enable peripheral interrupts, that is for timer2) and GIE (enable global interrupts)
 	INTCON = 0b11000000;
-#endif
+#endif // COM
 
 }
 
@@ -427,43 +409,55 @@ static void interrupt_service_routine(void) __interrupt 0 {
 #ifdef COM
 	if(IOCAF1){
 
+		/* Disable pin change interrupt and edge detection */
 		IOCIE = 0;
 		IOCAP1 = 0;
 
-		/* If send 1 */
+		/* If sending a '1' bit */
 		if(com_write && (com_data & 0x80)){
 			TRISA1 = 0;
 			LATA1 = 1;
 		}
+
+		/* Init communication reset countdown (10ms) */
 		com_tmout = 10;
 
+		/* Enable timer 0 to generate interrupt for reading/writing in 250us */
 		TMR0 = 5;
-		TMR0IF = 0;
 		TMR0CS = 0;
 		TMR0IE = 1;
-		IOCAF = 0;
+
+		/* Clear edge detection flag */
+		IOCAF = 0;	
 	}
 
 	if(TMR0IF){
+		/* Disable timer 0 */
 		TMR0CS = 1;
 		TMR0IE = 0;
-		TRISA1 = 1; // Input
+
+		/* Make sure RA1 is input */
+		TRISA1 = 1;
 		LATA1 = 0;
 
+		/* Shift data */
 		com_data <<= 1;
 		com_count++;
 
-		/* If receive */
+		/* If receive '1' */
 		if(!com_write && RA1){
 			com_data |= 1;
 		}
 
+		/* Enable edge detection and pin change interrupt */
 		IOCAF = 0;
 		IOCAP1 = 1;
 		IOCIE = 1;
+
+		/* Clear timer 0 interrupt flag */
 		TMR0IF = 0;
 	}
-#endif
+#endif // COM
 
 	// Check for Timer 2 interrupt
 	// Kind of excessive when it's the only enabled interrupt
@@ -498,6 +492,7 @@ static void interrupt_service_routine(void) __interrupt 0 {
 		LATB = latb;
 
 #ifdef COM
+		/* Reset communication state on timeout */
 		if(com_tmout){
 			com_tmout--;
 		} else {
@@ -505,7 +500,7 @@ static void interrupt_service_routine(void) __interrupt 0 {
 			com_count = 0;
 			com_write = 0;
 		}
-#endif //COM
+#endif // COM
 
 		// Clear interrupt flag
 		TMR2IF = 0;
@@ -554,6 +549,7 @@ enum com_states {
 	com_trans_ack
 };
 
+/* State machine to handle rx/tx protocol */
 static void handle_com(unsigned const char rxdata){
 	static unsigned char command;
 	static unsigned char xorsum;
@@ -621,7 +617,7 @@ static void handle_com(unsigned const char rxdata){
 	}
 
 }
-#endif
+#endif // COM
 
 /*
  * Main entry point.
@@ -631,7 +627,7 @@ void main(void) __naked {
 	unsigned int ad_filter=0x7fff;
 #ifndef COM
 	unsigned int ad_filter2=0x7fff;
-#endif
+#endif // COM
 
 	init();
 
@@ -641,6 +637,7 @@ void main(void) __naked {
 	while (1) {
 
 #ifdef COM
+		/* Handle communication if full byte transmitted/received */
 		GIE = 0;
 		if(com_count >= 8){
 			char rxdata = com_data;
@@ -649,7 +646,7 @@ void main(void) __naked {
  			handle_com(rxdata);
 		}
 		GIE = 1;
-#endif
+#endif // COM
 
 		if(TMR6IF) {
 
@@ -676,7 +673,7 @@ void main(void) __naked {
 				START_TCONV_2();
 			} else {
 				ad_filter2 = read_ad(ad_filter2);
-#endif
+#endif // COM
 				START_TCONV_1();
 			}
 
@@ -687,13 +684,13 @@ void main(void) __naked {
 				temperature = ad_to_temp(ad_filter) + eeprom_read_config(EEADR_SET_MENU_ITEM(tc));
 #ifndef COM
 				temperature2 = ad_to_temp(ad_filter2) + eeprom_read_config(EEADR_SET_MENU_ITEM(tc2));
-#endif
+#endif // COM
 
 				// Alarm on sensor error (AD result out of range)
 				LATA0 = ((ad_filter>>8) >= 248 || (ad_filter>>8) <= 8) 
 #ifndef COM
 					|| (eeprom_read_config(EEADR_SET_MENU_ITEM(Pb)) && ((ad_filter2>>8) >= 248 || (ad_filter2>>8) <= 8))
-#endif
+#endif // COM
 				;
 
 				if(LATA0){ // On alarm, disable outputs
@@ -754,7 +751,7 @@ void main(void) __naked {
 							}
 #else
 							temperature_to_led(temperature);
-#endif
+#endif // COM
 						}
 						RX9 = !RX9;
 					}

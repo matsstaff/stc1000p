@@ -230,7 +230,7 @@ void button_menu_fsm(){
 		} else if(!BTN_HELD(BTN_PWR)){
 #ifndef COM
 			TX9 = !TX9;
-#endif
+#endif // COM
 			state = state_idle;
 		}
 		break;
