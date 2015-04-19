@@ -48,15 +48,21 @@ led_e_t led_e = {0xff};
 led_t led_10, led_1, led_01;
 
 static int temperature=0;
-#ifndef COM
+#if defined PB2
 static int temperature2=0;
-#else
+#elif defined COM
 static volatile unsigned char com_data=0;
 static volatile unsigned char com_write=0;
 static volatile unsigned char com_tmout=0;
 static volatile unsigned char com_count=0;
 static volatile unsigned char com_state=0;
-#endif // COM
+#elif defined FO433
+static volatile unsigned char fo433_data=0;
+static unsigned char fo433_state=0;
+static volatile unsigned char fo433_count=0;
+static volatile unsigned char fo433_send_space=0;
+static unsigned char fo433_sec_count = 24;
+#endif
 
 
 /* Functions.
@@ -278,10 +284,10 @@ unsigned int cooling_delay = 60;  // Initial cooling delay
 unsigned int heating_delay = 60;  // Initial heating delay
 static void temperature_control(){
 	int setpoint = eeprom_read_config(EEADR_SET_MENU_ITEM(SP));
-#ifndef COM
+#if defined PB2
 	int hysteresis2 = eeprom_read_config(EEADR_SET_MENU_ITEM(hy2));
 	unsigned char probe2 = eeprom_read_config(EEADR_SET_MENU_ITEM(Pb));
-#endif // COM
+#endif
 
 	if(cooling_delay){
 		cooling_delay--;
@@ -295,11 +301,11 @@ static void temperature_control(){
 	led_e.e_heat = !LATA5;
 
 	// This is the thermostat logic
-#ifndef COM
+#if defined PB2
 	if((LATA4 && (temperature <= setpoint || (probe2 && (temperature2 < (setpoint - hysteresis2))))) || (LATA5 && (temperature >= setpoint || (probe2 && (temperature2 > (setpoint + hysteresis2)))))){
 #else
 	if((LATA4 && (temperature <= setpoint )) || (LATA5 && (temperature >= setpoint))){
-#endif // COM
+#endif
 		cooling_delay = eeprom_read_config(EEADR_SET_MENU_ITEM(cd)) << 6;
 		cooling_delay = cooling_delay - (cooling_delay >> 4);
 		heating_delay = eeprom_read_config(EEADR_SET_MENU_ITEM(hd)) << 6;
@@ -309,22 +315,22 @@ static void temperature_control(){
 	}
 	else if(LATA4 == 0 && LATA5 == 0) {
 		int hysteresis = eeprom_read_config(EEADR_SET_MENU_ITEM(hy));
-#ifndef COM
+#ifdef PB2
 		hysteresis2 >>= 2; // Halve hysteresis 2
 		if ((temperature > setpoint + hysteresis) && (!probe2 || (temperature2 >= setpoint - hysteresis2))) {
 #else
 		if (temperature > setpoint + hysteresis) {
-#endif // COM
+#endif
 			if (cooling_delay) {
 				led_e.e_cool = led_e.e_cool ^ (cooling_delay & 0x1); // Flash to indicate cooling delay
 			} else {
 				LATA4 = 1;
 			}
-#ifndef COM
+#if defined PB2
 		} else if ((temperature < setpoint - hysteresis) && (!probe2 || (temperature2 <= setpoint + hysteresis2))) {
 #else
 		} else if (temperature < setpoint - hysteresis) {
-#endif // COM
+#endif
 			if (heating_delay) {
 				led_e.e_heat = led_e.e_heat ^ (heating_delay & 0x1); // Flash to indicate heating delay
 			} else {
@@ -343,7 +349,11 @@ static void init() {
 	OSCCON = 0b01101010; // 4MHz
 
 	// Heat, cool as output, Thermistor as input, piezo output
+#if defined FO433
+	TRISA = 0b00001100;
+#else
 	TRISA = 0b00001110;
+#endif
 	LATA = 0; // Drive relays and piezo low
 
 	// LED Common anodes
@@ -354,11 +364,11 @@ static void init() {
 	TRISC = 0;
 
 	// Analog input on thermistor
-#ifdef COM
-	ANSELA =  _ANSA2 ;
-#else
+#if defined PB2
 	ANSELA = _ANSA1 |  _ANSA2 ;
-#endif // COM
+#else
+	ANSELA =  _ANSA2;
+#endif
 
 	// AD clock FOSC/8 (FOSC = 4MHz)
 	ADCS0 = 1;
@@ -386,17 +396,23 @@ static void init() {
 	// @4MHz, Timer 2 clock is FOSC/4 -> 1MHz prescale 1:64-> 15.625kHz, 250 and postscale 1:6 -> 8.93Hz or 112ms
 	PR6 = 250;
 
-#ifdef COM
-
+#if defined COM
 	// Set PEIE and GIE (enable global interrupts), IOCIE
 	INTCON = 0b11001000;
-	
 	IOCAP = 2;	// Rising edge detect
 	IOCAN = 0;
 #else
 	// Set PEIE (enable peripheral interrupts, that is for timer2) and GIE (enable global interrupts)
 	INTCON = 0b11000000;
-#endif // COM
+#endif
+
+#if defined FO433
+	// Timer 0 prescale 8
+	PSA=0;
+	PS0=0;
+	PS1=1;
+	PS2=0;
+#endif
 
 }
 
@@ -457,8 +473,35 @@ static void interrupt_service_routine(void) __interrupt 0 {
 		/* Clear timer 0 interrupt flag */
 		TMR0IF = 0;
 	}
-#endif // COM
+#elif defined FO433
+	if(TMR0IF){
+		/* */
+		LATA1 = 0;
 
+		if(fo433_send_space){
+			fo433_count>>=1;
+			TMR0 = 130;
+			fo433_send_space = 0;
+		} else {
+			if(fo433_data & fo433_count){
+				TMR0 = 193;
+			} else {
+				TMR0 = 67;
+			}
+			LATA1 = 1;
+			fo433_send_space = 1;
+		}
+
+		if(fo433_count == 0){
+			/* Disable timer 0 */
+			TMR0CS = 1;
+			TMR0IE = 0;
+		}
+
+		/* Clear timer 0 interrupt flag */
+		TMR0IF = 0;
+	}
+#endif
 	// Check for Timer 2 interrupt
 	// Kind of excessive when it's the only enabled interrupt
 	// but is nice as reference if more interrupts should be needed
@@ -491,7 +534,7 @@ static void interrupt_service_routine(void) __interrupt 0 {
 		// Enable new LED
 		LATB = latb;
 
-#ifdef COM
+#if defined COM
 		/* Reset communication state on timeout */
 		if(com_tmout){
 			com_tmout--;
@@ -536,7 +579,7 @@ static int ad_to_temp(unsigned int adfilter){
 	return (temp >> 6);
 }
 
-#ifdef COM
+#if defined COM
 enum com_states {
 	com_idle = 0,
 	com_recv_addr,
@@ -617,7 +660,62 @@ static void handle_com(unsigned const char rxdata){
 	}
 
 }
-#endif // COM
+
+#elif defined FO433
+
+enum fo433_states {
+	fo433_preamble=0,
+	fo433_devid_high,
+	fo433_devid_low_temp_high,
+	fo433_temp_low,
+	fo433_humidity,
+	fo433_crc
+};
+
+/* Fine offset state machine */
+static void fo433_fsm(){
+	static int t;
+	static unsigned char crc;
+
+	if(fo433_state == fo433_preamble){
+		fo433_data = 0xff;
+	} else if(fo433_state == fo433_devid_high){
+		fo433_data = 0x45;
+		crc = 0;
+	} else if(fo433_state == fo433_devid_low_temp_high){
+		unsigned char di = ((unsigned char)eeprom_read_config(EEADR_SET_MENU_ITEM(hy2))) << 4;
+		t = temperature;
+		fo433_data = (di | ((t >> 8) & 0xf));
+	} else if(fo433_state == fo433_temp_low){
+		fo433_data = (unsigned char) t;
+	} else if(fo433_state == fo433_humidity){
+		fo433_data = (LATA5 << 6) | (LATA4 << 4);
+	} else if(fo433_state == fo433_crc){
+		fo433_data = crc;
+	}
+
+	// Calc CRC
+	{
+		unsigned char i=8;
+		unsigned char d = fo433_data;
+		while(i-- > 0){
+			unsigned char mix = (crc ^ d) & 0x80;
+			crc <<= 1;
+			if(mix){
+				crc ^= 0x31;
+			}
+			d <<= 1;
+		}
+	}
+
+	fo433_count = 0x80;
+
+	/* Enable timer 0 */
+	TMR0IE = 1;
+	TMR0CS = 0;
+}
+
+#endif
 
 /*
  * Main entry point.
@@ -625,9 +723,9 @@ static void handle_com(unsigned const char rxdata){
 void main(void) __naked {
 	unsigned int millisx60=0;
 	unsigned int ad_filter=0x7fff;
-#ifndef COM
+#if defined PB2
 	unsigned int ad_filter2=0x7fff;
-#endif // COM
+#endif
 
 	init();
 
@@ -636,7 +734,7 @@ void main(void) __naked {
 	//Loop forever
 	while (1) {
 
-#ifdef COM
+#if defined COM
 		/* Handle communication if full byte transmitted/received */
 		GIE = 0;
 		if(com_count >= 8){
@@ -646,7 +744,13 @@ void main(void) __naked {
  			handle_com(rxdata);
 		}
 		GIE = 1;
-#endif // COM
+#elif defined FO433
+		/* Send next byte */
+		if((fo433_state <= fo433_crc) && (fo433_count == 0)){
+			fo433_fsm();
+			fo433_state++;
+		}
+#endif
 
 		if(TMR6IF) {
 
@@ -669,11 +773,11 @@ void main(void) __naked {
 
 			if(millisx60 & 0x1){
 				ad_filter = read_ad(ad_filter);
-#ifndef COM
+#if defined PB2
 				START_TCONV_2();
 			} else {
 				ad_filter2 = read_ad(ad_filter2);
-#endif // COM
+#endif
 				START_TCONV_1();
 			}
 
@@ -682,15 +786,26 @@ void main(void) __naked {
 			if((millisx60 & 0xf) == 0) {
 
 				temperature = ad_to_temp(ad_filter) + eeprom_read_config(EEADR_SET_MENU_ITEM(tc));
-#ifndef COM
+#if defined PB2
 				temperature2 = ad_to_temp(ad_filter2) + eeprom_read_config(EEADR_SET_MENU_ITEM(tc2));
-#endif // COM
+#endif
+
+#if defined FO433
+				if(fo433_sec_count < 3){
+					fo433_state = 0;
+				}
+				if(fo433_sec_count == 0){
+					fo433_sec_count = 48;
+				}
+				fo433_sec_count--;
+			
+#endif
 
 				// Alarm on sensor error (AD result out of range)
 				LATA0 = ((ad_filter>>8) >= 248 || (ad_filter>>8) <= 8) 
-#ifndef COM
+#if defined PB2
 					|| (eeprom_read_config(EEADR_SET_MENU_ITEM(Pb)) && ((ad_filter2>>8) >= 248 || (ad_filter2>>8) <= 8))
-#endif // COM
+#endif
 				;
 
 				if(LATA0){ // On alarm, disable outputs
@@ -742,7 +857,7 @@ void main(void) __naked {
 							led_1.raw = LED_A;
 							led_01.raw = LED_OFF;
 						} else {
-#ifndef COM
+#if defined PB2
 							led_e.e_point = !TX9;
 							if(TX9){
 								temperature_to_led(temperature2);
@@ -751,7 +866,7 @@ void main(void) __naked {
 							}
 #else
 							temperature_to_led(temperature);
-#endif // COM
+#endif
 						}
 						RX9 = !RX9;
 					}

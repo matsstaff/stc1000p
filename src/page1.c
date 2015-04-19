@@ -228,9 +228,9 @@ void button_menu_fsm(){
 			}
 			state = state_idle;
 		} else if(!BTN_HELD(BTN_PWR)){
-#ifndef COM
+#if defined PB2
 			TX9 = !TX9;
-#endif // COM
+#endif
 			state = state_idle;
 		}
 		break;
