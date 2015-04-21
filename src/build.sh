@@ -128,7 +128,7 @@ rm -f picprog_com.js.tmp
 
 # Create picprog_fo433.js
 cat picprog_fo433.tmp | sed -n '/^const char hex_eeprom_celsius\[\] PROGMEM/q;p' | sed "s/'/\\\\\\\'/g" > picprog_fo433.js.tmp
-echo "var picprog_com='' +" > ../profile/picprog_fo433.js
+echo "var picprog_fo433='' +" > ../profile/picprog_fo433.js
 while IFS= read r; do
 	echo "'$r\n' +"; 
 done < picprog_fo433.js.tmp >> ../profile/picprog_fo433.js

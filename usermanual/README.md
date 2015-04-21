@@ -384,6 +384,14 @@ As you can see, this corresponds closely to the menu system on the STC-1000\+, s
 Note1: The command parser is case sensitive.<br>
 Note2: There is very little error checking on the supplied values, so use care.<br>
 
+## 433MHz wireless sensor (Fine Offset)
+This firmware provides an easy and cheap way of transmitting the temperature from the STC-1000 to an existing home automation solution. Simply hook up a cheap RF transmitter module to the programming header on the STC (power, ground and the data line to *ICSPCLK*). Every 48 seconds the STC will then transmit the temperature (and also the state of the relays in the humidity field) using the Fine Offset protocol.
+
+![RF transmitter](rf_transmitter.jpg)<br>
+*Fig 18: 433MHz RF transmitter*
+
+This has been verified to work with a Tellstick Duo. 
+
 ## Additional features
 
 **Sensor alarm**, if the measured temperature is out of range (indicating the sensor is not connected properly or broken), the internal buzzer will sound and display will show 'AL'. If secondary probe is enabled for thermostat control (*Pb2* = 1), then alarm will go off if that temperature goes out of range as well. On alarm, both relays will be disengaged and the heating and cooling delay will be reset to 1 minute. So, once the temperature in in range again (i.e. sensor is reconnected), temperature readings can stabilize before thermostat control takes over.
