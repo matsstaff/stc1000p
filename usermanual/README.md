@@ -391,7 +391,7 @@ This firmware provides an easy and cheap way of transmitting the temperature fro
 ![RF transmitter](rf_transmitter.jpg)<br>
 *Fig 19: 433MHz RF transmitter*
 
-This has been verified to work with a Tellstick Duo. 
+This has been verified to work with a [Tellstick Duo](http://www.telldus.se/products/tellstick_duo), but it would probably work with RFXtrx as well.
 
 ## Additional features
 
