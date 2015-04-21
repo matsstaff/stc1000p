@@ -13,6 +13,7 @@ Mats Staffansson
 2014-08-20:	Added info on setpoint alarm and made formatting changes<br>
 2014-08-22:	Added more info on using the second temp probe<br>
 2014-09-04:	Changed setpoint alarm functionality<br>
+2015-04-21:	Added info on cummunication and 433Mhz firmwares<br>
 
 # Introduction
 
