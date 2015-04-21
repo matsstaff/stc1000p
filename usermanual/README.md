@@ -388,7 +388,7 @@ Note2: There is very little error checking on the supplied values, so use care.<
 This firmware provides an easy and cheap way of transmitting the temperature from the STC-1000 to an existing home automation solution. Simply hook up a cheap RF transmitter module to the programming header on the STC (power, ground and the data line to *ICSPCLK*). Every 48 seconds the STC will then transmit the temperature (and also the state of the relays in the humidity field) using the Fine Offset protocol.
 
 ![RF transmitter](rf_transmitter.jpg)<br>
-*Fig 18: 433MHz RF transmitter*
+*Fig 19: 433MHz RF transmitter*
 
 This has been verified to work with a Tellstick Duo. 
 
