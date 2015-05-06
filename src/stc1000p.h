@@ -57,7 +57,7 @@
 
 /* Define STC-1000+ version number (XYY, X=major, YY=minor) */
 /* Also, keep track of last version that has changes in EEPROM layout */
-#define STC1000P_VERSION		107
+#define STC1000P_VERSION		108
 #define STC1000P_EEPROM_VERSION		11
 
 /* Define limits for temperatures */
@@ -159,6 +159,14 @@ enum set_menu_enum {
 #define LED_y	0xa1
 
 /* Declare functions and variables from Page 0 */
+
+#define COM_READ_EEPROM		0x20
+#define COM_WRITE_EEPROM	0xE0
+#define COM_READ_TEMP		0x01
+#define COM_READ_COOLING	0x02
+#define COM_READ_HEATING	0x03
+#define COM_ACK			0x9A
+#define COM_NACK		0x66
 
 typedef union
 {

@@ -41,16 +41,18 @@ body { font-family: Verdana, Arial, sans-serif; font-size: 12px; }
 <script src="jquery.flot.min.js"></script>
 <script src="jquery.flot.axislabels.js"></script>
 <script src="picprog.js"></script>
+<script src="picprog_com.js"></script>
+<script src="picprog_fo433.js"></script>
 
 <script type="text/javascript">
-function download() {
+function download(sketch, sketchname) {
   var eeprom1 = generate_hex(); 
   switch_cf();
   var eeprom2 = generate_hex(); 
   switch_cf();
   var pom = document.createElement('a');
   pom.setAttribute('href', 'data:text/x-arduino;charset=utf-8,' + encodeURIComponent(sketch + eeprom1 + eeprom2));
-  pom.setAttribute('download', "picprog.ino");
+  pom.setAttribute('download', sketchname);
   document.body.appendChild(pom);
   pom.click();
   document.body.removeChild(pom)
@@ -315,9 +317,10 @@ It will accurately show substeps when ramping is enabled.<p>
 Note that it only shows the calculated setpoints, not the actual temperature of the FV.<br>
 All 6 profiles can be edited, but only one will be shown at any time. To switch between which profile is shown, click on the 'Pr0' to 'Pr5' link.<br>
 It is also possible to directly switch between Fahrenheit and Celsius mode. <br>
-Additionally, the parameters can be exported as the <i>picprog.ino</i> sketch, to upload directly to the Arduino and STC-1000.<br>
-To do so, simply press the 'Download INO' at the bottom of the page when you are done editing. Save the file and open with the Arduino IDE<br>
-if not prompted to open it directly.<br>
+Additionally, the parameters can be exported as the dual probe enabled version (<i>picprog.ino</i>), the data communication enabled version (<i>picprog_com.ino</i>) <br>
+or the wireless 433Mhz (<i>picprog_fo433.ino</i>) sketch for direct upload to the Arduino and STC-1000.<br> 
+To do so, simply press one of the 'Download dual probe sketch', 'Download com sketch' or 'Download FO433Mhz sketch' buttons at the bottom of the page when you are done editing. <br>
+Save the file and open with the Arduino IDE if not prompted to open it directly.<br>
 
 	<table>
 		<thead>
@@ -624,7 +627,9 @@ if not prompted to open it directly.<br>
 
 <br />
 
-<input type="button" id="downloadino" name="downloadino" value="Download INO" onclick="download();" title="Generate picprog.ino for download">
+<input type="button" id="downloadino" name="downloadino" value="Download dual probe sketch" onclick="download(picprog, 'picprog.ino');" title="Generate picprog.ino for download">
+<input type="button" id="downloadcomino" name="downloadcomino" value="Download com sketch" onclick="download(picprog_com, 'picprog_com.ino');" title="Generate picprog_com.ino for download">
+<input type="button" id="downloadfo433ino" name="downloadfo433ino" value="Download FO433Mhz sketch" onclick="download(picprog_fo433, 'picprog_fo433.ino');" title="Generate picprog_fo433.ino for download">
 <!--
 Generate HEX data: <input type="button" id="genhex" name="genhex" value="Generate HEX" onclick="generate_hex();" title="Generate HEX data output">
 
