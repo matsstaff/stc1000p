@@ -16,6 +16,12 @@ The first goal is achieved by using an Arduino (UNO and Pro Mini 5v verified to 
 Download by visiting the [releases page](https://github.com/matsstaff/stc1000p/releases)
 and start by reading [the user manual](/usermanual/README.md)
 
+Hardware
+--------
+STC\-1000+ is *only* compatible with the A400_P version of the STC\-1000. This is manufactured (and also sold) by [HongKong U-control electric CO Ltd.](http://www.sz-youkong.com/). STC\-1000 can be purchased directly from them through their [webshop on Aliexpress](http://www.aliexpress.com/store/1305777).
+
+Many thanks to Will Conrad for tracking down the manufacturer and for sharing the information!
+
 Features
 --------
 
