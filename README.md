@@ -16,6 +16,12 @@ The first goal is achieved by using an Arduino (UNO and Pro Mini 5v verified to 
 Download by visiting the [releases page](https://github.com/matsstaff/stc1000p/releases)
 and start by reading [the user manual](/usermanual/README.md)
 
+Hardware
+--------
+STC\-1000+ is *only* compatible with the A400_P version of the STC\-1000. This is manufactured (and also sold) by [HongKong U-control electric CO Ltd](http://www.sz-youkong.com/). STC\-1000's can be purchased directly from them through their [webshop on Aliexpress](http://www.aliexpress.com/store/1305777).
+
+Many thanks to Will Conrad for tracking down the manufacturer and for sharing the information!
+
 Features
 --------
 
@@ -28,7 +34,10 @@ Features
 * Separate delay settings for cooling and heating
 * Configurable hysteresis (allowable temp swing) from 0.0 to 2.5°C or 0.0 to 5.0°F
 * User definable alarm when temperature is out of or within range
-* Optionally limit heating and cooling by input from 2nd temp probe
+* Different editions of the firmware with special use of RA1 pin:
+* - Secondary temp probe (fridge temp) to limit heating and cooling
+* - Single wire communication to read/set configuration 
+* - Use cheap RF transmitter to send temperature wireless
 * Button acceleration, for frustrationless programming by buttons
 
 Quick Reference for the menus
@@ -76,6 +85,7 @@ Updates
 |2014-08-02|v1.05|Reset both heating and cooling delay when either heating or cooling cycle ends. Improved power off| functionality, increased button debounce time, allow longer heating delays.|  
 |2014-09-14|v1.06|Add functionality for 2nd temp probe (to limit heating/cooling). Display 'OFF' in soft off mode. Added user definable temperature alarm. Added profile 'editor' webpage.|
 |2015-01-02|v1.07|Fixed bug where every other profile had wrong limits. Fixed soft on tempprobe switch bug.|
+|2015-??-??|v1.08|Added single wire communication and 433Mhz firmwares.|
 
 Some excellent user provided content
 ------------------------------------

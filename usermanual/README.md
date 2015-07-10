@@ -13,6 +13,7 @@ Mats Staffansson
 2014-08-20:	Added info on setpoint alarm and made formatting changes<br>
 2014-08-22:	Added more info on using the second temp probe<br>
 2014-09-04:	Changed setpoint alarm functionality<br>
+2015-04-21:	Added info on cummunication and 433Mhz firmwares<br>
 
 # Introduction
 
@@ -332,7 +333,65 @@ The idea is to use the secondary temperature probe to measure the fridge air tem
 
 It should also be noted, that it would be a very good idea to make sure the two temperature probes are calibrated (at least in respect to each other) around the setpoint.
 
-To enable use of the second temp probe in the thermostat logic (i.e. to enable *hy2* limits on temperature2), set *Pb2* = 1. Even with with it disabled it is still possible to switch to display the second temperature input using a short press on the power button.  
+To enable use of the second temp probe in the thermostat logic (i.e. to enable *hy2* limits on temperature2), set *Pb2* = 1. Even with with it disabled it is still possible to switch to display the second temperature input using a short press on the power button. 
+
+## Single wire communication
+
+It is possible to read temperature, cooling/heating relay status, and also both read and write from/to the EEPROM of the STC, using a simple half-duplex single wire communication protocol.
+This comes at the expense of secondary probe usage however, as both the physical pin as well as the code space is repurposed.<br>
+In order for this communication to work, a pulldown resistor is needed on the *ICSPCLK* line. 10k works out nicely, and this is the exact same resistor that will be needed for the second probe to work. Additionally, as the protocol is bidirectional it is a very good idea to add a ~1k resistor in series with the *ICSPCLK* line to protect both the STC and the communication master (Arduino) from harmful currents if both should happen to drive the line in the event of a protocol failure.<br>
+A second sketch is added to be able to upload this version of the firmware to the STC, called *picprog_com.ino*. Upload it  and flash the STC as normal.
+
+## Example communication master sketch 
+An example sketch implementing a communication master and also has a simple command line parser is also provided, *com.ino*. This sketch has all the communication master details implemented to 'talk' to the STC, and can be adapted to suit specific requirements (datalogging, wireless et.c.). <br>
+The sketch uses the same pinout as the programming sketch, so the exact same hardware can be used for communication as for flashing the STC, with the notable exeption of the resistor(s) needed. Adding these resistors will not affect the use of the hardware for flashing, so adding the resistor(s) can safely be done to an existing programmer. <p>
+
+The example sketch also has a command parser for interacting with the STC using the arduino serial interface (i.e. the Arduino IDE Serial Monitor). The sketch parses lines and the serial monitor needs to be set to 115200bps and have a line ending selected (newline or carriage return).
+
+|Command|parameter1|parameter2|Description|
+|-------|----------|----------|-----------|
+|t|||Read current temperature|
+|c|||Read state of cooling relay|
+|h|||Read state of heating relay|
+|r|address||Read EEPROM configuration address|
+|w|address|data|Write configuration data to EEPROM address|
+
+The sketch accepts two addressing modes for the *r* and *w* commands. Literal and mnemonic. Literal addresing means simpy the numeric value of the EEPROM address (0-127). When using literal addressing, the data returned or stored also will be literal (i.e. integer value).<br>
+For example: The command *r 0* will read EEPROM address 0 and return the literal value. At address 0 the first setpoint of the first profile is stored, and it might return something like *EEPROM[0]=650*. As this is a setpoint, it is a temperature, and it is stored as a multiple of 10, so the actual temperature would be *65.0*.<br>
+Also, writing with literal addressing expects literal values. So to change the setpoint to *67.0*, the command *w 0 670* could be issued. The sketch will (hopefully) reply *Ok*.<p>
+
+While using literal addressing can be useful, it it not very user friendly, so to make the sketch just a bit useful, mnemonic addressing is also possible. Reading the first setpoint of the first profile could also be done by issuing *r SP00*. The sketch replies *SP00=67.0*, note that the sketch now prints the temperature 'as expected' as well. The same goes for writing configuration using mnemonic addressing *w SP00 65.0*.<br>
+
+The following table shows the mnemonic adresses:
+
+|Address|Mnemonic|Description|
+|-------|--------|-----------|
+|0-113|SP*xy* <br> dh*xy*|Setpoint and duration of profile *x* step *y*|
+|114|hy|Hysteresis|
+|115|hy2|Hysteresis probe 2|
+|116|tc|Temperature correction|
+|117|tc2|Temperature correction probe 2|
+|118|SA|Setpoint alarm|
+|119|SP|Setpoint|
+|120|St|Current step of running profile|
+|121|dh|Current duration of running profile|
+|122|cd|Cooling delay|
+|123|hd|Heating delay|
+|124|rP|Ramping|
+|125|Pb2|Probe 2 regulation|
+|126|rn|Run mode, (Pr*x*, th)|
+
+As you can see, this corresponds closely to the menu system on the STC-1000\+, so it should be intuitive if you are already familiar with it.<br>
+Note1: The command parser is case sensitive.<br>
+Note2: There is very little error checking on the supplied values, so use care.<br>
+
+## 433MHz wireless sensor (Fine Offset)
+This firmware provides an easy and cheap way of transmitting the temperature from the STC-1000 to an existing home automation solution. Simply hook up a cheap RF transmitter module to the programming header on the STC (power, ground and the data line to *ICSPCLK*). Every 48 seconds the STC will then transmit the temperature (and also the state of the relays in the humidity field) using the Fine Offset protocol.
+
+![RF transmitter](rf_transmitter.jpg)<br>
+*Fig 19: 433MHz RF transmitter*
+
+This has been verified to work with a [Tellstick Duo](http://www.telldus.se/products/tellstick_duo), but it would probably work with RFXtrx as well.
 
 ## Additional features
 
