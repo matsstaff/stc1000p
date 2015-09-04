@@ -63,7 +63,9 @@ static volatile unsigned char fo433_count=0;
 static volatile unsigned char fo433_send_space=0;
 static unsigned char fo433_sec_count = 24;
 #endif
-
+#if defined MINUTE
+int setpoint;
+#endif
 
 /* Functions.
  * Note: Functions used from other page cannot be static, but functions
@@ -216,16 +218,23 @@ void value_to_led(int value, unsigned char decimal) {
 /* To be called once every hour on the hour.
  * Updates EEPROM configuration when running profile.
  */
+#if defined MINUTE
+unsigned int curr_dur = 0;
+#endif
 static void update_profile(){
 	unsigned char profile_no = eeprom_read_config(EEADR_SET_MENU_ITEM(rn));
 
 	// Running profile?
 	if (profile_no < THERMOSTAT_MODE) {
 		unsigned char curr_step = eeprom_read_config(EEADR_SET_MENU_ITEM(St));
-		unsigned int curr_dur = eeprom_read_config(EEADR_SET_MENU_ITEM(dh)) + 1;
 		unsigned char profile_step_eeaddr;
 		unsigned int profile_step_dur;
 		int profile_next_step_sp;
+#if defined MINUTE
+		curr_dur++;
+#else
+		unsigned int curr_dur = eeprom_read_config(EEADR_SET_MENU_ITEM(dh)) + 1;
+#endif
 
 		// Sanity check
 		if(curr_step > 8){
@@ -239,6 +248,9 @@ static void update_profile(){
 		// Reached end of step?
 		if (curr_dur >= profile_step_dur) {
 			// Update setpoint with value from next step
+#if defined MINUTE
+			setpoint = profile_next_step_sp;
+#endif
 			eeprom_write_config(EEADR_SET_MENU_ITEM(SP), profile_next_step_sp);
 			// Is this the last step (next step is number 9 or next step duration is 0)?
 			if (curr_step == 8 || eeprom_read_config(profile_step_eeaddr + 3) == 0) {
@@ -269,10 +281,15 @@ static void update_profile(){
 			sp >>= 6;
 
 			// Update setpoint
+#if defined MINUTE
+			setpoint = sp;
+		}
+#else
 			eeprom_write_config(EEADR_SET_MENU_ITEM(SP), sp);
 		}
 		// Update duration
 		eeprom_write_config(EEADR_SET_MENU_ITEM(dh), curr_dur);
+#endif
 	}
 }
 
@@ -283,7 +300,9 @@ static void update_profile(){
 unsigned int cooling_delay = 60;  // Initial cooling delay
 unsigned int heating_delay = 60;  // Initial heating delay
 static void temperature_control(){
+#ifndef MINUTE
 	int setpoint = eeprom_read_config(EEADR_SET_MENU_ITEM(SP));
+#endif
 #if defined PB2
 	int hysteresis2 = eeprom_read_config(EEADR_SET_MENU_ITEM(hy2));
 	unsigned char probe2 = eeprom_read_config(EEADR_SET_MENU_ITEM(Pb));
@@ -395,6 +414,11 @@ static void init() {
 	T6CON = 0b00110111;
 	// @4MHz, Timer 2 clock is FOSC/4 -> 1MHz prescale 1:64-> 15.625kHz, 250 and postscale 1:6 -> 8.93Hz or 112ms
 	PR6 = 250;
+
+#if defined MINUTE
+	// Get initial setpoint
+	setpoint = eeprom_read_config(EEADR_SET_MENU_ITEM(SP));
+#endif
 
 #if defined COM
 	// Set PEIE and GIE (enable global interrupts), IOCIE
@@ -821,10 +845,17 @@ void main(void) __naked {
 					if(((unsigned char)eeprom_read_config(EEADR_SET_MENU_ITEM(rn))) < THERMOSTAT_MODE){
 						// Indicate profile mode
 						led_e.e_set = 0;
+#if defined MINUTE
+						// Update profile every minute
+						if(millisx60 >= 1000){
+							update_profile();
+							millisx60 = 8;
+#else
 						// Update profile every hour
 						if(millisx60 >= 60000){
 							update_profile();
 							millisx60 = 0;
+#endif
 						}
 					} else {
 						led_e.e_set = 1;
@@ -834,7 +865,11 @@ void main(void) __naked {
 					{
 						int sa = eeprom_read_config(EEADR_SET_MENU_ITEM(SA));
 						if(sa){
+#if defined MINUTE
+							int diff = temperature - setpoint;
+#else
 							int diff = temperature - eeprom_read_config(EEADR_SET_MENU_ITEM(SP));
+#endif
 							if(diff < 0){
 								diff = -diff;
 							} 

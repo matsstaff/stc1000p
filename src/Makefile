@@ -4,6 +4,8 @@ OUTDIR=build
 DEPS = stc1000p.h
 OBJ_C = $(OUTDIR)/page0_c.o $(OUTDIR)/page1_c.o
 OBJ_F = $(OUTDIR)/page0_f.o $(OUTDIR)/page1_f.o
+OBJ_C_MINUTE = $(OUTDIR)/page0_c_minute.o $(OUTDIR)/page1_c_minute.o
+OBJ_F_MINUTE = $(OUTDIR)/page0_f_minute.o $(OUTDIR)/page1_f_minute.o
 OBJ_C_COM = $(OUTDIR)/page0_c_com.o $(OUTDIR)/page1_c_com.o
 OBJ_F_COM = $(OUTDIR)/page0_f_com.o $(OUTDIR)/page1_f_com.o
 OBJ_C_FO433 = $(OUTDIR)/page0_c_fo433.o $(OUTDIR)/page1_c_fo433.o
@@ -16,6 +18,12 @@ $(OUTDIR)/%_c.o: %.c $(DEPS)
 
 $(OUTDIR)/%_f.o: %.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS) -DFAHRENHEIT -DPB2
+
+$(OUTDIR)/%_c_minute.o: %.c $(DEPS)
+	$(CC) -c -o $@ $< $(CFLAGS) -DPB2 -DMINUTE
+
+$(OUTDIR)/%_f_minute.o: %.c $(DEPS)
+	$(CC) -c -o $@ $< $(CFLAGS) -DFAHRENHEIT -DPB2 -DMINUTE
 
 $(OUTDIR)/%_c_com.o: %.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS) -DCOM
@@ -35,6 +43,12 @@ stc1000p_celsius: $(OBJ_C)
 stc1000p_fahrenheit: $(OBJ_F)
 	$(CC) -o $(OUTDIR)/$@ $^ $(CFLAGS) -DFAHRENHEIT $(LIBS)
 
+stc1000p_celsius_minute: $(OBJ_C_MINUTE)
+	$(CC) -o $(OUTDIR)/$@ $^ $(CFLAGS) -DPB2 -DMINUTE $(LIBS)
+
+stc1000p_fahrenheit_minute: $(OBJ_F_MINUTE)
+	$(CC) -o $(OUTDIR)/$@ $^ $(CFLAGS) -DFAHRENHEIT -DPB2 -DMINUTE $(LIBS)
+
 stc1000p_celsius_com: $(OBJ_C_COM)
 	$(CC) -o $(OUTDIR)/$@ $^ $(CFLAGS) -DCOM $(LIBS)
 
@@ -53,7 +67,7 @@ eedata_celsius: $(OBJ_EEPROM_C)
 eedata_fahrenheit: $(OBJ_EEPROM_F)
 	$(CC) -o $(OUTDIR)/$@ $^ $(CFLAGS) -DFAHRENHEIT $(LIBS)
 
-all: stc1000p_celsius stc1000p_fahrenheit stc1000p_celsius_com stc1000p_fahrenheit_com stc1000p_celsius_fo433 stc1000p_fahrenheit_fo433 eedata_celsius eedata_fahrenheit
+all: stc1000p_celsius stc1000p_fahrenheit stc1000p_celsius_minute stc1000p_fahrenheit_minute stc1000p_celsius_com stc1000p_fahrenheit_com stc1000p_celsius_fo433 stc1000p_fahrenheit_fo433 eedata_celsius eedata_fahrenheit
 
 .PHONY: clean
 

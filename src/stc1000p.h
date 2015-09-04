@@ -206,6 +206,11 @@ extern led_e_t led_e;
 extern led_t led_10, led_1, led_01;
 extern unsigned const char led_lookup[];
 
+#if defined MINUTE
+extern int setpoint;
+extern unsigned int curr_dur;
+#endif
+
 extern unsigned int eeprom_read_config(unsigned char eeprom_address);
 extern void eeprom_write_config(unsigned char eeprom_address,unsigned int data);
 extern void value_to_led(int value, unsigned char decimal);

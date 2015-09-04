@@ -236,7 +236,11 @@ void button_menu_fsm(){
 		break;
 
 	case state_show_sp:
+#if defined MINUTE
+		temperature_to_led(setpoint);
+#else
 		temperature_to_led(eeprom_read_config(EEADR_SET_MENU_ITEM(SP)));
+#endif
 		if(!BTN_HELD(BTN_UP)){
 			state=state_idle;
 		}
@@ -266,7 +270,11 @@ void button_menu_fsm(){
 		}
 		break;
 	case state_show_profile_dh:
+#if defined MINUTE
+		int_to_led(curr_dur);
+#else
 		int_to_led(eeprom_read_config(EEADR_SET_MENU_ITEM(dh)));
+#endif
 		if(countdown==0){
 			countdown=13;
 			state = state_show_profile;
@@ -353,7 +361,10 @@ void button_menu_fsm(){
 					config_item = SET_MENU_SIZE-1;
 				}
 chk_skip_menu_item:
-				if((unsigned char)eeprom_read_config(EEADR_SET_MENU_ITEM(rn)) >= THERMOSTAT_MODE){
+#if !defined MINUTE
+				if((unsigned char)eeprom_read_config(EEADR_SET_MENU_ITEM(rn)) >= THERMOSTAT_MODE)
+#endif
+				{
 					if(config_item == St){
 						config_item += 2;
 					}else if(config_item == dh){
@@ -420,11 +431,20 @@ chk_cfg_acc_label:
 					if(config_item == rn){
 						// When setting runmode, clear current step & duration
 						eeprom_write_config(EEADR_SET_MENU_ITEM(St), 0);
+#if defined MINUTE
+						curr_dur = 0;
+#else
 						eeprom_write_config(EEADR_SET_MENU_ITEM(dh), 0);
+#endif
 						if(config_value < THERMOSTAT_MODE){
 							unsigned char eeadr_sp = EEADR_PROFILE_SETPOINT(((unsigned char)config_value), 0);
 							// Set intial value for SP
+#if defined MINUTE
+							setpoint = eeprom_read_config(eeadr_sp);
+							eeprom_write_config(EEADR_SET_MENU_ITEM(SP), setpoint);
+#else
 							eeprom_write_config(EEADR_SET_MENU_ITEM(SP), eeprom_read_config(eeadr_sp));
+#endif
 							// Hack in case inital step duration is '0'
 							if(eeprom_read_config(eeadr_sp+1) == 0){
 								config_value = THERMOSTAT_MODE;
