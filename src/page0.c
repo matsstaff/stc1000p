@@ -20,12 +20,7 @@
  *
  */
 
-#define __16f1828
-#include "pic14/pic16f1828.h"
 #include "stc1000p.h"
-
-/* Defines */
-#define ClrWdt() { __asm CLRWDT __endasm; }
 
 /* Configuration words */
 unsigned int __at _CONFIG1 __CONFIG1 = 0xFD4;
@@ -33,19 +28,23 @@ unsigned int __at _CONFIG2 __CONFIG2 = 0x3AFF;
 
 /* Temperature lookup table  */
 #ifdef FAHRENHEIT
-const int ad_lookup[] = { 0, -555, -319, -167, -49, 48, 134, 211, 282, 348, 412, 474, 534, 593, 652, 711, 770, 831, 893, 957, 1025, 1096, 1172, 1253, 1343, 1444, 1559, 1694, 1860, 2078, 2397, 2987 };
+	const int ad_lookup[] = { 0, -555, -319, -167, -49, 48, 134, 211, 282, 348, 412, 474, 534, 593, 652, 711, 770, 831, 893, 957, 1025, 1096, 1172, 1253, 1343, 1444, 1559, 1694, 1860, 2078, 2397, 2987 };
 #else  // CELSIUS
-const int ad_lookup[] = { 0, -486, -355, -270, -205, -151, -104, -61, -21, 16, 51, 85, 119, 152, 184, 217, 250, 284, 318, 354, 391, 431, 473, 519, 569, 624, 688, 763, 856, 977, 1154, 1482 };
+	const int ad_lookup[] = { 0, -486, -355, -270, -205, -151, -104, -61, -21, 16, 51, 85, 119, 152, 184, 217, 250, 284, 318, 354, 391, 431, 473, 519, 569, 624, 688, 763, 856, 977, 1154, 1482 };
 #endif
 
-/* LED character lookup table (0-15), includes hex */
-//unsigned const char led_lookup[] = { 0x3, 0xb7, 0xd, 0x25, 0xb1, 0x61, 0x41, 0x37, 0x1, 0x21, 0x5, 0xc1, 0xcd, 0x85, 0x9, 0x59 };
 /* LED character lookup table (0-9) */
 unsigned const char led_lookup[] = { LED_0, LED_1, LED_2, LED_3, LED_4, LED_5, LED_6, LED_7, LED_8, LED_9 };
 
 /* Global variables to hold LED data (for multiplexing purposes) */
 led_e_t led_e = {0xff};
 led_t led_10, led_1, led_01;
+#if defined OVBSC
+led_t al_led_10, al_led_1, al_led_01;
+int setpoint=0;
+int output=0;
+static int thermostat_output=0;
+#endif
 
 static int temperature=0;
 #if defined PB2
@@ -176,14 +175,16 @@ void value_to_led(int value, unsigned char decimal) {
 		led_e.e_negative = 1;
 	}
 
-	// This assumes that only temperatures and all temperatures are decimal
-	if(decimal){
+	if(decimal==1){
 		led_e.e_deg = 0;
 #ifdef FAHRENHEIT
 		led_e.e_c = 1;
 #else
 		led_e.e_c = 0;
 #endif // FAHRENHEIT
+	} else {
+		led_e.e_deg = 1;
+		led_e.e_c = 1;
 	}
 
 	// If temperature >= 100 we must lose decimal...
@@ -215,6 +216,236 @@ void value_to_led(int value, unsigned char decimal) {
 	led_01.raw = led_lookup[(unsigned char)value];
 }
 
+#if defined OVBSC
+static unsigned char output_counter=0;
+static void output_control(){
+	static unsigned char o, inv;
+	
+	if(output_counter == 0){
+		output_counter = 100;
+		if(output < 0){
+			o = -output;
+			inv = 1;
+		}else{
+			o = output;
+			inv = 0;
+		}
+	}
+	output_counter--;
+
+	LATA0 = 0;
+	led_e.e_point = 1;
+	if(ALARM){
+		LATA0 = (output_counter > 75);
+	} else if(PAUSE && !OFF){
+		led_e.e_point = output_counter & 0x1;
+	}
+
+	if(PAUSE || OFF){
+		LATA5 = 0;
+		LATA4 = 0;
+		PUMP_OFF();
+	} else {
+		unsigned char e1=(o > output_counter);
+		unsigned char e2=(o > (output_counter+100));
+
+		if(inv){
+			LATA5 = e2;
+			LATA4 = e1;
+		}else{
+			LATA5 = e1;
+			LATA4 = e2;
+		}
+
+		if(PUMP){
+			PUMP_MANUAL();
+		} else {
+			PUMP_OFF();
+		}
+
+	}
+
+	led_e.e_heat = !LATA5;
+	led_e.e_cool = !LATA4;
+}
+
+static void temperature_control(){
+	if(THERMOSTAT){
+		if(temperature < setpoint){
+			output = thermostat_output;
+		} else {
+			output = 0;
+		}
+	}
+}
+
+unsigned char prg_state=0;
+unsigned int countdown=0;
+unsigned char mashstep=0;
+static void program_fsm(){
+	static unsigned char sec_countdown=60;
+
+	if(OFF){
+		prg_state = prg_off;
+		return;
+	}
+
+	if(PAUSE){
+		return;
+	}
+
+	if(countdown){
+		if(sec_countdown==0){
+			sec_countdown=60;
+			countdown--;
+		}
+		sec_countdown--;
+	}
+
+	switch(prg_state){
+		case prg_off:
+			if(RUN_PRG){
+				countdown = eeprom_read_config(EEADR_MENU_ITEM(Sd)); 	/* Strike delay */
+				prg_state = prg_wait_strike;
+			} else {
+				if(THERMOSTAT){
+					setpoint = eeprom_read_config(EEADR_MENU_ITEM(cSP));
+					thermostat_output = eeprom_read_config(EEADR_MENU_ITEM(cO));
+				} else {
+					output = eeprom_read_config(EEADR_MENU_ITEM(cO));
+				}
+				PUMP = eeprom_read_config(EEADR_MENU_ITEM(cP));
+			}
+		break;
+		case prg_wait_strike:
+			output = 0;
+			THERMOSTAT = 0;
+			PUMP=0;
+			if(countdown == 0){
+				countdown = eeprom_read_config(EEADR_MENU_ITEM(ASd));
+				prg_state = prg_strike;
+			}
+		break;
+		case prg_strike:
+			setpoint = eeprom_read_config(EEADR_MENU_ITEM(St)); /* Strike temp */
+			output = eeprom_read_config(EEADR_MENU_ITEM(SO));
+			PUMP=(eeprom_read_config(EEADR_MENU_ITEM(PF)) >> 0) & 0x1;
+			if(temperature >= setpoint){
+				THERMOSTAT = 1;
+				thermostat_output = eeprom_read_config(EEADR_MENU_ITEM(PO));
+				ALARM = (eeprom_read_config(EEADR_MENU_ITEM(APF)) >> 0) & 0x1;
+				al_led_10.raw = LED_S;
+				al_led_1.raw = LED_t;
+				al_led_01.raw = LED_OFF;
+				countdown = eeprom_read_config(EEADR_MENU_ITEM(ASd));
+				prg_state = prg_strike_wait_alarm;
+			} else if(countdown == 0){
+				OFF=1;
+			}
+		break;
+		case prg_strike_wait_alarm:
+			if(!ALARM){
+				PAUSE = (eeprom_read_config(EEADR_MENU_ITEM(APF)) >> 1) & 0x1;
+				mashstep=0;
+				countdown = eeprom_read_config(EEADR_MENU_ITEM(ASd));
+				prg_state = prg_init_mash_step;
+			} else if(countdown == 0){
+				OFF=1;
+			}
+		break;
+		case prg_init_mash_step:
+			setpoint = eeprom_read_config(EEADR_MENU_ITEM(Pt1) + (mashstep << 1)); /* Mash step temp */
+			output = eeprom_read_config(EEADR_MENU_ITEM(SO));
+			THERMOSTAT = 0;
+			PUMP=(eeprom_read_config(EEADR_MENU_ITEM(PF)) >> 1) & 0x1;
+			if(temperature >= setpoint || (eeprom_read_config(EEADR_MENU_ITEM(Pd1) + (mashstep << 1)) == 0)){
+				countdown = eeprom_read_config(EEADR_MENU_ITEM(Pd1) + (mashstep << 1)); /* Mash step duration */
+				prg_state = prg_mash;
+			} else if(countdown==0){
+				OFF=1;
+			}
+		break;
+		case prg_mash:
+			THERMOSTAT = 1;
+			thermostat_output = eeprom_read_config(EEADR_MENU_ITEM(PO));
+			PUMP=(eeprom_read_config(EEADR_MENU_ITEM(PF)) >> 2) & 0x1;
+			if(countdown==0){
+				mashstep++;
+				if(mashstep < 6){
+					countdown = eeprom_read_config(EEADR_MENU_ITEM(ASd));
+					prg_state = prg_init_mash_step;
+				} else {
+					ALARM = (eeprom_read_config(EEADR_MENU_ITEM(APF)) >> 2) & 0x1;
+					al_led_10.raw = LED_b;
+					al_led_1.raw = LED_U;
+					al_led_01.raw = LED_OFF;
+					countdown = eeprom_read_config(EEADR_MENU_ITEM(ASd));
+					prg_state = prg_wait_boil_up_alarm;
+				}
+			}
+		break;
+		case prg_wait_boil_up_alarm:
+			if(!ALARM){
+				PAUSE = (eeprom_read_config(EEADR_MENU_ITEM(APF)) >> 3) & 0x1;
+				countdown = eeprom_read_config(EEADR_MENU_ITEM(ASd));
+				prg_state = prg_init_boil_up;
+			} else if(countdown == 0){
+				OFF=1;
+			}
+		break;
+		case prg_init_boil_up:
+			THERMOSTAT = 0;
+			PUMP=(eeprom_read_config(EEADR_MENU_ITEM(PF)) >> 3) & 0x1;
+			output = eeprom_read_config(EEADR_MENU_ITEM(SO)); /* Boil output */
+			if(temperature >= eeprom_read_config(EEADR_MENU_ITEM(Ht))){ /* Boil up temp */
+				countdown = eeprom_read_config(EEADR_MENU_ITEM(Hd)); /* Hotbreak duration */
+				prg_state = prg_hotbreak;
+			} else if(countdown==0){
+				OFF=1;
+			}
+		break;
+		case prg_hotbreak:
+			output = eeprom_read_config(EEADR_MENU_ITEM(HO)); /* Hot break output */
+			PUMP=(eeprom_read_config(EEADR_MENU_ITEM(PF)) >> 4) & 0x1;
+			if(countdown==0){
+				countdown = eeprom_read_config(EEADR_MENU_ITEM(bd)); /* Boil duration */ 
+				prg_state = prg_boil;
+			}
+		break;
+		case prg_boil:
+			PUMP = 0;
+			output = eeprom_read_config(EEADR_MENU_ITEM(bO)); /* Boil output */
+			{
+				unsigned char i;
+				for(i=0; i<4; i++){
+					if(countdown == eeprom_read_config(EEADR_MENU_ITEM(hd1) + i) && sec_countdown > 57){ /* Hop timer */
+						ALARM = (eeprom_read_config(EEADR_MENU_ITEM(APF)) >> (4+i)) & 0x1;
+						al_led_10.raw = LED_h;
+						al_led_1.raw = LED_d;
+						al_led_01.raw = led_lookup[i+1];
+						break;
+					}
+				}
+			}
+			if(countdown == 0){
+				output = 0;
+				THERMOSTAT = 0;
+				OFF = 1;
+				ALARM = (eeprom_read_config(EEADR_MENU_ITEM(APF)) >> 8) & 0x1;
+				al_led_10.raw = LED_C;
+				al_led_1.raw = LED_h;
+				al_led_01.raw = LED_OFF;
+				RUN_PRG = 0;
+				prg_state = prg_off;
+			}
+		break;
+
+	} // switch(prg_state)
+
+}
+
+#else // !OVBSC
+
 /* To be called once every hour on the hour.
  * Updates EEPROM configuration when running profile.
  */
@@ -222,18 +453,18 @@ void value_to_led(int value, unsigned char decimal) {
 unsigned int curr_dur = 0;
 #endif
 static void update_profile(){
-	unsigned char profile_no = eeprom_read_config(EEADR_SET_MENU_ITEM(rn));
+	unsigned char profile_no = eeprom_read_config(EEADR_MENU_ITEM(rn));
 
 	// Running profile?
 	if (profile_no < THERMOSTAT_MODE) {
-		unsigned char curr_step = eeprom_read_config(EEADR_SET_MENU_ITEM(St));
+		unsigned char curr_step = eeprom_read_config(EEADR_MENU_ITEM(St));
 		unsigned char profile_step_eeaddr;
 		unsigned int profile_step_dur;
 		int profile_next_step_sp;
 #if defined MINUTE
 		curr_dur++;
 #else
-		unsigned int curr_dur = eeprom_read_config(EEADR_SET_MENU_ITEM(dh)) + 1;
+		unsigned int curr_dur = eeprom_read_config(EEADR_MENU_ITEM(dh)) + 1;
 #endif
 
 		// Sanity check
@@ -251,19 +482,19 @@ static void update_profile(){
 #if defined MINUTE
 			setpoint = profile_next_step_sp;
 #endif
-			eeprom_write_config(EEADR_SET_MENU_ITEM(SP), profile_next_step_sp);
+			eeprom_write_config(EEADR_MENU_ITEM(SP), profile_next_step_sp);
 			// Is this the last step (next step is number 9 or next step duration is 0)?
 			if (curr_step == 8 || eeprom_read_config(profile_step_eeaddr + 3) == 0) {
 				// Switch to thermostat mode.
-				eeprom_write_config(EEADR_SET_MENU_ITEM(rn), THERMOSTAT_MODE);
+				eeprom_write_config(EEADR_MENU_ITEM(rn), THERMOSTAT_MODE);
 				return; // Fastest way out...
 			}
 			// Reset duration
 			curr_dur = 0;
 			// Update step
 			curr_step++;
-			eeprom_write_config(EEADR_SET_MENU_ITEM(St), curr_step);
-		} else if(eeprom_read_config(EEADR_SET_MENU_ITEM(rP))) { // Is ramping enabled?
+			eeprom_write_config(EEADR_MENU_ITEM(St), curr_step);
+		} else if(eeprom_read_config(EEADR_MENU_ITEM(rP))) { // Is ramping enabled?
 			int profile_step_sp = eeprom_read_config(profile_step_eeaddr);
 			unsigned int t = curr_dur << 6;
 			long sp = 32;
@@ -285,10 +516,10 @@ static void update_profile(){
 			setpoint = sp;
 		}
 #else
-			eeprom_write_config(EEADR_SET_MENU_ITEM(SP), sp);
+			eeprom_write_config(EEADR_MENU_ITEM(SP), sp);
 		}
 		// Update duration
-		eeprom_write_config(EEADR_SET_MENU_ITEM(dh), curr_dur);
+		eeprom_write_config(EEADR_MENU_ITEM(dh), curr_dur);
 #endif
 	}
 }
@@ -301,11 +532,11 @@ unsigned int cooling_delay = 60;  // Initial cooling delay
 unsigned int heating_delay = 60;  // Initial heating delay
 static void temperature_control(){
 #ifndef MINUTE
-	int setpoint = eeprom_read_config(EEADR_SET_MENU_ITEM(SP));
+	int setpoint = eeprom_read_config(EEADR_MENU_ITEM(SP));
 #endif
 #if defined PB2
-	int hysteresis2 = eeprom_read_config(EEADR_SET_MENU_ITEM(hy2));
-	unsigned char probe2 = eeprom_read_config(EEADR_SET_MENU_ITEM(Pb));
+	int hysteresis2 = eeprom_read_config(EEADR_MENU_ITEM(hy2));
+	unsigned char probe2 = eeprom_read_config(EEADR_MENU_ITEM(Pb));
 #endif
 
 	if(cooling_delay){
@@ -325,15 +556,15 @@ static void temperature_control(){
 #else
 	if((LATA4 && (temperature <= setpoint )) || (LATA5 && (temperature >= setpoint))){
 #endif
-		cooling_delay = eeprom_read_config(EEADR_SET_MENU_ITEM(cd)) << 6;
+		cooling_delay = eeprom_read_config(EEADR_MENU_ITEM(cd)) << 6;
 		cooling_delay = cooling_delay - (cooling_delay >> 4);
-		heating_delay = eeprom_read_config(EEADR_SET_MENU_ITEM(hd)) << 6;
+		heating_delay = eeprom_read_config(EEADR_MENU_ITEM(hd)) << 6;
 		heating_delay = heating_delay - (heating_delay >> 4);
 		LATA4 = 0;
 		LATA5 = 0;
 	}
 	else if(LATA4 == 0 && LATA5 == 0) {
-		int hysteresis = eeprom_read_config(EEADR_SET_MENU_ITEM(hy));
+		int hysteresis = eeprom_read_config(EEADR_MENU_ITEM(hy));
 #ifdef PB2
 		hysteresis2 >>= 2; // Halve hysteresis 2
 		if ((temperature > setpoint + hysteresis) && (!probe2 || (temperature2 >= setpoint - hysteresis2))) {
@@ -359,6 +590,8 @@ static void temperature_control(){
 	}
 }
 
+#endif // !OVBSC
+
 /* Initialize hardware etc, on startup.
  * arguments: none
  * returns: nothing
@@ -368,12 +601,17 @@ static void init() {
 	OSCCON = 0b01101010; // 4MHz
 
 	// Heat, cool as output, Thermistor as input, piezo output
-#if defined FO433
+#if defined FO433 || defined OVBSC
 	TRISA = 0b00001100;
 #else
 	TRISA = 0b00001110;
 #endif
 	LATA = 0; // Drive relays and piezo low
+
+#if defined OVBSC
+	// Make sure weak pullup is disabled for RA1
+	WPUA1 = 0;
+#endif
 
 	// LED Common anodes
 	TRISB = 0;
@@ -406,7 +644,11 @@ static void init() {
 
 	// Postscaler 1:15, - , prescaler 1:16
 	T4CON = 0b01110010;
+#ifdef OVBSC
+	TMR4ON = 1;
+#else
 	TMR4ON = eeprom_read_config(EEADR_POWER_ON);
+#endif
 	// @4MHz, Timer 2 clock is FOSC/4 -> 1MHz prescale 1:16-> 62.5kHz, 250 and postscale 1:15 -> 16.66666 Hz or 60ms
 	PR4 = 250;
 
@@ -417,7 +659,7 @@ static void init() {
 
 #if defined MINUTE
 	// Get initial setpoint
-	setpoint = eeprom_read_config(EEADR_SET_MENU_ITEM(SP));
+	setpoint = eeprom_read_config(EEADR_MENU_ITEM(SP));
 #endif
 
 #if defined COM
@@ -444,6 +686,9 @@ static void init() {
  * Receives timer2 interrupts every millisecond.
  * Handles multiplexing of the LEDs.
  */
+#if defined OVBSC
+volatile unsigned char oc = 0;
+#endif
 static void interrupt_service_routine(void) __interrupt 0 {
 
 #ifdef COM
@@ -557,6 +802,12 @@ static void interrupt_service_routine(void) __interrupt 0 {
 
 		// Enable new LED
 		LATB = latb;
+
+#if defined OVBSC
+		if(oc){
+			oc--;
+		}
+#endif
 
 #if defined COM
 		/* Reset communication state on timeout */
@@ -707,7 +958,7 @@ static void fo433_fsm(){
 		fo433_data = 0x45;
 		crc = 0;
 	} else if(fo433_state == fo433_devid_low_temp_high){
-		unsigned char di = ((unsigned char)eeprom_read_config(EEADR_SET_MENU_ITEM(hy2))) << 4;
+		unsigned char di = ((unsigned char)eeprom_read_config(EEADR_MENU_ITEM(hy2))) << 4;
 		t = temperature;
 		fo433_data = (di | ((t >> 8) & 0xf));
 	} else if(fo433_state == fo433_temp_low){
@@ -791,6 +1042,13 @@ void main(void) __naked {
 			TMR6IF = 0;
 		}
 
+#if defined OVBSC
+		if(oc==0){
+			oc = eeprom_read_config(EEADR_MENU_ITEM(Pd));
+			output_control();
+		}
+#endif
+
 		if(TMR4IF) {
 
 			millisx60++;
@@ -809,9 +1067,9 @@ void main(void) __naked {
 			// Close enough to 1s for our purposes.
 			if((millisx60 & 0xf) == 0) {
 
-				temperature = ad_to_temp(ad_filter) + eeprom_read_config(EEADR_SET_MENU_ITEM(tc));
+				temperature = ad_to_temp(ad_filter) + eeprom_read_config(EEADR_MENU_ITEM(tc));
 #if defined PB2
-				temperature2 = ad_to_temp(ad_filter2) + eeprom_read_config(EEADR_SET_MENU_ITEM(tc2));
+				temperature2 = ad_to_temp(ad_filter2) + eeprom_read_config(EEADR_MENU_ITEM(tc2));
 #endif
 
 #if defined FO433
@@ -825,10 +1083,33 @@ void main(void) __naked {
 			
 #endif
 
+#if defined OVBSC
+				program_fsm();
+				temperature_control();
+
+				if(MENU_IDLE){
+					if(ALARM && (millisx60 & 0x10)){
+						led_10.raw = al_led_10.raw;
+						led_1.raw = al_led_1.raw;
+						led_01.raw = al_led_01.raw;
+					} else {
+						if(RUN_PRG && (prg_state == prg_boil || prg_state == prg_wait_strike)){
+							int_to_led(countdown);
+						} else {
+							temperature_to_led(temperature);
+						}
+					}
+				}
+
+				if(millisx60 >= 1000){
+					millisx60 = 8;
+				}
+
+#else
 				// Alarm on sensor error (AD result out of range)
 				LATA0 = ((ad_filter>>8) >= 248 || (ad_filter>>8) <= 8) 
 #if defined PB2
-					|| (eeprom_read_config(EEADR_SET_MENU_ITEM(Pb)) && ((ad_filter2>>8) >= 248 || (ad_filter2>>8) <= 8))
+					|| (eeprom_read_config(EEADR_MENU_ITEM(Pb)) && ((ad_filter2>>8) >= 248 || (ad_filter2>>8) <= 8))
 #endif
 				;
 
@@ -842,7 +1123,7 @@ void main(void) __naked {
 				} else {
 					// Update running profile every hour (if there is one)
 					// and handle reset of millis x60 counter
-					if(((unsigned char)eeprom_read_config(EEADR_SET_MENU_ITEM(rn))) < THERMOSTAT_MODE){
+					if(((unsigned char)eeprom_read_config(EEADR_MENU_ITEM(rn))) < THERMOSTAT_MODE){
 						// Indicate profile mode
 						led_e.e_set = 0;
 #if defined MINUTE
@@ -850,25 +1131,26 @@ void main(void) __naked {
 						if(millisx60 >= 1000){
 							update_profile();
 							millisx60 = 8;
+						}
 #else
 						// Update profile every hour
 						if(millisx60 >= 60000){
 							update_profile();
 							millisx60 = 0;
-#endif
 						}
+#endif
 					} else {
 						led_e.e_set = 1;
 						millisx60 = 0;
 					}
 
 					{
-						int sa = eeprom_read_config(EEADR_SET_MENU_ITEM(SA));
+						int sa = eeprom_read_config(EEADR_MENU_ITEM(SA));
 						if(sa){
 #if defined MINUTE
 							int diff = temperature - setpoint;
 #else
-							int diff = temperature - eeprom_read_config(EEADR_SET_MENU_ITEM(SP));
+							int diff = temperature - eeprom_read_config(EEADR_MENU_ITEM(SP));
 #endif
 							if(diff < 0){
 								diff = -diff;
@@ -906,6 +1188,7 @@ void main(void) __naked {
 						RX9 = !RX9;
 					}
 				}
+#endif // !OVBSC
 			} // End 1 sec section
 
 			// Reset timer flag

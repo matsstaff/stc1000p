@@ -33,6 +33,7 @@ cat ../picprog.ino | sed -n '/^const char hex_celsius\[\] PROGMEM/q;p' | sed "s/
 cp picprog.tmp picprog_com.tmp 
 cp picprog.tmp picprog_fo433.tmp
 cp picprog.tmp picprog_minute.tmp
+cp picprog.tmp picprog_ovbsc.tmp
 
 # picprog.ino
 echo "const char hex_celsius[] PROGMEM = {" >> picprog.tmp; 
@@ -134,6 +135,31 @@ for l in `cat build/eedata_fahrenheit.hex | sed 's/^://' | sed 's/\(..\)/0\x\1\,
 done; 
 echo "};" >> picprog_minute.tmp
 
+# picprog_ovbsc.ino
+echo "const char hex_celsius[] PROGMEM = {" >> picprog_ovbsc.tmp; 
+for l in `cat build/stc1000p_celsius_ovbsc.hex | sed 's/^://' | sed 's/\(..\)/0\x\1\,/g'`; do 
+	echo "   $l" | sed 's/0x00,0x00,0x00,0x01,0xFF,/0x00,0x00,0x00,0x01,0xFF/' >> picprog_ovbsc.tmp; 
+done; 
+echo "};" >> picprog_ovbsc.tmp
+
+echo "const char hex_fahrenheit[] PROGMEM = {" >> picprog_ovbsc.tmp; 
+for l in `cat build/stc1000p_fahrenheit_ovbsc.hex | sed 's/^://' | sed 's/\(..\)/0\x\1\,/g'`; do 
+	echo "   $l" | sed 's/0x00,0x00,0x00,0x01,0xFF,/0x00,0x00,0x00,0x01,0xFF/' >> picprog_ovbsc.tmp; 
+done; 
+echo "};" >> picprog_minute.tmp
+
+echo "const char hex_eeprom_celsius[] PROGMEM = {" >> picprog_ovbsc.tmp; 
+for l in `cat build/eedata_celsius_ovbsc.hex | sed 's/^://' | sed 's/\(..\)/0\x\1\,/g'`; do 
+	echo "   $l" | sed 's/0x00,0x00,0x00,0x01,0xFF,/0x00,0x00,0x00,0x01,0xFF/' >> picprog_ovbsc.tmp; 
+done; 
+echo "};" >> picprog_ovbsc.tmp
+
+echo "const char hex_eeprom_fahrenheit[] PROGMEM = {" >> picprog_ovbsc.tmp; 
+for l in `cat build/eedata_fahrenheit_ovbsc.hex | sed 's/^://' | sed 's/\(..\)/0\x\1\,/g'`; do 
+	echo "   $l" | sed 's/0x00,0x00,0x00,0x01,0xFF,/0x00,0x00,0x00,0x01,0xFF/' >> picprog_ovbsc.tmp; 
+done; 
+echo "};" >> picprog_ovbsc.tmp
+
 # Create picprog.js
 cat picprog.tmp | sed -n '/^const char hex_eeprom_celsius\[\] PROGMEM/q;p' | sed "s/'/\\\\\\\'/g" > picprog.js.tmp
 echo "var picprog='' +" > ../profile/picprog.js
@@ -179,6 +205,8 @@ mv -f ../picprog_fo433.ino picprog_fo433.bkp
 mv picprog_fo433.tmp ../picprog_fo433.ino
 mv -f ../picprog_minute.ino picprog_minute.bkp
 mv picprog_minute.tmp ../picprog_minute.ino
+mv -f ../picprog_ovbsc.ino picprog_ovbsc.bkp
+mv picprog_ovbsc.tmp ../picprog_ovbsc.ino
 
 # Print size approximation (from .asm files)
 echo "2 probe";
@@ -214,6 +242,16 @@ echo "";
 echo "fo433";
 let s=0;
 for a in `cat build/page0_c_fo433.asm build/page1_c_fo433.asm | grep instructions | sed 's/^.*=  //' | sed 's/ instructions.*//'`;
+do
+	echo $a;
+	s=$(($s+$a));
+done;
+echo "total $s";
+
+echo "";
+echo "ovbsc";
+let s=0;
+for a in `cat build/page0_c_ovbsc.asm build/page1_c_ovbsc.asm | grep instructions | sed 's/^.*=  //' | sed 's/ instructions.*//'`;
 do
 	echo $a;
 	s=$(($s+$a));

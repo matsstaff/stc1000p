@@ -10,8 +10,12 @@ OBJ_C_COM = $(OUTDIR)/page0_c_com.o $(OUTDIR)/page1_c_com.o
 OBJ_F_COM = $(OUTDIR)/page0_f_com.o $(OUTDIR)/page1_f_com.o
 OBJ_C_FO433 = $(OUTDIR)/page0_c_fo433.o $(OUTDIR)/page1_c_fo433.o
 OBJ_F_FO433 = $(OUTDIR)/page0_f_fo433.o $(OUTDIR)/page1_f_fo433.o
+OBJ_C_OVBSC = $(OUTDIR)/page0_c_ovbsc.o $(OUTDIR)/page1_c_ovbsc.o
+OBJ_F_OVBSC = $(OUTDIR)/page0_f_ovbsc.o $(OUTDIR)/page1_f_ovbsc.o
 OBJ_EEPROM_C = $(OUTDIR)/eepromdata_c.o
 OBJ_EEPROM_F = $(OUTDIR)/eepromdata_f.o
+OBJ_EEPROM_C_OVBSC = $(OUTDIR)/eepromdata_c_ovbsc.o
+OBJ_EEPROM_F_OVBSC = $(OUTDIR)/eepromdata_f_ovbsc.o
 
 $(OUTDIR)/%_c.o: %.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS) -DPB2
@@ -35,7 +39,13 @@ $(OUTDIR)/%_c_fo433.o: %.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS) -DFO433
 
 $(OUTDIR)/%_f_fo433.o: %.c $(DEPS)
-	$(CC) -c -o $@ $< $(CFLAGS) -DFAHRENHEIT -DFO433
+	$(CC) -c -o $@ $< $(CFLAGS) -DFAHRENHEIT -DOVBSC
+
+$(OUTDIR)/%_c_ovbsc.o: %.c $(DEPS)
+	$(CC) -c -o $@ $< $(CFLAGS) -DOVBSC
+
+$(OUTDIR)/%_f_ovbsc.o: %.c $(DEPS)
+	$(CC) -c -o $@ $< $(CFLAGS) -DFAHRENHEIT -DOVBSC
 
 stc1000p_celsius: $(OBJ_C)
 	$(CC) -o $(OUTDIR)/$@ $^ $(CFLAGS) $(LIBS)
@@ -61,13 +71,25 @@ stc1000p_celsius_fo433: $(OBJ_C_FO433)
 stc1000p_fahrenheit_fo433: $(OBJ_F_FO433)
 	$(CC) -o $(OUTDIR)/$@ $^ $(CFLAGS) -DFAHRENHEIT -DFO433 $(LIBS)
 
+stc1000p_celsius_ovbsc: $(OBJ_C_OVBSC)
+	$(CC) -o $(OUTDIR)/$@ $^ $(CFLAGS) -DOVBSC $(LIBS)
+
+stc1000p_fahrenheit_ovbsc: $(OBJ_F_OVBSC)
+	$(CC) -o $(OUTDIR)/$@ $^ $(CFLAGS) -DFAHRENHEIT -DOVBSC $(LIBS)
+
 eedata_celsius: $(OBJ_EEPROM_C)
 	$(CC) -o $(OUTDIR)/$@ $^ $(CFLAGS) $(LIBS)
 
 eedata_fahrenheit: $(OBJ_EEPROM_F)
 	$(CC) -o $(OUTDIR)/$@ $^ $(CFLAGS) -DFAHRENHEIT $(LIBS)
 
-all: stc1000p_celsius stc1000p_fahrenheit stc1000p_celsius_minute stc1000p_fahrenheit_minute stc1000p_celsius_com stc1000p_fahrenheit_com stc1000p_celsius_fo433 stc1000p_fahrenheit_fo433 eedata_celsius eedata_fahrenheit
+eedata_celsius_ovbsc: $(OBJ_EEPROM_C_OVBSC)
+	$(CC) -o $(OUTDIR)/$@ $^ $(CFLAGS) $(LIBS)
+
+eedata_fahrenheit_ovbsc: $(OBJ_EEPROM_F_OVBSC)
+	$(CC) -o $(OUTDIR)/$@ $^ $(CFLAGS) -DFAHRENHEIT $(LIBS)
+
+all: stc1000p_celsius stc1000p_fahrenheit stc1000p_celsius_minute stc1000p_fahrenheit_minute stc1000p_celsius_com stc1000p_fahrenheit_com stc1000p_celsius_fo433 stc1000p_fahrenheit_fo433 eedata_celsius eedata_fahrenheit stc1000p_celsius_ovbsc stc1000p_fahrenheit_ovbsc eedata_celsius_ovbsc eedata_fahrenheit_ovbsc
 
 .PHONY: clean
 
