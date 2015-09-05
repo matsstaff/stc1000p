@@ -64,6 +64,7 @@ static unsigned char fo433_sec_count = 24;
 #endif
 #if defined MINUTE
 int setpoint;
+unsigned int curr_dur = 0;
 #endif
 
 /* Functions.
@@ -449,9 +450,6 @@ static void program_fsm(){
 /* To be called once every hour on the hour.
  * Updates EEPROM configuration when running profile.
  */
-#if defined MINUTE
-unsigned int curr_dur = 0;
-#endif
 static void update_profile(){
 	unsigned char profile_no = eeprom_read_config(EEADR_MENU_ITEM(rn));
 

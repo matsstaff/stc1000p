@@ -71,32 +71,67 @@ static int range(int x, int min, int max){
 	return x;
 }
 
+/* Check and constrain a configuration value */
+static int check_value(int config_value, unsigned char eeadr){
+	int t_min = 0, t_max=999;
 #ifdef OVBSC
-
-static int check_value(unsigned char mi, int mv){
-	if(mi < MENU_SIZE){
-		if(menu[mi].type == t_temperature){
-			mv = range(mv, TEMP_MIN, TEMP_MAX);
-		} else if(menu[mi].type == t_tempdiff){
-			mv = range(mv, TEMP_CORR_MIN, TEMP_CORR_MAX);
-		} else if(menu[mi].type == t_duration){
-			mv = range(mv, 0, 999);
-		} else if(menu[mi].type == t_percentage){
-			mv = range(mv, -200, 200);
-		} else if(menu[mi].type == t_period){
-			mv = range(mv, 10, 200);
-		} else if(menu[mi].type == t_boolean){
-			mv = range(mv, 0, 1);
-		} else if(menu[mi].type == t_apflags){
-			mv = range(mv, 0, 511);
-		} else if(menu[mi].type == t_pumpflags){
-			mv = range(mv, 0, 31);
+	if(eeadr == MENU_SIZE){
+		t_max = 3;
+	} 		
+#else
+	if(eeadr < EEADR_MENU){
+		while(eeadr >= 19){
+			eeadr-=19;
 		}
-	} else {
-		 mv = range(mv, 0, 3);
+		if(!(eeadr & 0x1)){
+			t_min = TEMP_MIN;
+			t_max = TEMP_MAX;
+		}
+	} 
+#endif
+	else {
+		unsigned char type = menu[eeadr - EEADR_MENU].type;
+		if(type == t_temperature){
+			t_min = TEMP_MIN;
+			t_max = TEMP_MAX;
+		} else if(type == t_tempdiff){
+			t_min = TEMP_CORR_MIN;
+			t_max = TEMP_CORR_MAX;
+//		} else if(type == t_duration){
+		} else if(type == t_boolean){
+			t_max = 1;
+#ifdef OVBSC
+		} else if(type == t_percentage){
+			t_min = -200;
+			t_max = 200;
+		} else if(type == t_period){
+			t_min = 10;
+			t_max = 200;
+		} else if(type == t_apflags){
+			t_max = 511;
+		} else if(type == t_pumpflags){
+			t_max = 31;
+#else
+		} else if(type == t_hyst_1){
+			t_max = TEMP_HYST_1_MAX;
+		} else if(type == t_hyst_2){
+			t_max = TEMP_HYST_2_MAX;
+		} else if(type == t_sp_alarm){
+			t_min = SP_ALARM_MIN;
+			t_max = SP_ALARM_MAX;
+		} else if(type == t_step){
+			t_max = 8;
+		} else if(type == t_delay){
+			t_max = 60;
+		} else if(type == t_runmode){
+			t_max = 6;
+#endif
+		}
 	}
-	return mv;
+	return range(config_value, t_min, t_max);;
 }
+
+#ifdef OVBSC
 
 static void menu_to_led(unsigned char mi){
 	led_e.e_negative = 1;
@@ -114,58 +149,7 @@ static void menu_to_led(unsigned char mi){
 	}
 }
 
-#else
-
-/* Check and constrain a configuration value */
-static int check_config_value(int config_value, unsigned char eeadr){
-	if(eeadr < EEADR_MENU){
-		while(eeadr >= 19){
-			eeadr-=19;
-		}
-		if(eeadr & 0x1){
-			config_value = range(config_value, 0, 999);
-		} else {
-			config_value = range(config_value, TEMP_MIN, TEMP_MAX);
-		}
-	} else {
-		unsigned char type = menu[eeadr].type;
-		int t_min = 0, t_max=999;
-		eeadr -= EEADR_MENU;
-		if(type == t_temperature){
-			t_min = TEMP_MIN;
-			t_max = TEMP_MAX;
-//			config_value = range(config_value, TEMP_MIN, TEMP_MAX);
-		} else if(type == t_tempdiff){
-			t_min = TEMP_CORR_MIN;
-			t_max = TEMP_CORR_MAX;
-//			config_value = range(config_value, TEMP_CORR_MIN, TEMP_CORR_MAX);
-//		} else if(type == t_duration){
-//			t_max = 999;
-//			config_value = range(config_value, 0, 999);
-		} else if(type == t_hyst_1){
-			t_max = TEMP_HYST_1_MAX;
-//			config_value = range(config_value, 0, TEMP_HYST_1_MAX);
-		} else if(type == t_hyst_2){
-			t_max = TEMP_HYST_2_MAX;
-//			config_value = range(config_value, 0, TEMP_HYST_2_MAX);
-		} else if(type == t_sp_alarm){
-			t_min = SP_ALARM_MIN;
-			t_max = SP_ALARM_MAX;
-//			config_value = range(config_value, SP_ALARM_MIN, SP_ALARM_MAX);
-		} else if(type == t_step){
-			t_max = 8;
-//			config_value = range(config_value, 0, 8);
-		} else if(type == t_delay){
-			t_max = 60;
-//			config_value = range(config_value, 0, 60);
-		} else if(type == t_runmode){
-			t_max = 6;
-//			config_value = range(config_value, 0, 6);
-		}
-		config_value = range(config_value, t_min, t_max);
-	}
-	return config_value;
-}
+#else // !OVBSC
 
 static void prx_to_led(unsigned char run_mode, unsigned char is_menu){
 	led_e.e_negative = 1;
@@ -195,9 +179,9 @@ static void prx_to_led(unsigned char run_mode, unsigned char is_menu){
 #endif
 
 /* States for the menu FSM */
-#if defined OVBSC
 enum menu_states {
 	menu_idle = 0,
+#ifdef OVBSC
 	menu_show_version,
 	menu_show_output,
 	menu_show_state,
@@ -206,32 +190,23 @@ enum menu_states {
 	menu_set_item,
 	menu_show_value,
 	menu_set_value
-};
 #else
-enum menu_states {
-	menu_idle = 0,
-
 	menu_power_down_wait,
-
 	menu_show_version,
-
 	menu_show_sp,
-
 	menu_show_profile,
 	menu_show_profile_st,
 	menu_show_profile_dh,
-
 	menu_show_menu_item,
 	menu_set_menu_item,
 	menu_show_config_item,
 	menu_set_config_item,
 	menu_show_config_value,
 	menu_set_config_value,
-
 	menu_up_pressed,
 	menu_down_pressed,
-};
 #endif
+};
 
 /* Due to a fault in SDCC, static local variables are not initialized
  * properly, so the variables below were moved from button_menu_fsm()
@@ -283,7 +258,7 @@ void button_menu_fsm(){
 	}
 
 	switch(menustate){
-#if defined OVBSC
+#ifdef OVBSC
 		case menu_idle:
 			if(ALARM && ((_buttons & 0x0f) == 0) && ((_buttons & 0xf0) !=0)){
 				ALARM = 0;
@@ -710,7 +685,7 @@ chk_skip_menu_item:
 		} else if(BTN_RELEASED(BTN_S)){
 			unsigned char adr = MI_CI_TO_EEADR(menu_item, config_item);
 			config_value = eeprom_read_config(adr);
-			config_value = check_config_value(config_value, adr);
+			config_value = check_value(config_value, adr);
 			m_countdown = 110;
 			menustate = menu_show_config_value;
 		}
@@ -755,7 +730,7 @@ chk_skip_menu_item:
 					config_value-=9;
 				}
 chk_cfg_acc_label:
-				config_value = check_config_value(config_value, adr);
+				config_value = check_value(config_value, adr);
 				if(PR6 > 30){
 					PR6-=8;
 				}

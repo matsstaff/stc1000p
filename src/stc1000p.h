@@ -66,26 +66,26 @@
 /* Clear Watchdog */
 #define ClrWdt() 					{ __asm CLRWDT __endasm; }
 
-// TODO These need to be merged (from OVBSC)
 /* Special registers used as flags */ 
 #define	MENU_IDLE				TMR1GE
 #define	SENSOR_SELECT			RX9
-#define RUN_PRG				C1POL
-#define ALARM				C2POL
-#define	PAUSE				C1HYS
-#define THERMOSTAT			C2HYS
-#define PUMP				C1SYNC
-#define UNUSED2				C2SYNC
-/* Initialized to 1 */
-#define OFF					C1SP
+#ifdef OVBSC
+	#define RUN_PRG				C1POL
+	#define ALARM				C2POL
+	#define	PAUSE				C1HYS
+	#define THERMOSTAT			C2HYS
+	#define PUMP				C1SYNC
+	#define UNUSED2				C2SYNC
+	/* Initialized to 1 */
+	#define OFF					C1SP
 
-// RA1 output, write high.
-#define	PUMP_ON()			do { TRISA1=0; LATA1=1; } while(0)
-// RA1 input, tristate
-#define PUMP_MANUAL()		do { TRISA1=1; LATA1=0; } while(0)
-// RA1 output, write low.
-#define PUMP_OFF()			do { TRISA1=0; LATA1=0; } while(0)
-// end TODO
+	// RA1 output, write high.
+	#define	PUMP_ON()			do { TRISA1=0; LATA1=1; } while(0)
+	// RA1 input, tristate
+	#define PUMP_MANUAL()		do { TRISA1=1; LATA1=0; } while(0)
+	// RA1 output, write low.
+	#define PUMP_OFF()			do { TRISA1=0; LATA1=0; } while(0)
+#endif
 
 /* Define limits for temperatures */
 #ifdef FAHRENHEIT
@@ -130,22 +130,22 @@
 #endif
 
 enum e_item_type {
-	t_temperature=0,	// TEMP_MIN to TEMP_MAX
-	t_tempdiff,			// TEMP_CORR_MIN to TEMP_CORR_MAX
-	t_duration,			// 0 to 999
-	t_boolean,			// 0 to 1
+	t_temperature=0,
+	t_tempdiff,
+	t_duration,
+	t_boolean,
 #ifdef OVBSC
-	t_percentage,		// -200 to 200
-	t_period,			// 10 to 200
-	t_apflags,			// 0 to 511
-	t_pumpflags			// 0 to 31
+	t_percentage,
+	t_period,
+	t_apflags,
+	t_pumpflags
 #else
-	t_hyst_1,			// 0 to TEMP_HYST_1_MAX
-	t_hyst_2,			// 0 to TEMP_HYST_2_MAX
-	t_sp_alarm,			// SP_ALARM_MIN to SP_ALARM_MAX
-	t_step,				// 0 to 8
-	t_delay,			// 0 to 60
-	t_runmode			// 0 to 6
+	t_hyst_1,
+	t_hyst_2,
+	t_sp_alarm,
+	t_step,
+	t_delay,
+	t_runmode
 #endif
 };
 
@@ -219,8 +219,8 @@ enum menu_enum {
 };
 
 /* Defines for EEPROM config addresses */
-#if defined OVBSC
-	#define EEADR_MENU_ITEM(name)	(name)
+#ifdef OVBSC
+	#define EEADR_MENU				0
 #else
 	#define NO_OF_PROFILES			6
 	#define MENU_ITEM_NO			NO_OF_PROFILES
@@ -229,10 +229,9 @@ enum menu_enum {
 	#define EEADR_PROFILE_SETPOINT(profile, step)	(((profile)*19) + ((step)<<1))
 	#define EEADR_PROFILE_DURATION(profile, step)	EEADR_PROFILE_SETPOINT(profile, step) + 1
 	#define EEADR_MENU								EEADR_PROFILE_SETPOINT(NO_OF_PROFILES, 0)
-	#define EEADR_MENU_ITEM(name)					(EEADR_MENU + (name))
 	#define EEADR_POWER_ON							127
 #endif
-
+#define EEADR_MENU_ITEM(name)		(EEADR_MENU + (name))
 #define MENU_SIZE					(sizeof(menu)/sizeof(menu[0]))
 
 #define LED_OFF	0xff
@@ -345,16 +344,12 @@ extern unsigned const char led_lookup[];
 	extern unsigned char mashstep;
 #endif
 
-
-
 extern unsigned int eeprom_read_config(unsigned char eeprom_address);
 extern void eeprom_write_config(unsigned char eeprom_address,unsigned int data);
 extern void value_to_led(int value, unsigned char decimal);
 #define int_to_led(v)				value_to_led(v, 0)
 #define temperature_to_led(v)		value_to_led(v, 1)
-#if defined OVBSC
-	#define decimal_to_led(v)		value_to_led(v, 2);
-#endif
+#define decimal_to_led(v)			value_to_led(v, 2);
 
 /* Declare functions and variables from Page 1 */
 extern void button_menu_fsm();

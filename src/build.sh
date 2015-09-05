@@ -146,7 +146,7 @@ echo "const char hex_fahrenheit[] PROGMEM = {" >> picprog_ovbsc.tmp;
 for l in `cat build/stc1000p_fahrenheit_ovbsc.hex | sed 's/^://' | sed 's/\(..\)/0\x\1\,/g'`; do 
 	echo "   $l" | sed 's/0x00,0x00,0x00,0x01,0xFF,/0x00,0x00,0x00,0x01,0xFF/' >> picprog_ovbsc.tmp; 
 done; 
-echo "};" >> picprog_minute.tmp
+echo "};" >> picprog_ovbsc.tmp
 
 echo "const char hex_eeprom_celsius[] PROGMEM = {" >> picprog_ovbsc.tmp; 
 for l in `cat build/eedata_celsius_ovbsc.hex | sed 's/^://' | sed 's/\(..\)/0\x\1\,/g'`; do 
