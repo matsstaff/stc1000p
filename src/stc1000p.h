@@ -68,7 +68,7 @@
 
 /* Special registers used as flags */ 
 #define	MENU_IDLE				TMR1GE
-#define	SENSOR_SELECT			RX9
+#define	SENSOR_SELECT			TX9
 #ifdef OVBSC
 	#define RUN_PRG				C1POL
 	#define ALARM				C2POL
@@ -85,6 +85,8 @@
 	#define PUMP_MANUAL()		do { TRISA1=1; LATA1=0; } while(0)
 	// RA1 output, write low.
 	#define PUMP_OFF()			do { TRISA1=0; LATA1=0; } while(0)
+#else /* !OVBSC */
+	#define	SHOW_SA_ALARM		RX9
 #endif
 
 /* Define limits for temperatures */
@@ -129,25 +131,36 @@
 	#endif
 #endif
 
+/* Enum to specify the types of the parameters in the menu. */
+/* Note that this list needs to be ordered by how they should be presented on the display. */
+/* The 'temperature types' should be first so that everything less or equal to t_sp_alarm */
+/* (or t_tempdiff for OVBSC) will be presented as a temperature. */
+/* t_runmode and t_period are handled as special cases, everything else is displayed as integers. */
 enum e_item_type {
 	t_temperature=0,
 	t_tempdiff,
-	t_duration,
-	t_boolean,
 #ifdef OVBSC
 	t_percentage,
 	t_period,
 	t_apflags,
-	t_pumpflags
+	t_pumpflags,
 #else
 	t_hyst_1,
 	t_hyst_2,
 	t_sp_alarm,
 	t_step,
 	t_delay,
-	t_runmode
+	t_runmode,
 #endif
+	t_duration,
+	t_boolean
 };
+
+#ifdef OVBSC
+	#define MENU_TYPE_IS_TEMPERATURE(x) 	((x) <= t_tempdiff)
+#else
+	#define MENU_TYPE_IS_TEMPERATURE(x) 	((x) <= t_sp_alarm)
+#endif
 
 #if defined OVBSC
 	#define MENU_DATA(_) \
@@ -194,12 +207,12 @@ enum e_item_type {
 	 * 	name, LED data 10, LED data 1, LED data 01, min value, max value, default value
 	 */
 	#define MENU_DATA(_) \
+		_(SP, 	LED_S, 	LED_P, 	LED_OFF, 	t_temperature,		DEFAULT_SP)		\
 		_(hy, 	LED_h, 	LED_y, 	LED_OFF, 	t_hyst_1,			DEFAULT_hy) 	\
 		_(hy2, 	LED_h, 	LED_y, 	LED_2, 		t_hyst_2, 			DEFAULT_hy2)	\
 		_(tc, 	LED_t, 	LED_c, 	LED_OFF, 	t_tempdiff,			0)				\
 		_(tc2, 	LED_t, 	LED_c, 	LED_2, 		t_tempdiff,			0)				\
 		_(SA, 	LED_S, 	LED_A, 	LED_OFF, 	t_sp_alarm,			0)				\
-		_(SP, 	LED_S, 	LED_P, 	LED_OFF, 	t_temperature,		DEFAULT_SP)		\
 		_(St, 	LED_S, 	LED_t, 	LED_OFF, 	t_step,				0)				\
 		_(dh, 	LED_d, 	LED_h, 	LED_OFF, 	t_duration,			0)				\
 		_(cd, 	LED_c, 	LED_d, 	LED_OFF, 	t_delay,			5)				\

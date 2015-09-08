@@ -39,14 +39,15 @@ unsigned const char led_lookup[] = { LED_0, LED_1, LED_2, LED_3, LED_4, LED_5, L
 /* Global variables to hold LED data (for multiplexing purposes) */
 led_e_t led_e = {0xff};
 led_t led_10, led_1, led_01;
+
+static int temperature=0;
+
 #if defined OVBSC
 led_t al_led_10, al_led_1, al_led_01;
 int setpoint=0;
 int output=0;
 static int thermostat_output=0;
 #endif
-
-static int temperature=0;
 #if defined PB2
 static int temperature2=0;
 #elif defined COM
@@ -1166,15 +1167,15 @@ void main(void) __naked {
 					temperature_control();
 
 					// Show temperature if menu is idle
-					if(TMR1GE){
-						if(LATA0 && RX9){
+					if(MENU_IDLE){
+						if(LATA0 && SHOW_SA_ALARM){
 							led_10.raw = LED_S;
 							led_1.raw = LED_A;
 							led_01.raw = LED_OFF;
 						} else {
 #if defined PB2
-							led_e.e_point = !TX9;
-							if(TX9){
+							led_e.e_point = !SENSOR_SELECT;
+							if(SENSOR_SELECT){
 								temperature_to_led(temperature2);
 							} else {
 								temperature_to_led(temperature);
@@ -1183,7 +1184,7 @@ void main(void) __naked {
 							temperature_to_led(temperature);
 #endif
 						}
-						RX9 = !RX9;
+						SHOW_SA_ALARM = !SHOW_SA_ALARM;
 					}
 				}
 #endif // !OVBSC
