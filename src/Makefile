@@ -2,96 +2,79 @@ CC=sdcc
 CFLAGS=--use-non-free -mpic14 -p16f1828 --opt-code-size --no-pcode-opt --stack-size 8
 OUTDIR=build
 DEPS = stc1000p.h
-OBJ_C = $(OUTDIR)/page0_c.o $(OUTDIR)/page1_c.o
-OBJ_F = $(OUTDIR)/page0_f.o $(OUTDIR)/page1_f.o
-OBJ_C_MINUTE = $(OUTDIR)/page0_c_minute.o $(OUTDIR)/page1_c_minute.o
-OBJ_F_MINUTE = $(OUTDIR)/page0_f_minute.o $(OUTDIR)/page1_f_minute.o
-OBJ_C_COM = $(OUTDIR)/page0_c_com.o $(OUTDIR)/page1_c_com.o
-OBJ_F_COM = $(OUTDIR)/page0_f_com.o $(OUTDIR)/page1_f_com.o
-OBJ_C_FO433 = $(OUTDIR)/page0_c_fo433.o $(OUTDIR)/page1_c_fo433.o
-OBJ_F_FO433 = $(OUTDIR)/page0_f_fo433.o $(OUTDIR)/page1_f_fo433.o
-OBJ_C_OVBSC = $(OUTDIR)/page0_c_ovbsc.o $(OUTDIR)/page1_c_ovbsc.o
-OBJ_F_OVBSC = $(OUTDIR)/page0_f_ovbsc.o $(OUTDIR)/page1_f_ovbsc.o
-OBJ_EEPROM_C = $(OUTDIR)/eepromdata_c.o
-OBJ_EEPROM_F = $(OUTDIR)/eepromdata_f.o
-OBJ_EEPROM_C_OVBSC = $(OUTDIR)/eepromdata_c_ovbsc.o
-OBJ_EEPROM_F_OVBSC = $(OUTDIR)/eepromdata_f_ovbsc.o
 
-$(OUTDIR)/%_c.o: %.c $(DEPS)
-	$(CC) -c -o $@ $< $(CFLAGS) -DPB2
+$(OUTDIR)/page0_%.o: page0.c stc1000p.h
+	$(CC) -c -o $@ $< $(CFLAGS) $(VFLAGS)
 
-$(OUTDIR)/%_f.o: %.c $(DEPS)
-	$(CC) -c -o $@ $< $(CFLAGS) -DFAHRENHEIT -DPB2
+$(OUTDIR)/page1_%.o: page1.c stc1000p.h
+	$(CC) -c -o $@ $< $(CFLAGS) $(VFLAGS)
 
-$(OUTDIR)/%_c_minute.o: %.c $(DEPS)
-	$(CC) -c -o $@ $< $(CFLAGS) -DPB2 -DMINUTE
+stc1000p_%: $(OUTDIR)/page0_%.o $(OUTDIR)/page1_%.o
+	$(CC) -o $(OUTDIR)/$@ $^ $(CFLAGS) $(VFLAGS)
 
-$(OUTDIR)/%_f_minute.o: %.c $(DEPS)
-	$(CC) -c -o $@ $< $(CFLAGS) -DFAHRENHEIT -DPB2 -DMINUTE
+$(OUTDIR)/eedata_%.o: eepromdata.c stc1000p.h
+	$(CC) -c -o $@ $< $(CFLAGS) $(VFLAGS)
 
-$(OUTDIR)/%_c_com.o: %.c $(DEPS)
-	$(CC) -c -o $@ $< $(CFLAGS) -DCOM
+eedata_%: $(OUTDIR)/eedata_%.o
+	$(CC) -o $(OUTDIR)/$@ $^ $(CFLAGS) $(VFLAGS)
 
-$(OUTDIR)/%_f_com.o: %.c $(DEPS)
-	$(CC) -c -o $@ $< $(CFLAGS) -DFAHRENHEIT -DCOM
+stc1000p_celsius: VFLAGS := 
+stc1000p_fahrenheit: VFLAGS := -DFAHRENHEIT
+eedata_celsius: VFLAGS := 
+eedata_fahrenheit: VFLAGS := -DFAHRENHEIT
+stc1000p: stc1000p_celsius stc1000p_fahrenheit eedata_celsius eedata_fahrenheit
 
-$(OUTDIR)/%_c_fo433.o: %.c $(DEPS)
-	$(CC) -c -o $@ $< $(CFLAGS) -DFO433
+stc1000p_celsius_probe2: VFLAGS := -DPB2
+stc1000p_fahrenheit_probe2: VFLAGS := -DFAHRENHEIT -DPB2
+eedata_celsius_probe2: VFLAGS := -DPB2
+eedata_fahrenheit_probe2: VFLAGS := -DFAHRENHEIT -DPB2
+stc1000p_probe2: stc1000p_celsius_probe2 stc1000p_fahrenheit_probe2 eedata_celsius_probe2 eedata_fahrenheit_probe2
 
-$(OUTDIR)/%_f_fo433.o: %.c $(DEPS)
-	$(CC) -c -o $@ $< $(CFLAGS) -DFAHRENHEIT -DOVBSC
+stc1000p_celsius_com: VFLAGS := -DCOM
+stc1000p_fahrenheit_com: VFLAGS := -DFAHRENHEIT -DCOM
+eedata_celsius_com: VFLAGS := -DCOM
+eedata_fahrenheit_com: VFLAGS := -DFAHRENHEIT -DCOM
+stc1000p_com: stc1000p_celsius_com stc1000p_fahrenheit_com eedata_celsius_com eedata_fahrenheit_com
 
-$(OUTDIR)/%_c_ovbsc.o: %.c $(DEPS)
-	$(CC) -c -o $@ $< $(CFLAGS) -DOVBSC
+stc1000p_celsius_fo433: VFLAGS := -DFO433
+stc1000p_fahrenheit_fo433: VFLAGS := -DFAHRENHEIT -DFO433
+eedata_celsius_fo433: VFLAGS := -DFO433
+eedata_fahrenheit_fo433: VFLAGS := -DFAHRENHEIT -DFO433
+stc1000p_fo433: stc1000p_celsius_fo433 stc1000p_fahrenheit_fo433 eedata_celsius_fo433 eedata_fahrenheit_fo433
 
-$(OUTDIR)/%_f_ovbsc.o: %.c $(DEPS)
-	$(CC) -c -o $@ $< $(CFLAGS) -DFAHRENHEIT -DOVBSC
+stc1000p_celsius_minute: VFLAGS := -DMINUTE
+stc1000p_fahrenheit_minute: VFLAGS := -DFAHRENHEIT -DMINUTE
+eedata_celsius_minute: VFLAGS := -DMINUTE
+eedata_fahrenheit_minute: VFLAGS := -DFAHRENHEIT -DMINUTE
+stc1000p_minute: stc1000p_celsius_minute stc1000p_fahrenheit_minute eedata_celsius_minute eedata_fahrenheit_minute
 
-stc1000p_celsius: $(OBJ_C)
-	$(CC) -o $(OUTDIR)/$@ $^ $(CFLAGS) $(LIBS)
+stc1000p_celsius_minute_probe2: VFLAGS := -DMINUTE -DPB2
+stc1000p_fahrenheit_minute_probe2: VFLAGS := -DFAHRENHEIT -DMINUTE -DPB2
+eedata_celsius_minute_probe2: VFLAGS := -DMINUTE -DPB2
+eedata_fahrenheit_minute_probe2: VFLAGS := -DFAHRENHEIT -DMINUTE -DPB2
+stc1000p_minute_probe2: stc1000p_celsius_minute_probe2 stc1000p_fahrenheit_minute_probe2 eedata_celsius_minute_probe2 eedata_fahrenheit_minute_probe2
 
-stc1000p_fahrenheit: $(OBJ_F)
-	$(CC) -o $(OUTDIR)/$@ $^ $(CFLAGS) -DFAHRENHEIT $(LIBS)
+stc1000p_celsius_minute_com: VFLAGS := -DMINUTE -DCOM
+stc1000p_fahrenheit_minute_com: VFLAGS := -DFAHRENHEIT -DMINUTE -DCOM
+eedata_celsius_minute_com: VFLAGS := -DMINUTE -DCOM
+eedata_fahrenheit_minute_com: VFLAGS := -DFAHRENHEIT -DMINUTE -DCOM
+stc1000p_minute_com: stc1000p_celsius_minute_com stc1000p_fahrenheit_minute_com eedata_celsius_minute_com eedata_fahrenheit_minute_com
 
-stc1000p_celsius_minute: $(OBJ_C_MINUTE)
-	$(CC) -o $(OUTDIR)/$@ $^ $(CFLAGS) -DPB2 -DMINUTE $(LIBS)
+stc1000p_celsius_minute_fo433: VFLAGS := -DMINUTE -DFO433
+stc1000p_fahrenheit_minute_fo433: VFLAGS := -DFAHRENHEIT -DMINUTE -DFO433
+eedata_celsius_minute_fo433: VFLAGS := -DMINUTE -DFO433
+eedata_fahrenheit_minute_fo433: VFLAGS := -DFAHRENHEIT -DMINUTE -DFO433
+stc1000p_minute_fo433: stc1000p_celsius_minute_fo433 stc1000p_fahrenheit_minute_fo433 eedata_celsius_minute_fo433 eedata_fahrenheit_minute_fo433
 
-stc1000p_fahrenheit_minute: $(OBJ_F_MINUTE)
-	$(CC) -o $(OUTDIR)/$@ $^ $(CFLAGS) -DFAHRENHEIT -DPB2 -DMINUTE $(LIBS)
+stc1000p_celsius_ovbsc: VFLAGS := -DOVBSC
+stc1000p_fahrenheit_ovbsc: VFLAGS := -DFAHRENHEIT -DOVBSC
+eedata_celsius_ovbsc: VFLAGS := -DOVBSC
+eedata_fahrenheit_ovbsc: VFLAGS := -DFAHRENHEIT -DOVBSC
+stc1000p_ovbsc: stc1000p_celsius_ovbsc stc1000p_fahrenheit_ovbsc eedata_celsius_ovbsc eedata_fahrenheit_ovbsc
 
-stc1000p_celsius_com: $(OBJ_C_COM)
-	$(CC) -o $(OUTDIR)/$@ $^ $(CFLAGS) -DCOM $(LIBS)
+all: stc1000p stc1000p_probe2 stc1000p_com stc1000p_fo433 stc1000p_minute stc1000p_minute_probe2 stc1000p_minute_com stc1000p_minute_fo433 stc1000p_ovbsc
 
-stc1000p_fahrenheit_com: $(OBJ_F_COM)
-	$(CC) -o $(OUTDIR)/$@ $^ $(CFLAGS) -DFAHRENHEIT -DCOM $(LIBS)
-
-stc1000p_celsius_fo433: $(OBJ_C_FO433)
-	$(CC) -o $(OUTDIR)/$@ $^ $(CFLAGS) -DFO433 $(LIBS)
-
-stc1000p_fahrenheit_fo433: $(OBJ_F_FO433)
-	$(CC) -o $(OUTDIR)/$@ $^ $(CFLAGS) -DFAHRENHEIT -DFO433 $(LIBS)
-
-stc1000p_celsius_ovbsc: $(OBJ_C_OVBSC)
-	$(CC) -o $(OUTDIR)/$@ $^ $(CFLAGS) -DOVBSC $(LIBS)
-
-stc1000p_fahrenheit_ovbsc: $(OBJ_F_OVBSC)
-	$(CC) -o $(OUTDIR)/$@ $^ $(CFLAGS) -DFAHRENHEIT -DOVBSC $(LIBS)
-
-eedata_celsius: $(OBJ_EEPROM_C)
-	$(CC) -o $(OUTDIR)/$@ $^ $(CFLAGS) $(LIBS)
-
-eedata_fahrenheit: $(OBJ_EEPROM_F)
-	$(CC) -o $(OUTDIR)/$@ $^ $(CFLAGS) -DFAHRENHEIT $(LIBS)
-
-eedata_celsius_ovbsc: $(OBJ_EEPROM_C_OVBSC)
-	$(CC) -o $(OUTDIR)/$@ $^ $(CFLAGS) $(LIBS)
-
-eedata_fahrenheit_ovbsc: $(OBJ_EEPROM_F_OVBSC)
-	$(CC) -o $(OUTDIR)/$@ $^ $(CFLAGS) -DFAHRENHEIT $(LIBS)
-
-all: stc1000p_celsius stc1000p_fahrenheit stc1000p_celsius_minute stc1000p_fahrenheit_minute stc1000p_celsius_com stc1000p_fahrenheit_com stc1000p_celsius_fo433 stc1000p_fahrenheit_fo433 eedata_celsius eedata_fahrenheit stc1000p_celsius_ovbsc stc1000p_fahrenheit_ovbsc eedata_celsius_ovbsc eedata_fahrenheit_ovbsc
-
-.PHONY: clean
+.PHONY: clean stc1000p stc1000p_probe2 stc1000p_com stc1000p_fo433 stc1000p_minute stc1000p_minute_probe2 stc1000p_minute_com stc1000p_minute_fo433 stc1000p_ovbsc
 
 clean:
 	rm -f $(OUTDIR)/*.o *~ core $(OUTDIR)/*.asm $(OUTDIR)/*.lst $(OUTDIR)/*.cod

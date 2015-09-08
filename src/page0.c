@@ -957,7 +957,7 @@ static void fo433_fsm(){
 		fo433_data = 0x45;
 		crc = 0;
 	} else if(fo433_state == fo433_devid_low_temp_high){
-		unsigned char di = ((unsigned char)eeprom_read_config(EEADR_MENU_ITEM(hy2))) << 4;
+		unsigned char di = ((unsigned char)eeprom_read_config(EEADR_MENU_ITEM(dI))) << 4;
 		t = temperature;
 		fo433_data = (di | ((t >> 8) & 0xf));
 	} else if(fo433_state == fo433_temp_low){
