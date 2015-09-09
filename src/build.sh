@@ -21,204 +21,97 @@
 
 # This is a simple script to make building STC-1000+ releases easier.
 
-# Build HEX files
-make clean all
-
 # Extract version info from stc1000p.h
 v=`cat stc1000p.h | grep STC1000P_VERSION`
 e=`cat stc1000p.h | grep STC1000P_EEPROM_VERSION`
 
-# Remove embedded HEX data from previous sketch and insert version info
-cat ../picprog.ino | sed -n '/^const char hex_celsius\[\] PROGMEM/q;p' | sed "s/^#define STC1000P_VERSION.*/$v/" | sed "s/^#define STC1000P_EEPROM_VERSION.*/$e/" >> picprog.tmp
-cp picprog.tmp picprog_com.tmp 
-cp picprog.tmp picprog_fo433.tmp
-cp picprog.tmp picprog_minute.tmp
-
-# picprog.ino
-echo "const char hex_celsius[] PROGMEM = {" >> picprog.tmp; 
-for l in `cat build/stc1000p_celsius.hex | sed 's/^://' | sed 's/\(..\)/0\x\1\,/g'`; do 
-	echo "   $l" | sed 's/0x00,0x00,0x00,0x01,0xFF,/0x00,0x00,0x00,0x01,0xFF/' >> picprog.tmp; 
-done; 
-echo "};" >> picprog.tmp
-
-echo "const char hex_fahrenheit[] PROGMEM = {" >> picprog.tmp; 
-for l in `cat build/stc1000p_fahrenheit.hex | sed 's/^://' | sed 's/\(..\)/0\x\1\,/g'`; do 
-	echo "   $l" | sed 's/0x00,0x00,0x00,0x01,0xFF,/0x00,0x00,0x00,0x01,0xFF/' >> picprog.tmp; 
-done; 
-echo "};" >> picprog.tmp
-
-echo "const char hex_eeprom_celsius[] PROGMEM = {" >> picprog.tmp; 
-for l in `cat build/eedata_celsius.hex | sed 's/^://' | sed 's/\(..\)/0\x\1\,/g'`; do 
-	echo "   $l" | sed 's/0x00,0x00,0x00,0x01,0xFF,/0x00,0x00,0x00,0x01,0xFF/' >> picprog.tmp; 
-done; 
-echo "};" >> picprog.tmp
-
-echo "const char hex_eeprom_fahrenheit[] PROGMEM = {" >> picprog.tmp; 
-for l in `cat build/eedata_fahrenheit.hex | sed 's/^://' | sed 's/\(..\)/0\x\1\,/g'`; do 
-	echo "   $l" | sed 's/0x00,0x00,0x00,0x01,0xFF,/0x00,0x00,0x00,0x01,0xFF/' >> picprog.tmp; 
-done; 
-echo "};" >> picprog.tmp
-
-# picprog_com.ino
-echo "const char hex_celsius[] PROGMEM = {" >> picprog_com.tmp; 
-for l in `cat build/stc1000p_celsius_com.hex | sed 's/^://' | sed 's/\(..\)/0\x\1\,/g'`; do 
-	echo "   $l" | sed 's/0x00,0x00,0x00,0x01,0xFF,/0x00,0x00,0x00,0x01,0xFF/' >> picprog_com.tmp; 
-done; 
-echo "};" >> picprog_com.tmp
-
-echo "const char hex_fahrenheit[] PROGMEM = {" >> picprog_com.tmp; 
-for l in `cat build/stc1000p_fahrenheit_com.hex | sed 's/^://' | sed 's/\(..\)/0\x\1\,/g'`; do 
-	echo "   $l" | sed 's/0x00,0x00,0x00,0x01,0xFF,/0x00,0x00,0x00,0x01,0xFF/' >> picprog_com.tmp; 
-done; 
-echo "};" >> picprog_com.tmp
-
-echo "const char hex_eeprom_celsius[] PROGMEM = {" >> picprog_com.tmp; 
-for l in `cat build/eedata_celsius.hex | sed 's/^://' | sed 's/\(..\)/0\x\1\,/g'`; do 
-	echo "   $l" | sed 's/0x00,0x00,0x00,0x01,0xFF,/0x00,0x00,0x00,0x01,0xFF/' >> picprog_com.tmp; 
-done; 
-echo "};" >> picprog_com.tmp
-
-echo "const char hex_eeprom_fahrenheit[] PROGMEM = {" >> picprog_com.tmp; 
-for l in `cat build/eedata_fahrenheit.hex | sed 's/^://' | sed 's/\(..\)/0\x\1\,/g'`; do 
-	echo "   $l" | sed 's/0x00,0x00,0x00,0x01,0xFF,/0x00,0x00,0x00,0x01,0xFF/' >> picprog_com.tmp; 
-done; 
-echo "};" >> picprog_com.tmp
-
-# picprog_fo433.ino
-echo "const char hex_celsius[] PROGMEM = {" >> picprog_fo433.tmp; 
-for l in `cat build/stc1000p_celsius_fo433.hex | sed 's/^://' | sed 's/\(..\)/0\x\1\,/g'`; do 
-	echo "   $l" | sed 's/0x00,0x00,0x00,0x01,0xFF,/0x00,0x00,0x00,0x01,0xFF/' >> picprog_fo433.tmp; 
-done; 
-echo "};" >> picprog_fo433.tmp
-
-echo "const char hex_fahrenheit[] PROGMEM = {" >> picprog_fo433.tmp; 
-for l in `cat build/stc1000p_fahrenheit_fo433.hex | sed 's/^://' | sed 's/\(..\)/0\x\1\,/g'`; do 
-	echo "   $l" | sed 's/0x00,0x00,0x00,0x01,0xFF,/0x00,0x00,0x00,0x01,0xFF/' >> picprog_fo433.tmp; 
-done; 
-echo "};" >> picprog_fo433.tmp
-
-echo "const char hex_eeprom_celsius[] PROGMEM = {" >> picprog_fo433.tmp; 
-for l in `cat build/eedata_celsius.hex | sed 's/^://' | sed 's/\(..\)/0\x\1\,/g'`; do 
-	echo "   $l" | sed 's/0x00,0x00,0x00,0x01,0xFF,/0x00,0x00,0x00,0x01,0xFF/' >> picprog_fo433.tmp; 
-done; 
-echo "};" >> picprog_fo433.tmp
-
-echo "const char hex_eeprom_fahrenheit[] PROGMEM = {" >> picprog_fo433.tmp; 
-for l in `cat build/eedata_fahrenheit.hex | sed 's/^://' | sed 's/\(..\)/0\x\1\,/g'`; do 
-	echo "   $l" | sed 's/0x00,0x00,0x00,0x01,0xFF,/0x00,0x00,0x00,0x01,0xFF/' >> picprog_fo433.tmp; 
-done; 
-echo "};" >> picprog_fo433.tmp
-
-# picprog_minute.ino
-echo "const char hex_celsius[] PROGMEM = {" >> picprog_minute.tmp; 
-for l in `cat build/stc1000p_celsius_minute.hex | sed 's/^://' | sed 's/\(..\)/0\x\1\,/g'`; do 
-	echo "   $l" | sed 's/0x00,0x00,0x00,0x01,0xFF,/0x00,0x00,0x00,0x01,0xFF/' >> picprog_minute.tmp; 
-done; 
-echo "};" >> picprog_minute.tmp
-
-echo "const char hex_fahrenheit[] PROGMEM = {" >> picprog_minute.tmp; 
-for l in `cat build/stc1000p_fahrenheit_minute.hex | sed 's/^://' | sed 's/\(..\)/0\x\1\,/g'`; do 
-	echo "   $l" | sed 's/0x00,0x00,0x00,0x01,0xFF,/0x00,0x00,0x00,0x01,0xFF/' >> picprog_minute.tmp; 
-done; 
-echo "};" >> picprog_minute.tmp
-
-echo "const char hex_eeprom_celsius[] PROGMEM = {" >> picprog_minute.tmp; 
-for l in `cat build/eedata_celsius.hex | sed 's/^://' | sed 's/\(..\)/0\x\1\,/g'`; do 
-	echo "   $l" | sed 's/0x00,0x00,0x00,0x01,0xFF,/0x00,0x00,0x00,0x01,0xFF/' >> picprog_minute.tmp; 
-done; 
-echo "};" >> picprog_minute.tmp
-
-echo "const char hex_eeprom_fahrenheit[] PROGMEM = {" >> picprog_minute.tmp; 
-for l in `cat build/eedata_fahrenheit.hex | sed 's/^://' | sed 's/\(..\)/0\x\1\,/g'`; do 
-	echo "   $l" | sed 's/0x00,0x00,0x00,0x01,0xFF,/0x00,0x00,0x00,0x01,0xFF/' >> picprog_minute.tmp; 
-done; 
-echo "};" >> picprog_minute.tmp
-
-# Create picprog.js
-cat picprog.tmp | sed -n '/^const char hex_eeprom_celsius\[\] PROGMEM/q;p' | sed "s/'/\\\\\\\'/g" > picprog.js.tmp
-echo "var picprog='' +" > ../profile/picprog.js
+# Create stc1000p.js
+cat picprog.template | sed "s/^#define STC1000P_VERSION.*/$v/" | sed "s/^#define STC1000P_EEPROM_VERSION.*/$e/" | sed "s/'/\\\\\\\'/g" > stc1000p.js.tmp
+echo "var stc1000p={};" > ../profile/stc1000p.js
+echo "stc1000p[\"picprog\"]='' +" >> ../profile/stc1000p.js
 while IFS= read r; do
 	echo "'$r\n' +"; 
-done < picprog.js.tmp >> ../profile/picprog.js
-echo "'';" >> ../profile/picprog.js
-rm -f picprog.js.tmp
+done < stc1000p.js.tmp >> ../profile/stc1000p.js
+echo "'';" >> ../profile/stc1000p.js
+rm -f stc1000p.js.tmp
 
-# Create picprog_com.js
-cat picprog_com.tmp | sed -n '/^const char hex_eeprom_celsius\[\] PROGMEM/q;p' | sed "s/'/\\\\\\\'/g" > picprog_com.js.tmp
-echo "var picprog_com='' +" > ../profile/picprog_com.js
-while IFS= read r; do
-	echo "'$r\n' +"; 
-done < picprog_com.js.tmp >> ../profile/picprog_com.js
-echo "'';" >> ../profile/picprog_com.js
-rm -f picprog_com.js.tmp
+function build_stc1000p_version {
+	
+	if [[ $1 != "" ]]; then 
+		version=_$1
+	else
+		version=$1
+	fi
+	
+	# Build HEX
+	echo "";
+	echo "Building stc1000p$version"
+	make stc1000p$version
 
-# Create picprog_fo433.js
-cat picprog_fo433.tmp | sed -n '/^const char hex_eeprom_celsius\[\] PROGMEM/q;p' | sed "s/'/\\\\\\\'/g" > picprog_fo433.js.tmp
-echo "var picprog_fo433='' +" > ../profile/picprog_fo433.js
-while IFS= read r; do
-	echo "'$r\n' +"; 
-done < picprog_fo433.js.tmp >> ../profile/picprog_fo433.js
-echo "'';" >> ../profile/picprog_fo433.js
-rm -f picprog_fo433.js.tmp
+	echo "";
+	echo "Create picprog$version.ino";
 
-# Create picprog_minute.js
-cat picprog_minute.tmp | sed -n '/^const char hex_eeprom_celsius\[\] PROGMEM/q;p' | sed "s/'/\\\\\\\'/g" > picprog_minute.js.tmp
-echo "var picprog_minute='' +" > ../profile/picprog_minute.js
-while IFS= read r; do
-	echo "'$r\n' +"; 
-done < picprog_minute.js.tmp >> ../profile/picprog_minute.js
-echo "'';" >> ../profile/picprog_minute.js
-rm -f picprog_minute.js.tmp
+	# Create sketch and insert version info
+	cat picprog.template | sed "s/^#define STC1000P_VERSION.*/$v/" | sed "s/^#define STC1000P_EEPROM_VERSION.*/$e/" > ../picprog$version.ino
 
-# Rename old sketches and replace with new
-mv -f ../picprog.ino picprog.bkp
-mv picprog.tmp ../picprog.ino
-mv -f ../picprog_com.ino picprog_com.bkp
-mv picprog_com.tmp ../picprog_com.ino
-mv -f ../picprog_fo433.ino picprog_fo433.bkp
-mv picprog_fo433.tmp ../picprog_fo433.ino
-mv -f ../picprog_minute.ino picprog_minute.bkp
-mv picprog_minute.tmp ../picprog_minute.ino
+	# Convert firmware HEX data to embed in sketch
+	echo "const char hex_celsius[] PROGMEM = {" > stc1000p_hex.tmp; 
+	for l in `cat build/stc1000p_celsius$version.hex | sed 's/^://' | sed 's/\(..\)/0\x\1\,/g'`; do 
+		echo "   $l" | sed 's/0x00,0x00,0x00,0x01,0xFF,/0x00,0x00,0x00,0x01,0xFF/' >> stc1000p_hex.tmp; 
+	done; 
+	echo "};" >> stc1000p_hex.tmp
 
-# Print size approximation (from .asm files)
-echo "2 probe";
-let s=0;
-for a in `cat build/page0_c.asm build/page1_c.asm | grep instructions | sed 's/^.*=  //' | sed 's/ instructions.*//'`;
-do
-	echo $a;
-	s=$(($s+$a));
-done;
-echo "total $s";
+	echo "const char hex_fahrenheit[] PROGMEM = {" >> stc1000p_hex.tmp; 
+	for l in `cat build/stc1000p_fahrenheit$version.hex | sed 's/^://' | sed 's/\(..\)/0\x\1\,/g'`; do 
+		echo "   $l" | sed 's/0x00,0x00,0x00,0x01,0xFF,/0x00,0x00,0x00,0x01,0xFF/' >> stc1000p_hex.tmp; 
+	done; 
+	echo "};" >> stc1000p_hex.tmp
 
-echo "";
-echo "minute";
-let s=0;
-for a in `cat build/page0_c_minute.asm build/page1_c_minute.asm | grep instructions | sed 's/^.*=  //' | sed 's/ instructions.*//'`;
-do
-	echo $a;
-	s=$(($s+$a));
-done;
-echo "total $s";
+	cat stc1000p_hex.tmp | sed "s/'/\\\\\\\'/g" > stc1000p_hex.js.tmp
+	echo "stc1000p[\"stc1000p$version\"]='' +" >> ../profile/stc1000p.js
+	while IFS= read r; do
+		echo "'$r\n' +"; 
+	done < stc1000p_hex.js.tmp >> ../profile/stc1000p.js
+	echo "'';" >> ../profile/stc1000p.js
+	rm -f stc1000p_hex.js.tmp
 
-echo "";
-echo "com";
-let s=0;
-for a in `cat build/page0_c_com.asm build/page1_c_com.asm | grep instructions | sed 's/^.*=  //' | sed 's/ instructions.*//'`;
-do
-	echo $a;
-	s=$(($s+$a));
-done;
-echo "total $s";
+	echo "const char hex_eeprom_celsius[] PROGMEM = {" >> stc1000p_hex.tmp; 
+	for l in `cat build/eedata_celsius$version.hex | sed 's/^://' | sed 's/\(..\)/0\x\1\,/g'`; do 
+		echo "   $l" | sed 's/0x00,0x00,0x00,0x01,0xFF,/0x00,0x00,0x00,0x01,0xFF/' >> stc1000p_hex.tmp; 
+	done; 
+	echo "};" >> stc1000p_hex.tmp
 
-echo "";
-echo "fo433";
-let s=0;
-for a in `cat build/page0_c_fo433.asm build/page1_c_fo433.asm | grep instructions | sed 's/^.*=  //' | sed 's/ instructions.*//'`;
-do
-	echo $a;
-	s=$(($s+$a));
-done;
-echo "total $s";
+	echo "const char hex_eeprom_fahrenheit[] PROGMEM = {" >> stc1000p_hex.tmp; 
+	for l in `cat build/eedata_fahrenheit$version.hex | sed 's/^://' | sed 's/\(..\)/0\x\1\,/g'`; do 
+		echo "   $l" | sed 's/0x00,0x00,0x00,0x01,0xFF,/0x00,0x00,0x00,0x01,0xFF/' >> stc1000p_hex.tmp; 
+	done; 
+	echo "};" >> stc1000p_hex.tmp
+
+	cat stc1000p_hex.tmp >> ../picprog$version.ino
+	rm -f stc1000p_hex.tmp
+
+	# Print size approximation (from .asm files)
+	echo "";
+	echo "Size";
+	let s=0;
+	for a in `cat build/page0_celsius$version.asm build/page1_celsius$version.asm | grep instructions | sed 's/^.*=  //' | sed 's/ instructions.*//'`;
+	do
+		echo $a;
+		s=$(($s+$a));
+	done;
+	echo "total $s";
+
+}
+
+build_stc1000p_version
+build_stc1000p_version "probe2";
+build_stc1000p_version "com";
+build_stc1000p_version "fo433";
+build_stc1000p_version "minute";
+build_stc1000p_version "minute_probe2";
+build_stc1000p_version "minute_com";
+build_stc1000p_version "minute_fo433";
+build_stc1000p_version "ovbsc";
 
 make clean
 

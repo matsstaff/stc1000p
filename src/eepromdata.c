@@ -22,31 +22,19 @@
 
 #include "stc1000p.h"
 
+#define EEPROM_DEFAULTS(name, led10ch, led1ch, led01ch, type, default_value) \
+    default_value,
 
-#define EEPROM_DEFAULTS_F(name, led10ch, led1ch, led01ch, minv, maxv, dvc, dvf) \
-    dvf,
-#define EEPROM_DEFAULTS_C(name, led10ch, led1ch, led01ch, minv, maxv, dvc, dvf) \
-    dvc,
-
-/* Initial EEPROM data, note temperatures are multiplied by 10 (for 1 decimal point precision) */
-#ifdef FAHRENHEIT
-	__code const int __at(0xF000) eedata[] = {
-			600, 24, 620, 24, 640, 24, 660, 24, 680, 144, 770, 48, 400, 0, 0, 0, 0, 0, 0, // Pr0 (SP0, dh0, ..., dh8, SP9)
-			600, 24, 620, 24, 640, 24, 660, 24, 680, 144, 770, 48, 400, 0, 0, 0, 0, 0, 0, // Pr1 (SP0, dh0, ..., dh8, SP9)
-			600, 24, 620, 24, 640, 24, 660, 24, 680, 144, 770, 48, 400, 0, 0, 0, 0, 0, 0, // Pr2 (SP0, dh0, ..., dh8, SP9)
-			600, 24, 620, 24, 640, 24, 660, 24, 680, 144, 770, 48, 400, 0, 0, 0, 0, 0, 0, // Pr3 (SP0, dh0, ..., dh8, SP9)
-			600, 24, 620, 24, 640, 24, 660, 24, 680, 144, 770, 48, 400, 0, 0, 0, 0, 0, 0, // Pr4 (SP0, dh0, ..., dh8, SP9)
-			600, 24, 620, 24, 640, 24, 660, 24, 680, 144, 770, 48, 400, 0, 0, 0, 0, 0, 0, // Pr5 (SP0, dh0, ..., dh8, SP9)
-			SET_MENU_DATA(EEPROM_DEFAULTS_F)
-};
-#else // CELSIUS
-	__code const int __at(0xF000) eedata[] = {
+/* Initial EEPROM data */
+__code const int __at(0xF000) eedata[] = {
+#ifndef OVBSC
 			160, 24, 170, 24, 180, 24, 190, 24, 200, 144, 250, 48, 40, 0, 0, 0, 0, 0, 0, // Pr0 (SP0, dh0, ..., dh8, SP9)
 			160, 24, 170, 24, 180, 24, 190, 24, 200, 144, 250, 48, 40, 0, 0, 0, 0, 0, 0, // Pr1 (SP0, dh0, ..., dh8, SP9)
 			160, 24, 170, 24, 180, 24, 190, 24, 200, 144, 250, 48, 40, 0, 0, 0, 0, 0, 0, // Pr2 (SP0, dh0, ..., dh8, SP9)
 			160, 24, 170, 24, 180, 24, 190, 24, 200, 144, 250, 48, 40, 0, 0, 0, 0, 0, 0, // Pr3 (SP0, dh0, ..., dh8, SP9)
 			160, 24, 170, 24, 180, 24, 190, 24, 200, 144, 250, 48, 40, 0, 0, 0, 0, 0, 0, // Pr4 (SP0, dh0, ..., dh8, SP9)
 			160, 24, 170, 24, 180, 24, 190, 24, 200, 144, 250, 48, 40, 0, 0, 0, 0, 0, 0, // Pr5 (SP0, dh0, ..., dh8, SP9)
-			SET_MENU_DATA(EEPROM_DEFAULTS_C)
-	};
 #endif
+			MENU_DATA(EEPROM_DEFAULTS)
+};
+
