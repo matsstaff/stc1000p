@@ -41,18 +41,38 @@ body { font-family: Verdana, Arial, sans-serif; font-size: 12px; }
 <script src="jquery.flot.min.js"></script>
 <script src="jquery.flot.axislabels.js"></script>
 <script src="picprog.js"></script>
+<script src="picprog_probe2.js"></script>
 <script src="picprog_com.js"></script>
 <script src="picprog_fo433.js"></script>
+<script src="picprog_minute.js"></script>
+<script src="picprog_minute_probe2.js"></script>
+<script src="picprog_minute_com.js"></script>
+<script src="picprog_minute_fo433.js"></script>
+<script src="picprog_ovbsc.js"></script>
 
 <script type="text/javascript">
-function download(sketch, sketchname) {
-  var eeprom1 = generate_hex(); 
-  switch_cf();
+function download() {
+  var sketchname = 'picprog' + $("input[name='stc1000p_version']:checked").val();
+  if(sketchname != "picprog_ovbsc"){
+	sketchname += $("input[name='stc1000p_subversion']:checked").val();
+  }
+  var eeprom1 = generate_hex();
+  if($("#tempscale").val() == "C"){
+	  $("#tempscale").val("F");
+  } else {
+	  $("#tempscale").val("C");
+  }
+  update_temperature_scale();
   var eeprom2 = generate_hex(); 
-  switch_cf();
+  if($("#tempscale").val() == "C"){
+	  $("#tempscale").val("F");
+  } else {
+	  $("#tempscale").val("C");
+  }
+  update_temperature_scale();
   var pom = document.createElement('a');
-  pom.setAttribute('href', 'data:text/x-arduino;charset=utf-8,' + encodeURIComponent(sketch + eeprom1 + eeprom2));
-  pom.setAttribute('download', sketchname);
+  pom.setAttribute('href', 'data:text/x-arduino;charset=utf-8,' + encodeURIComponent(eval(sketchname) + eeprom1 + eeprom2));
+  pom.setAttribute('download', sketchname + '.ino');
   document.body.appendChild(pom);
   pom.click();
   document.body.removeChild(pom)
@@ -100,14 +120,26 @@ function calc(){
 			xmax += dh;
 		}
 
-		var unit = "Hours";
-		var divisor = 1.0;
-		if(xmax >= (24*7*4)){ // 4 weeks or more?
-			unit = "Weeks";
-			divisor = (7*24.0);
-		} else if(xmax >= (24*2)){ // 2 Days or more?
-			unit = "Days";
-			divisor = 24.0;
+		if($("input[name='stc1000p_version']:checked").val() == ""){
+			var unit = "Hours";
+			var divisor = 1.0;
+			if(xmax >= (24*7*2)){ // 2 weeks or more?
+				unit = "Weeks";
+				divisor = (7*24.0);
+			} else if(xmax >= (24*2)){ // 2 Days or more?
+				unit = "Days";
+				divisor = 24.0;
+			}
+		} else {
+			var unit = "Minutes";
+			var divisor = 1.0;
+			if(xmax >= (60*24*2)){ // 2 days or more?
+				unit = "Days";
+				divisor = (60*24.0);
+			} else if(xmax >= (60*2)){ // 2 hours or more?
+				unit = "Hours";
+				divisor = 60.0;
+			}
 		}
 
 		for(i=0; i<9; i++) {
@@ -170,8 +202,8 @@ function calc(){
 	}
 }
 
-function switch_cf(){
-	if($("#tempscalestate").val() == "C"){
+function update_temperature_scale(){
+	if($("#tempscale").val() == "C"){
 		$("span.tscale").html("[&deg;C]");
 		$("span.tscalename").html("Celsius");
 		$(".temperature").each(	function(){
@@ -182,7 +214,6 @@ function switch_cf(){
 			var t = $(this).val();
 			$(this).val(Math.round(t*0.5).toFixed(1));
 		});
-		$("#tempscalestate").val("F");
 	} else {
 		$("span.tscale").html("[&deg;F]");
 		$("span.tscalename").html("Fahrenheit");
@@ -194,7 +225,15 @@ function switch_cf(){
 			var t = $(this).val();
 			$(this).val(Math.round(t*2.0).toFixed(1));
 		});
-		$("#tempscalestate").val("C");
+	}
+	calc();
+}
+
+function update_duration_scale(){
+	if($("input[name='stc1000p_version']:checked").val() == ""){
+		$("span.durscale").html("[h]");
+	} else {
+		$("span.durscale").html("[min]");
 	}
 	calc();
 }
@@ -210,44 +249,53 @@ function dec2hex(decv){
 function generate_hex(){
 	var m,n;
 	var x=0;
-	var adr = [];
-	var adr_type = [];
+	var adr = [128];
 
-	for(m=0; m<6; m++) {
-		for(n=0; n<10; n++) {
-			var sp = $('#sp' + m + '_' + n).val();
-			adr[x] = sp;
-			var sp = $('#sp' + m + '_' + n).attr('class');
-			adr_type[x] = sp;
-			x++;
-			if(n==9){
-				break;
+	for(m=0; m<128; m++){
+		adr[m] = 65535;
+	}
+
+	if($("input[name='stc1000p_version']:checked").val() != "_ovbsc"){
+
+		for(m=0; m<6; m++) {
+			for(n=0; n<10; n++) {
+				var sp = $('#sp' + m + '_' + n).val();
+				adr[x] = Math.round(sp*10.0);
+				x++;
+				if(n==9){
+					break;
+				}
+				var dh = $('#dh' + m + '_' + n).val();
+				adr[x] = dh;
+				x++;
 			}
-			var dh = $('#dh' + m + '_' + n).val();
-			adr[x] = dh;
-			var dh = $('#dh' + m + '_' + n).attr('class');
-			adr_type[x] = dh;
-			x++;
 		}
-	}
 
-	for(m=0; m<14; m++) {
-		var sp = $('#set' + m).val();
-		adr[x] = sp;
-		var sp = $('#set' + m).attr('class');
-		adr_type[x] = sp;
-		x++;
+		$("input[name^='set_menu_']:enabled").each(function(){
+			if($(this).hasClass('temperature') || $(this).hasClass('tempdiff')){
+				adr[x] = Math.round($(this).val() * 10.0);
+			} else {
+				adr[x] = Math.round($(this).val());
+			}
+			x++;
+		});
+	} else { // OVBSC
+		$("input[name^='menu_']:enabled").each(function(){
+			if($(this).hasClass('temperature') || $(this).hasClass('tempdiff') || $(this).hasClass('period')){
+				adr[x] = Math.round($(this).val() * 10.0);
+			} else {
+				adr[x] = Math.round($(this).val());
+			}
+			x++;
+		});
 	}
-
-//alert(adr.join("\n"));
-//alert(adr_type.join("\n"));
 
 	var i=0;
 	var output="";
-	if($("#tempscalestate").val() == "C"){
-		output+="const char hex_eeprom_fahrenheit[] PROGMEM = {\n";
-	} else {
+	if($("#tempscale").val() == "C"){
 		output+="const char hex_eeprom_celsius[] PROGMEM = {\n";
+	} else {
+		output+="const char hex_eeprom_fahrenheit[] PROGMEM = {\n";
 	}		
 	output+="\t0x02,0x00,0x00,0x04,0x00,0x00,0xFA,\n";
 	output+="\t0x02,0x00,0x00,0x04,0x00,0x01,0xF9,\n";
@@ -268,12 +316,7 @@ function generate_hex(){
 
 		var j=0;
 		for(j=0; j<4; j++){
-			var val;
-			if(adr_type[i+j] == 'temperature' || adr_type[i+j] == 'tempdiff'){
-				val = Math.round(adr[i+j]*10.0);
-			} else {
-				val = Math.round(adr[i+j]);
-			}
+			var val=adr[i+j];
 			var lval = (val & 0xFF);
 			var hval = ((val>>8) & 0xFF);
 			checksum += lval + 0x34 + hval + 0x34;
@@ -300,7 +343,53 @@ $(document).ready(function () {
 	$( ".plainnumber" ).change(function() {
 		calc();
 	});
-    calc();
+
+//    calc();
+
+	$("input[name='stc1000p_version']").change(
+		function(){
+			if($(this).val() == "_ovbsc") {
+				$("#stc1000p_subversion_selector").hide();
+				$("#stc1000p_eeprom_editor").hide();
+				$("#stc1000p_ovbsc_eeprom_editor").show();
+			} else {
+				$("#stc1000p_subversion_selector").show();
+				$("#stc1000p_eeprom_editor").show();
+				$("#stc1000p_ovbsc_eeprom_editor").hide();
+				calc();
+			}
+			$("#tempscale_selector").show();
+			update_duration_scale();
+		}
+	);
+
+	$("input[name='stc1000p_subversion']").change(
+		function(){
+			if($(this).val() == "_probe2") {
+				$("input[name='set_menu_hy2']").removeAttr('disabled');
+				$("input[name='set_menu_tc2']").removeAttr('disabled');
+				$("input[name='set_menu_dI']").attr('disabled', 'disabled');
+				$("input[name='set_menu_Pb2']").removeAttr('disabled');
+			} else if($(this).val() == "_fo433") {
+				$("input[name='set_menu_hy2']").attr('disabled', 'disabled');
+				$("input[name='set_menu_tc2']").attr('disabled', 'disabled');
+				$("input[name='set_menu_dI']").removeAttr('disabled');
+				$("input[name='set_menu_Pb2']").attr('disabled', 'disabled');
+			} else { // Vanilla & com
+				$("input[name='set_menu_hy2']").attr('disabled', 'disabled');
+				$("input[name='set_menu_tc2']").attr('disabled', 'disabled');
+				$("input[name='set_menu_dI']").attr('disabled', 'disabled');
+				$("input[name='set_menu_Pb2']").attr('disabled', 'disabled');
+			}
+		}
+	);
+
+	$("#tempscale").change(
+		function(){
+			update_temperature_scale();
+		}
+	);
+	
 });
 
 </script>
@@ -322,6 +411,36 @@ or the wireless 433Mhz (<i>picprog_fo433.ino</i>) sketch for direct upload to th
 To do so, simply press one of the 'Download dual probe sketch', 'Download com sketch' or 'Download FO433Mhz sketch' buttons at the bottom of the page when you are done editing. <br>
 Save the file and open with the Arduino IDE if not prompted to open it directly.<br>
 
+<br>
+
+<h3>Select sketch version</h3>
+<table id="stc1000p_version_selector_table">
+	<tr>
+		<td valign="top">
+			<input type="radio" name="stc1000p_version" value="">STC-1000+<br>
+			<input type="radio" name="stc1000p_version" value="_minute">STC-1000+ (minute timebase)<br>
+			<input type="radio" name="stc1000p_version" value="_ovbsc">STC-1000+ OVBSC<br>
+		</td>
+		<td valign="top" id="stc1000p_subversion_selector" style="display: none">
+			<input type="radio" name="stc1000p_subversion" value="" checked>Vanilla version<br>
+			<input type="radio" name="stc1000p_subversion" value="_probe2">Dual probe version<br>
+			<input type="radio" name="stc1000p_subversion" value="_com">Communication version<br>
+			<input type="radio" name="stc1000p_subversion" value="_fo433">Fine offset 433Mhz version<br>
+		</td>
+	</tr>
+</table>
+
+<span id="tempscale_selector" style="display: none">
+<h3>Select temperature scale</h3>
+<select id="tempscale">
+	<option value="C" selected>Celsius</option>
+	<option value="F">Fahrenheit</option>
+</select>
+</span>
+
+<br />
+
+<span id="stc1000p_eeprom_editor" style="display: none">
 	<table>
 		<thead>
 			<tr>
@@ -476,20 +595,21 @@ Save the file and open with the Arduino IDE if not prompted to open it directly.
 				</td>
 				<td valign="top">
 					<table>
-						<tr><td>hy:</td><td><input class="tempdiff" type="text" id="set0" name="hy" maxlength="4" size="4" autocomplete="off" value="0.0" title="Hysteresis"><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>hy2:</td><td><input class="tempdiff" type="text" id="set1" name="hy2" maxlength="4" size="4" autocomplete="off" value="0.0" title="Hysteresis probe 2"><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>tc:</td><td><input class="tempdiff" type="text" id="set2" name="tc" maxlength="4" size="4" autocomplete="off" value="0.0" title="Temperature correction"><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>tc2:</td><td><input class="tempdiff" type="text" id="set3" name="tc2" maxlength="4" size="4" autocomplete="off" value="0.0" title="Temperature correction probe 2"><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>SA:</td><td><input class="tempdiff" type="text" id="set4" name="SA" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint Alarm"><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>SP:</td><td><input class="temperature" type="text" id="set5" name="SP" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint"><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>St:</td><td><input class="plainnumber" type="text" id="set6" name="St" maxlength="1" size="4" autocomplete="off" value="0" title="Running profile step number"><span class="nscale">[#]</span></td></tr>
-						<tr><td>dh:</td><td><input class="plainnumber" type="text" id="set7" name="dh" maxlength="3" size="4" autocomplete="off" value="0" title="Running profile duration"><span class="durscale">[h]</span></td></tr>
-						<tr><td>cd:</td><td><input class="plainnumber" type="text" id="set8" name="cd" maxlength="2" size="4" autocomplete="off" value="2" title="Cooling delay"><span class="mscale">[min]</span></td></tr>
-						<tr><td>hd:</td><td><input class="plainnumber" type="text" id="set9" name="hd" maxlength="2" size="4" autocomplete="off" value="2" title="Heating delay"><span class="mscale">[min]</span></td></tr>
-						<tr><td>rP:</td><td><input class="plainnumber" type="text" id="set10" name="rP" maxlength="1" size="4" autocomplete="off" value="1" title="Ramping enabled"><span class="bscale">[b]</span></td></tr>
-						<tr><td>Pb:</td><td><input class="plainnumber" type="text" id="set11" name="Pb" maxlength="1" size="4" autocomplete="off" value="0" title="Probe 2 regulation enabled"><span class="bscale">[b]</span></td></tr>
-						<tr><td>rn:</td><td><input class="plainnumber" type="text" id="set12" name="rn" maxlength="1" size="4" autocomplete="off" value="6" title="Run mode [0-5 = profile, 6=thermostat]"><span class="nscale">[#]</span></td></tr>
-						<tr><td>on:</td><td><input class="plainnumber" type="text" id="set13" name="on" maxlength="1" size="4" autocomplete="off" value="1" title="On [1=On, 0=Soft off]]"><span class="bscale">[b]</span></td></tr>
+						<tr><td>hy:</td><td><input class="tempdiff" type="text" id="set0" name="set_menu_hy" maxlength="4" size="4" autocomplete="off" value="0.0" title="Hysteresis"><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>hy2:</td><td><input class="tempdiff" type="text" id="set1" name="set_menu_hy2" maxlength="4" size="4" autocomplete="off" disabled value="0.0" title="Hysteresis probe 2"><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>tc:</td><td><input class="tempdiff" type="text" id="set2" name="set_menu_tc" maxlength="4" size="4" autocomplete="off" value="0.0" title="Temperature correction"><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>tc2:</td><td><input class="tempdiff" type="text" id="set3" name="set_menu_tc2" maxlength="4" size="4" autocomplete="off" disabled value="0.0" title="Temperature correction probe 2"><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dI:</td><td><input class="plainnumber" type="text" id="set3_x" name="set_menu_dI" maxlength="4" size="4" autocomplete="off" disabled value="0.0" title="FO433 Device ID"><span class="devidscale">[ID]</span></td></tr>
+						<tr><td>SA:</td><td><input class="tempdiff" type="text" id="set4" name="set_menu_SA" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint Alarm"><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>SP:</td><td><input class="temperature" type="text" id="set5" name="set_menu_SP" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint"><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>St:</td><td><input class="plainnumber" type="text" id="set6" name="set_menu_St" maxlength="1" size="4" autocomplete="off" value="0" title="Running profile step number"><span class="nscale">[#]</span></td></tr>
+						<tr><td>dh:</td><td><input class="plainnumber" type="text" id="set7" name="set_menu_dh" maxlength="3" size="4" autocomplete="off" value="0" title="Running profile duration"><span class="durscale">[h]</span></td></tr>
+						<tr><td>cd:</td><td><input class="plainnumber" type="text" id="set8" name="set_menu_cd" maxlength="2" size="4" autocomplete="off" value="2" title="Cooling delay"><span class="mscale">[min]</span></td></tr>
+						<tr><td>hd:</td><td><input class="plainnumber" type="text" id="set9" name="set_menu_hd" maxlength="2" size="4" autocomplete="off" value="2" title="Heating delay"><span class="mscale">[min]</span></td></tr>
+						<tr><td>rP:</td><td><input class="plainnumber" type="text" id="set10" name="set_menu_rP" maxlength="1" size="4" autocomplete="off" value="1" title="Ramping enabled"><span class="bscale">[b]</span></td></tr>
+						<tr><td>Pb2:</td><td><input class="plainnumber" type="text" id="set11" name="set_menu_Pb2" maxlength="1" size="4" autocomplete="off" disabled value="0" title="Probe 2 regulation enabled"><span class="bscale">[b]</span></td></tr>
+						<tr><td>rn:</td><td><input class="plainnumber" type="text" id="set12" name="set_menu_rn" maxlength="1" size="4" autocomplete="off" value="6" title="Run mode [0-5 = profile, 6=thermostat]"><span class="nscale">[#]</span></td></tr>
+						<tr><td>on:</td><td><input class="plainnumber" type="text" id="set13" name="set_menu_on" maxlength="1" size="4" autocomplete="off" value="1" title="On [1=On, 0=Soft off]]"><span class="bscale">[b]</span></td></tr>
 					</table>
 				</td>
 				<td valign="top">
@@ -519,17 +639,6 @@ Save the file and open with the Arduino IDE if not prompted to open it directly.
 			</tr>
 		</tbody>
 	</table>
-
-
-
-<br />
-
-	<h1>Working in: <span class="tscalename">Celsius</span></h1>
-	<h3>Want to switch temperature scale? <input type="button" id="tempscale" name="switchcf" value="Switch scale" onclick="switch_cf();" title="Switch between Fahrenheit and Celsius scale"></h3>
-	<input type="hidden" id="tempscalestate" autocomplete="off" value="F">
-
-
-
 
 <div id="tabs">
 	<ul>
@@ -627,14 +736,70 @@ Save the file and open with the Arduino IDE if not prompted to open it directly.
 
 <br />
 
-<input type="button" id="downloadino" name="downloadino" value="Download dual probe sketch" onclick="download(picprog, 'picprog.ino');" title="Generate picprog.ino for download">
-<input type="button" id="downloadcomino" name="downloadcomino" value="Download com sketch" onclick="download(picprog_com, 'picprog_com.ino');" title="Generate picprog_com.ino for download">
-<input type="button" id="downloadfo433ino" name="downloadfo433ino" value="Download FO433Mhz sketch" onclick="download(picprog_fo433, 'picprog_fo433.ino');" title="Generate picprog_fo433.ino for download">
-<!--
-Generate HEX data: <input type="button" id="genhex" name="genhex" value="Generate HEX" onclick="generate_hex();" title="Generate HEX data output">
+<input type="button" id="downloadino" name="downloadino" value="Download sketch" onclick="download();" title="Generate sketch for download">
 
-	<pre id="hexdata">
-	</pre>
--->
+</span>
+
+<span id="stc1000p_ovbsc_eeprom_editor" style="display: none">
+	<table>
+		<thead>
+			<tr>
+				<td><h3>Settings</h3></td>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td valign="top">
+					<table>
+						<tr><td>Sd:</td><td><input class="plainnumber" type="text" id="menu_0" name="menu_Sd" maxlength="4" size="4" autocomplete="off" value="0" title="Strike delay"><span class="mscale">[min]</span></td></tr>
+						<tr><td>St:</td><td><input class="temperature" type="text" id="menu_1" name="menu_St" maxlength="4" size="4" autocomplete="off" value="69.0" title="Strike temperature"><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>SO:</td><td><input class="planinumber" type="text" id="menu_2" name="menu_SO" maxlength="4" size="4" autocomplete="off" value="100" title="Strike output"><span class="perscale">[%]</span></td></tr>
+
+						<tr><td>Pt1:</td><td><input class="temperature" type="text" id="menu_3" name="menu_Pt1" maxlength="4" size="4" autocomplete="off" value="65.0" title="Mash step 1 temperature"><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>Pd1:</td><td><input class="planinumber" type="text" id="menu_4" name="menu_Pd1" maxlength="4" size="4" autocomplete="off" value="30" title="Mash step 1 duration"><span class="mscale">[min]</span></td></tr>
+						<tr><td>Pt2:</td><td><input class="temperature" type="text" id="menu_5" name="menu_Pt2" maxlength="4" size="4" autocomplete="off" value="67.0" title="Mash step 2 temperature"><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>Pd2:</td><td><input class="planinumber" type="text" id="menu_6" name="menu_Pd2" maxlength="4" size="4" autocomplete="off" value="20" title="Mash step 2 duration"><span class="mscale">[min]</span></td></tr>
+						<tr><td>Pt3:</td><td><input class="temperature" type="text" id="menu_7" name="menu_Pt3" maxlength="4" size="4" autocomplete="off" value="70.0" title="Mash step 3 temperature"><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>Pd3:</td><td><input class="planinumber" type="text" id="menu_8" name="menu_Pd3" maxlength="4" size="4" autocomplete="off" value="10" title="Mash step 3 duration"><span class="mscale">[min]</span></td></tr>
+						<tr><td>Pt4:</td><td><input class="temperature" type="text" id="menu_9" name="menu_Pt4" maxlength="4" size="4" autocomplete="off" value="0.0" title="Mash step 4 temperature"><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>Pd4:</td><td><input class="planinumber" type="text" id="menu_10" name="menu_Pd4" maxlength="4" size="4" autocomplete="off" value="0" title="Mash step 4 duration"><span class="mscale">[min]</span></td></tr>
+						<tr><td>Pt5:</td><td><input class="temperature" type="text" id="menu_11" name="menu_Pt5" maxlength="4" size="4" autocomplete="off" value="0.0" title="Mash step 4 temperature"><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>Pd5:</td><td><input class="planinumber" type="text" id="menu_12" name="menu_Pd5" maxlength="4" size="4" autocomplete="off" value="0" title="Mash step 4 duration"><span class="mscale">[min]</span></td></tr>
+						<tr><td>Pt6:</td><td><input class="temperature" type="text" id="menu_13" name="menu_Pt6" maxlength="4" size="4" autocomplete="off" value="0.0" title="Mash step 4 temperature"><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>Pd6:</td><td><input class="planinumber" type="text" id="menu_14" name="menu_Pd6" maxlength="4" size="4" autocomplete="off" value="0" title="Mash step 4 duration"><span class="mscale">[min]</span></td></tr>
+						<tr><td>PO:</td><td><input class="planinumber" type="text" id="menu_15" name="menu_PO" maxlength="4" size="4" autocomplete="off" value="30" title="Mash output"><span class="perscale">[%]</span></td></tr>
+						<tr><td>Ht:</td><td><input class="temperature" type="text" id="menu_16" name="menu_Ht" maxlength="4" size="4" autocomplete="off" value="97.0" title="Hot break temperature"><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>HO:</td><td><input class="planinumber" type="text" id="menu_17" name="menu_HO" maxlength="4" size="4" autocomplete="off" value="80" title="Hot break output"><span class="perscale">[%]</span></td></tr>
+						<tr><td>Hd:</td><td><input class="plainnumber" type="text" id="menu_18" name="menu_Hd" maxlength="4" size="4" autocomplete="off" value="15" title="Hot break duration"><span class="mscale">[min]</span></td></tr>
+						<tr><td>bO:</td><td><input class="planinumber" type="text" id="menu_19" name="menu_bO" maxlength="4" size="4" autocomplete="off" value="100" title="Boil output"><span class="perscale">[%]</span></td></tr>
+						<tr><td>bd:</td><td><input class="plainnumber" type="text" id="menu_20" name="menu_bd" maxlength="4" size="4" autocomplete="off" value="90" title="boil duration"><span class="mscale">[min]</span></td></tr>
+						<tr><td>hd1:</td><td><input class="plainnumber" type="text" id="menu_21" name="menu_hd1" maxlength="4" size="4" autocomplete="off" value="60" title="Hop alarm 1"><span class="mscale">[min]</span></td></tr>
+						<tr><td>hd2:</td><td><input class="plainnumber" type="text" id="menu_22" name="menu_hd2" maxlength="4" size="4" autocomplete="off" value="30" title="Hop alarm 2"><span class="mscale">[min]</span></td></tr>
+						<tr><td>hd3:</td><td><input class="plainnumber" type="text" id="menu_23" name="menu_hd3" maxlength="4" size="4" autocomplete="off" value="15" title="Hop alarm 3"><span class="mscale">[min]</span></td></tr>
+						<tr><td>hd4:</td><td><input class="plainnumber" type="text" id="menu_24" name="menu_hd4" maxlength="4" size="4" autocomplete="off" value="5" title="Hop alarm 4"><span class="mscale">[min]</span></td></tr>
+						<tr><td>tc:</td><td><input class="tempdiff" type="text" id="menu_25" name="menu_tc" maxlength="4" size="4" autocomplete="off" value="0.0" title="Temperature correction"><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>APF:</td><td><input class="plainnumber" type="text" id="menu_26" name="menu_APF" maxlength="4" size="4" autocomplete="off" value="511" title="Alarm/pause flags"><span class="flagscale">[b]</span></td></tr>
+						<tr><td>PF:</td><td><input class="plainnumber" type="text" id="menu_27" name="menu_PF" maxlength="4" size="4" autocomplete="off" value="6" title="Pump flags"><span class="flagscale">[b]</span></td></tr>
+
+						<tr><td>Pd:</td><td><input class="period" type="text" id="menu_28" name="menu_Pd" maxlength="4" size="4" autocomplete="off" value="5.0" title="Period (on + off cycle) time"><span class="pdscale">[s]</span></td></tr>
+						<tr><td>cO:</td><td><input class="planinumber" type="text" id="menu_29" name="menu_cO" maxlength="4" size="4" autocomplete="off" value="80" title="Constant output run mode output"><span class="perscale">[%]</span></td></tr>
+						<tr><td>cP:</td><td><input class="plainnumber" type="text" id="menu_30" name="menu_cP" maxlength="1" size="4" autocomplete="off" value="1" title="Constant output/temperature run mode pump enabled"><span class="bscale">[b]</span></td></tr>
+						<tr><td>cSP:</td><td><input class="temperature" type="text" id="menu_31" name="menu_cSP" maxlength="4" size="4" autocomplete="off" value="0.0" title="Constant temperature run mode setpoint"><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>ASd:</td><td><input class="plainnumber" type="text" id="menu_32" name="menu_ASd" maxlength="4" size="4" autocomplete="off" value="90" title="Automatic/safety shutdown timer"><span class="mscale">[min]</span></td></tr>
+					</table>
+				</td>
+			</tr>
+		</tbody>
+	</table>
+
+
+
+<br />
+
+
+<input type="button" id="downloadovbscino" name="downloadino" value="Download sketch" onclick="download();" title="Generate sketch for download">
+
+</span>
+
 </body>
 

@@ -148,10 +148,11 @@ enum e_item_type {
 	t_hyst_1,
 #if defined PB2
 	t_hyst_2,
-#elif defined FO433
-	t_deviceid,
 #endif
 	t_sp_alarm,
+#if defined FO433
+	t_deviceid,
+#endif
 	t_step,
 	t_delay,
 	t_runmode,
