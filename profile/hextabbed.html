@@ -398,17 +398,16 @@ $(document).ready(function () {
 <body>
 
 <h3>About</h3>
-STC-1000+ Profile editor<br>
+STC-1000+ Profile editor and sketch generator<br>
 &copy; 2014 Mats Staffansson<p>
 This page is a part of the <a href="https://github.com/matsstaff/stc1000p">STC-1000+ project.</a><p>
 The purpose of this page it to visualize how the setpoint will be updated over time, <br>when running a profile (with the specified settings) on an STC-1000+ modified thermostat.<br>
 It will accurately show substeps when ramping is enabled.<p>
 Note that it only shows the calculated setpoints, not the actual temperature of the FV.<br>
-All 6 profiles can be edited, but only one will be shown at any time. To switch between which profile is shown, click on the 'Pr0' to 'Pr5' link.<br>
+All 6 profiles can be edited, but only one will be shown at a time. To switch between which profile is shown, click on the 'Pr0' to 'Pr5' link.<br>
 It is also possible to directly switch between Fahrenheit and Celsius mode. <br>
-Additionally, the parameters can be exported as the dual probe enabled version (<i>picprog.ino</i>), the data communication enabled version (<i>picprog_com.ino</i>) <br>
-or the wireless 433Mhz (<i>picprog_fo433.ino</i>) sketch for direct upload to the Arduino and STC-1000.<br> 
-To do so, simply press one of the 'Download dual probe sketch', 'Download com sketch' or 'Download FO433Mhz sketch' buttons at the bottom of the page when you are done editing. <br>
+Additionally, the parameters can be exported and downloaded as a sketch for direct upload to the Arduino and STC-1000.<br> 
+To do so, simply press one of the 'Download sketch' button at the bottom of the page when you are done editing. <br>
 Save the file and open with the Arduino IDE if not prompted to open it directly.<br>
 
 <br>
@@ -599,7 +598,7 @@ Save the file and open with the Arduino IDE if not prompted to open it directly.
 						<tr><td>hy2:</td><td><input class="tempdiff" type="text" id="set1" name="set_menu_hy2" maxlength="4" size="4" autocomplete="off" disabled value="0.0" title="Hysteresis probe 2"><span class="tscale">[&deg;C]</span></td></tr>
 						<tr><td>tc:</td><td><input class="tempdiff" type="text" id="set2" name="set_menu_tc" maxlength="4" size="4" autocomplete="off" value="0.0" title="Temperature correction"><span class="tscale">[&deg;C]</span></td></tr>
 						<tr><td>tc2:</td><td><input class="tempdiff" type="text" id="set3" name="set_menu_tc2" maxlength="4" size="4" autocomplete="off" disabled value="0.0" title="Temperature correction probe 2"><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dI:</td><td><input class="plainnumber" type="text" id="set3_x" name="set_menu_dI" maxlength="4" size="4" autocomplete="off" disabled value="0.0" title="FO433 Device ID"><span class="devidscale">[ID]</span></td></tr>
+						<tr><td>dI:</td><td><input class="plainnumber" type="text" id="set3_x" name="set_menu_dI" maxlength="4" size="4" autocomplete="off" disabled value="0" title="FO433 Device ID"><span class="devidscale">[ID]</span></td></tr>
 						<tr><td>SA:</td><td><input class="tempdiff" type="text" id="set4" name="set_menu_SA" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint Alarm"><span class="tscale">[&deg;C]</span></td></tr>
 						<tr><td>SP:</td><td><input class="temperature" type="text" id="set5" name="set_menu_SP" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint"><span class="tscale">[&deg;C]</span></td></tr>
 						<tr><td>St:</td><td><input class="plainnumber" type="text" id="set6" name="set_menu_St" maxlength="1" size="4" autocomplete="off" value="0" title="Running profile step number"><span class="nscale">[#]</span></td></tr>
