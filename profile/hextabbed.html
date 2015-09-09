@@ -40,19 +40,11 @@ body { font-family: Verdana, Arial, sans-serif; font-size: 12px; }
 <script src="jquery-ui.min.js"></script>
 <script src="jquery.flot.min.js"></script>
 <script src="jquery.flot.axislabels.js"></script>
-<script src="picprog.js"></script>
-<script src="picprog_probe2.js"></script>
-<script src="picprog_com.js"></script>
-<script src="picprog_fo433.js"></script>
-<script src="picprog_minute.js"></script>
-<script src="picprog_minute_probe2.js"></script>
-<script src="picprog_minute_com.js"></script>
-<script src="picprog_minute_fo433.js"></script>
-<script src="picprog_ovbsc.js"></script>
+<script src="stc1000p.js"></script>
 
 <script type="text/javascript">
 function download() {
-  var sketchname = 'picprog' + $("input[name='stc1000p_version']:checked").val();
+  var sketchname = $("input[name='stc1000p_version']:checked").val();
   if(sketchname != "picprog_ovbsc"){
 	sketchname += $("input[name='stc1000p_subversion']:checked").val();
   }
@@ -71,8 +63,8 @@ function download() {
   }
   update_temperature_scale();
   var pom = document.createElement('a');
-  pom.setAttribute('href', 'data:text/x-arduino;charset=utf-8,' + encodeURIComponent(eval(sketchname) + eeprom1 + eeprom2));
-  pom.setAttribute('download', sketchname + '.ino');
+  pom.setAttribute('href', 'data:text/x-arduino;charset=utf-8,' + encodeURIComponent(stc1000p["picprog"] + stc1000p["stc1000p"+sketchname] + eeprom1 + eeprom2));
+  pom.setAttribute('download', 'picprog' + sketchname + '.ino');
   document.body.appendChild(pom);
   pom.click();
   document.body.removeChild(pom)
@@ -356,6 +348,13 @@ $(document).ready(function () {
 				$("#stc1000p_subversion_selector").show();
 				$("#stc1000p_eeprom_editor").show();
 				$("#stc1000p_ovbsc_eeprom_editor").hide();
+				if($(this).val() == "_minute"){
+					$("#cheathours").hide();
+					$("#cheatminutes").show();
+				} else {
+					$("#cheathours").show();
+					$("#cheatminutes").hide();
+				}
 				calc();
 			}
 			$("#tempscale_selector").show();
@@ -400,11 +399,11 @@ $(document).ready(function () {
 <h3>About</h3>
 STC-1000+ Profile editor and sketch generator<br>
 &copy; 2014 Mats Staffansson<p>
-This page is a part of the <a href="https://github.com/matsstaff/stc1000p">STC-1000+ project.</a><p>
+This page is a part of the <a href="https://github.com/matsstaff/stc1000p">STC-1000+ project.</a> Please visit the project page for more information.<p>
 The purpose of this page it to visualize how the setpoint will be updated over time, <br>when running a profile (with the specified settings) on an STC-1000+ modified thermostat.<br>
 It will accurately show substeps when ramping is enabled.<p>
-Note that it only shows the calculated setpoints, not the actual temperature of the FV.<br>
-All 6 profiles can be edited, but only one will be shown at a time. To switch between which profile is shown, click on the 'Pr0' to 'Pr5' link.<br>
+Note that this (obviously) only shows the calculated setpoints, not the actual temperature of the fermenting vessel.<br>
+All 6 profiles can be edited, but only one will be shown at a time. To switch between which profile is shown, click on the 'Pr0' to 'Pr5' links.<br>
 It is also possible to directly switch between Fahrenheit and Celsius mode. <br>
 Additionally, the parameters can be exported and downloaded as a sketch for direct upload to the Arduino and STC-1000.<br> 
 To do so, simply press one of the 'Download sketch' button at the bottom of the page when you are done editing. <br>
@@ -612,7 +611,7 @@ Save the file and open with the Arduino IDE if not prompted to open it directly.
 					</table>
 				</td>
 				<td valign="top">
-					<table>
+					<table id="cheathours">
 						<tr><td>1 day = 24 hours</td></tr>
 						<tr><td>2 days = 48 hours</td></tr>
 						<tr><td>3 days = 72 hours</td></tr>
@@ -633,6 +632,24 @@ Save the file and open with the Arduino IDE if not prompted to open it directly.
 						<tr><td>18 days = 432 hours</td></tr>
 						<tr><td>19 days = 456 hours</td></tr>
 						<tr><td>20 days = 480 hours</td></tr>
+					</table>
+					<table id="cheatminutes" style='display: none'>
+						<tr><td>1 hour = 60 minutes</td></tr>
+						<tr><td>2 hours = 120 minutes</td></tr>
+						<tr><td>3 hours = 180 minutes</td></tr>
+						<tr><td>4 hours = 240 minutes</td></tr>
+						<tr><td>5 hours = 300 minutes</td></tr>
+						<tr><td>6 hours = 360 minutes</td></tr>
+						<tr><td>7 hours = 420 minutes</td></tr>
+						<tr><td>8 hours = 480 minutes</td></tr>
+						<tr><td>9 hours = 540 minutes</td></tr>
+						<tr><td>10 hours = 600 minutes</td></tr>
+						<tr><td>11 hours = 660 minutes</td></tr>
+						<tr><td>12 hours = 720 minutes</td></tr>
+						<tr><td>13 hours = 780 minutes</td></tr>
+						<tr><td>14 hours = 840 minutes</td></tr>
+						<tr><td>15 hours = 900 minutes</td></tr>
+						<tr><td>16 hours = 960 minutes</td></tr>
 					</table>
 				</td>
 			</tr>

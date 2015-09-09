@@ -60,8 +60,8 @@
 
 /* Define STC-1000+ version number (XYY, X=major, YY=minor) */
 /* Also, keep track of last version that has changes in EEPROM layout */
-#define STC1000P_VERSION			(108)
-#define STC1000P_EEPROM_VERSION		(11)
+#define STC1000P_VERSION			(109)
+#define STC1000P_EEPROM_VERSION		(12)
 
 /* Clear Watchdog */
 #define ClrWdt() 					{ __asm CLRWDT __endasm; }
