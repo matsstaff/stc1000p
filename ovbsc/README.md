@@ -5,10 +5,6 @@ This is a firmware and Arduino based uploader for the STC-1000 dual stage thermo
 
 ![STC-1000](http://img.diytrade.com/cdimg/1066822/11467124/0/1261107339/temperature_controllers_STC-1000.jpg)
 
-It is a fork off of [STC\-1000+](https://github.com/matsstaff/stc1000p/) visit that project for more information.
-
-Download by visiting the [releases page](https://github.com/matsstaff/stc1000p-ovbsc/releases)
-
 Features
 --------
 
@@ -102,11 +98,11 @@ A negative percentage value is also allowed, which does the exact same thing, bu
 The output percentage is also used in thermostat mode, so if temperature is below setpoint, the output will be the specified one. If output is at or over the setpoint the output will be 0.
 
 The unpopulated terminal on the STC can be used as pump control. The firmware will put this output in high impedance to turn pump on and pull it low to turn pump off.
-![Pump output](img/probeterm.jpg)<br>
+![Pump output](probeterm.jpg)<br>
 *Fig 1: Connection terminal of the LED dimmer*
 
 This can be used directly with an 8A LED dimmer for flow control of a 12V pump.
-![8A LED dimmer](img/dimmer.jpg)<br>
+![8A LED dimmer](dimmer.jpg)<br>
 *Fig 2: LED dimmer*
 
 The schematic of the dimmer shows, that if you connect this output to the center pin of the potentiometer, you can switch between off and the manual setting.
@@ -115,7 +111,7 @@ Note that you need to have a common ground for the STC and the dimmer.
 *Fig 3: LED dimmer schematic*
 
 Or, you could also use the output to control a mains powered pump using a solid state relay.
-![SSR pump control](img/OVBSC_SSR.png)<br>
+![SSR pump control](OVBSC_SSR.png)<br>
 *Fig 3: SSR pump control connection*
 
 Connect the positive input of the SSR to the pin on the STC and add a pullup resistor (220-470 ohm) to +5v (you can find that on the programming header on the STC). Connect the negative input on the SSR to ground (can also be found on the STC programming header). 
@@ -153,7 +149,7 @@ Program algorithm
 
 During the program, a single press on the power button will pause the program (during pause, a LED will flash and all outputs will be off). Press the power button again and the program will resume.
 
-![Graphical representation](img/OVBSCgraph.png)<br>
+![Graphical representation](OVBSCgraph.png)<br>
 *Fig4: Graphical representation of the algorithm*
 
 Now, I will try as best I can, to explain the algorithm and key concepts in 'english'.<br>
