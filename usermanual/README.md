@@ -15,175 +15,7 @@ Mats Staffansson
 2014-09-04:	Changed setpoint alarm functionality<br>
 2015-04-21:	Added info on cummunication and 433Mhz firmwares<br>
 
-# Introduction
-
-STC-1000+ is a project which aims to provide a firmware better suited for controlling fermentation for the popular STC-1000 dual stage temperature controller, as well as providing the means to easily upload the firmware to the controller.
-
-# Disclaimers
-
-It appears that different versions of STC-1000 hardware are in circulation and only one of these are compatible with STC-1000+. The circuit board needs to be of A400_P type.
-
-While I personally feel this is a quality piece of software, flashing your STC-1000 is irreversible. You will not be able to restore the original firmware. 
-
-I accept no responsibilities whatsoever, upgrade and usage of STC-1000+ is completely at your own risk. I am not responsible for direct, indirect, incidental or consequential damages resulting from any defect, error or failure to perform. 
-
-Be safe in handling of live mains voltages. Consult a licensed electrician when required.
-
-# Uploading firmware
-
-## Preparations
-
-You will need the following equipment:
-
-* An STC-1000 (with the correct hardware revision, A400_P)
-
-* An Arduino compatible development board (tested to work with Arduino UNO and Arduino Pro Mini 5V 16Mhz)
-
-* Arduino IDE (download from here: [http://arduino.cc/en/main/software](http://arduino.cc/en/main/software))
-
-* A pin header and wires (and preferably soldering equipment)
-
-You will of course also need a computer and the proper USB cable to connect the Arduino. 
-
-![image alt text](image_0.jpg)<br>
-*Fig1: Pin header (1x5, 0.1inch/2.54mm pitch)*
-
-![image alt text](image_1.jpg)<br>
-*Fig 2: Dupont wires (male)*
-
-Start by opening the STC-1000. Cut or remove the sticker. ![image alt text](image_2.jpg)<br>
-*Fig 3: Cut or remove sticker.*
-
-Lift the tabs that hold the front panel in place and slide the board out.
-
-![image alt text](image_3.jpg)<br>
-*Fig 4: Lift the tabs and pull board out.*
-
-Check the board version (upper left corner in image) and locate the programming header.
-
-![image alt text](image_4.jpg)<br>
-*Fig 5: Locate programming header connections..*
-
-It might be easier to access from the bottom of the board.
-
-![image alt text](image_5.jpg)<br>
-*Fig 6: Programming header can be accessed from bottom of the board as well.*
-
-The best way to proceed is to use a vacuum solder sucker and a soldering iron to clean out the solder from the programmer header pads, exposing the holes. You might also be able to clear the holes by heating the pad from underneath with the soldering iron, then rapidly remove the iron once the solder is liquid and quickly blowing out the solder. Just take proper precautions, if trying this method.
-
-Then the programming header can be inserted from the top of the board and soldered in place. This way you will have easy access the pins, making any future upgrades easier.
-
-If you are not able to solder, a temporary connection for programming can be made by simply pressing the pins of the pin header against the pads by hand. The board is coated, so you may need to clean the solder pads to make the connection. 
-
-![image alt text](image_6.jpg)<br>
-*Fig 7: Programming without soldering (image courtesy of wilconrad)*
-
-## Performing the upload
-
-**Before the connections are made, the sketch needs to be uploaded to the Arduino.** It is very important that connections are not made before this. An unknown program running on the Arduino could set the pins to the wrong state and short circuit the STC-1000. This could damage your STC-1000 and/or your Arduino.
-
-First, the Arduino IDE needs to be installed, if you haven’t already. If you are not familiar with Arduino, you can read more about it at [the arduino webpage](http://arduino.cc/) or [wikipedia](http://en.wikipedia.org/wiki/Arduino).
-
-Open *picprog.ino*, either by double-clicking the file or from *File -> Open* in the Arduino IDE. If it asks to create a folder then accept. Connect the Arduino with the USB cable and make sure the correct serial port is set under *Tools -> Serial port* and the correct board is selected under *Tools -> Board*. Then upload the sketch to the Arduino (*File -> Upload*).
-
-Only when the sketch is uploaded correctly is it safe to make the connections to the STC-1000.
-
-**Important:** The STC-1000 must be completely **unplugged** from mains power, but the sensor cable should be connected. During programming and testing, the STC-1000 will be powered from the Arduino.
-
-|STC-1000|Arduino|
-|--------|-------|
-|ICSPCLK |D9     |
-|ICSPDAT |D8     |
-|GND     |GND    |
-|VCC  	 |5V     |
-|nMCLR	 |D3     |
-*Table 1: Connections between STC-1000 and Arduino boards*
-
-See also *Fig 5*, *Fig 6, Fig 7* and *Fig 8* for illustrations.
-
-The connections can be made using pretty much any electrical wire, but a solid core or Dupont style wires make it a lot easier. Pin headers and Dupont wires can be found cheap on eBay and Amazon. 
-
-![image alt text](image_7.jpg)<br>
-*Fig 8: Example setup (note: sensor is not connected, but it should be).*
-
-When the sketch is uploaded and connections are made between the boards, open the serial monitor in the Arduino IDE (*Tools -> Serial Monitor*). Make sure it is set to **115200 baud** and **No line ending**. 
-
-You should be greeted with the following output:
-
-*STC-1000+ firmware sketch.*<br>
-*Copyright 2014 Mats Staffansson*<br>
-*Send 'd' to check for STC-1000*
-
-Enter 'd' (without the apostrophes) in the serial monitor input field and press 'Send' button. You should then receive:
-
-*Enter low voltage programming mode*<br>
-*Leaving programming mode*<br>
-*Device ID is: 0x27C5*<br>
-*STC-1000 detected.*<br>
-*No previous STC-1000+ firmware detected.*<br>
-*Consider initializing EEPROM when flashing.*<br>
-*Sketch has version 1.06*<br>
-*Send 'a' to upload Celsius version and initialize EEPROM data.*<br>
-*Send 'b' to upload Celsius version (program memory only).*<br>
-*Send 'f' to upload Fahrenheit version and initialize EEPROM data.*<br>
-*Send 'g' to upload Fahrenheit version (program memory only).*<br>
-
-If you see this (well, version number may differ), then you are good to go. If you instead see:
-
-*STC-1000 NOT detected. Check wiring.*
-
-Then check your connections and try again, until you get the correct output.
-
-Send 'a' or 'f' to upload the version you want (Celsius or Fahrenheit). If you are upgrading from a previous version of STC-1000+, you may want to use the 'b' or 'g' command instead. The difference is that all the data will be retained in EEPROM (i.e. profiles, temperature correction et.c.). When upgrading, the sketch will indicate (on the 'd' command output) if there are changes that might invalidate your current EEPROM data, and if so you might want to use the 'a'/'f' command even when upgrading, to make sure the data has sane defaults.
-
-After sending the upload command, a lot of output will appear in the serial monitor (that might be useful, should there be a problem) and due to how the the hardware is designed, it will also make some noise during programming (this takes ~20 seconds).
-
-## The very cheap programmer
-
-If you are able to do some light soldering, then it is possible to build a programmer to flash the STC-1000 very cheaply using an Arduino pro mini and CP2102 (USB to TTL serial converter). Currently, this will cost around $5 on eBay. Search for "arduino pro mini 5V 16M CP2102" and you should find suitable matches. If you are running Windows (but why would you?), then you may need to download drivers for the CP2102, you can find them [at Silicon Labs](http://www.silabs.com/products/mcu/pages/usbtouartbridgevcpdrivers.aspx). You will also need some wire. I find it easiest to use a 5 pin dupont cable. I will show how I build the programmer.
-
-![image alt text](image_8.jpg)<br>
-*Fig 9: The material I use, Arduino pro mini, CP2102, 5 pin dupont cable and heat shrink tubing (optional).*
-
-First I use a flat nose plier to bend the 90 degree pin header on the CP2102 back straight.
-
-![image alt text](image_9.jpg)<br>
-*Fig 10: CP2102 with straightened pinheader.*
-
-The 3.3V pin needs to go. You could probably just cut it, but I heat up the solder with the soldering iron while at the same time pulling it from the other end with some pliers.
-
-![image alt text](image_10.jpg)<br>
-*Fig 11: Before desoldering the 3.3V pin.*
-
-![image alt text](image_11.jpg)<br>
-*Fig 12: After desoldering.*
-
-Flip the pro mini upside down and the pins should line up (note: rx goes to tx and tx to rx, the others should match)
-
-![image alt text](image_12.jpg)<br>
-*Fig 13: Pro mini lined up on the pin header, note the empty spot for the 3.3V pin.*
-
-Solder it in and cut the excess of the pins.
-
-![image alt text](image_13.jpg)<br>
-*Fig 14: CP2102 and pro mini joined together.*
-
-Then just cut off one end of the dupont cable. Strip just a little bit of insulation off the end of each cable and pre tin. Solder each cable in the correct position (D9, D8, GND, VCC, D3). Best to feed it from below the board, as the reset button (which will still work) and other stuff is on the other side.
-
-![image alt text](image_14.jpg)<br>
-*Fig 15: This will function as a programmer.*
-
-The last step is optional, but will make it more durable and a bit neater. Cut a few pieces off of a hot glue stick and put around and under the wires. Then feed it through an appropriately cut length of heat shrink tubing (usb connector first). 15mm diameter heat shrink tubing is a snug fit. When heating the tubing, the glue will melt and make a cheapish stress relief for the cables. A hot air gun works well to shrink the tubing, an electric hot plate (stove) also work very well. In pinch, you can even use a lighter.
-
-![image alt text](image_15.jpg)<br>
-*Fig 16: Hot glue bits placed around and under the wires.*
-
-![image alt text](image_16.jpg)<br>
-*Fig 17: The finished 'product'.*
-
-# Using the STC-1000+ firmware
-
-## Features
+# Features
 
 * Both Fahrenheit and Celsius versions
 
@@ -201,11 +33,16 @@ The last step is optional, but will make it more durable and a bit neater. Cut a
 
 * User definable alarm when temperature is out of or within range
 
-* Optionally use a second temperature input (fridge air temp) to limit over/undershoot.
+* Different editions of the firmware with special use of RA1 pin:
+* - Secondary temp probe (fridge temp) to limit heating and cooling
+* - Single wire communication to read/set configuration 
+* - Use cheap RF transmitter to send temperature wireless
 
 * Optionally use approximative linear ramping between setpoints
 
 * Button acceleration, for frustrationless programming by buttons
+
+# Using the STC-1000+ firmware
 
 ## Navigation and menus
 
