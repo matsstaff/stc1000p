@@ -3,9 +3,10 @@ STC-1000+ USER MANUAL
 
 Mats Staffansson
 
-© 2014
+© 2014-2015
 
 # Changelog
+
 
 2014-05-25:	Updated the ramping section with the change from 8 to 64 substeps.<br>
 2014-06-30:	Updated heating and cooling delay (reset on either cycle)<br>
@@ -14,32 +15,23 @@ Mats Staffansson
 2014-08-22:	Added more info on using the second temp probe<br>
 2014-09-04:	Changed setpoint alarm functionality<br>
 2015-04-21:	Added info on cummunication and 433Mhz firmwares<br>
+2015-09-15:	Edited for v1.09 release<br>
 
 # Features
 
 * Both Fahrenheit and Celsius versions
-
 * Up to 6 profiles with up to 10 setpoints.
-
 * Each setpoint can be held for 1-999 hours (i.e. up to ~41 days).
-
-* Oversampling and filtering of temperature
-
+* [Web browser profile editor](http://goo.gl/z1KEoi) 
+* Approximative ramping
 * Somewhat intuitive menus for configuring
-
 * Separate delay settings for cooling and heating
-
-* Configurable hysteresis (allowable temp swing)
-
+* Configurable hysteresis (allowable temp swing) from 0.0 to 2.5°C or 0.0 to 5.0°F
 * User definable alarm when temperature is out of or within range
-
 * Different editions of the firmware with special use of RA1 pin:
 * - Secondary temp probe (fridge temp) to limit heating and cooling
 * - Single wire communication to read/set configuration 
 * - Use cheap RF transmitter to send temperature wireless
-
-* Optionally use approximative linear ramping between setpoints
-
 * Button acceleration, for frustrationless programming by buttons
 
 # Using the STC-1000+ firmware
@@ -84,6 +76,7 @@ The settings menu has the following items:
 |hy2|Set hysteresis for second temp probe|0.0 to 25.0°C or 0.0 to 50.0°F|
 |tc|Set temperature correction|-5.0 to 5.0°C or -10.0 to 10.0°F|
 |tc2|Set temperature correction for second temp probe|-5.0 to 5.0°C or -10.0 to 10.0°F|
+|dI|Device ID for Fine Offset 433MHz firmware|0 to 15|
 |SA|Setpoint alarm|0 = off, -40 to 40°C or -80 to 80°F|
 |SP|Set setpoint|-40 to 140°C or -40 to 250°F|
 |St|Set current profile step|0 to 8|
@@ -102,6 +95,9 @@ The settings menu has the following items:
 **Temperature correction**, will be added to the read temperature, this allows the user to calibrate temperature reading. It is best to calibrate around your working point. That means for fermentation, it is better to calibrate at room temperature against a reference thermometer than using ice water.
 
 **Temperature correction 2**, same as tc but for secondary temp probe.
+
+**Device ID**
+Only available for the FO433MHz firmware. The Fine Offset protocol allovs for 16 different ID:s. That means more than one STC\-1000+ or Fine Offset tempsensor can be used at the same time, provided they use different ID's.
 
 **Setpoint alarm**, if setpoint alarm is greater than 0.0, then the alarm will sound once temperature differs from *SP* by more than *SA* degrees (this can be useful to warn against malfunctions, such as fridge door not closed or probe not attached to carboy). If *SA* is less than 0.0, then the alarm will sound if the temperature does **NOT** differ by more than (-) *SA* degrees (this could be used as an indication that wort has finally reached pitching temp). If *SA* is set to 0.0, the alarm will be disabled. If the alarm is tripped, then the buzzer will sound and the display will flash between temperature display and showing "SA", it will not however disengage the outputs and the unit will continue to work as normal. Please note, that care needs to be taken when running a profile (especially when not using ramping or with steep ramps) to allow for a sufficiently large margin, or the alarm could be tripped when setpoint changes.
 
