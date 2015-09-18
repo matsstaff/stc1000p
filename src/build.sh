@@ -26,21 +26,23 @@ v=`cat stc1000p.h | grep STC1000P_VERSION`
 e=`cat stc1000p.h | grep STC1000P_EEPROM_VERSION`
 
 # Create stc1000p.js
-cat picprog.template | sed "s/^#define STC1000P_VERSION.*/$v/" | sed "s/^#define STC1000P_EEPROM_VERSION.*/$e/" | sed "s/'/\\\\\\\'/g" > stc1000p.js.tmp
-echo "var stc1000p={};" > ../profile/stc1000p.js
-echo "stc1000p[\"picprog\"]='' +" >> ../profile/stc1000p.js
-while IFS= read r; do
-	echo "'$r\n' +"; 
-done < stc1000p.js.tmp >> ../profile/stc1000p.js
-echo "'';" >> ../profile/stc1000p.js
-rm -f stc1000p.js.tmp
+function init_js {
+	cat picprog.template | sed "s/^#define STC1000P_VERSION.*/$v/" | sed "s/^#define STC1000P_EEPROM_VERSION.*/$e/" | sed "s/'/\\\\\\\'/g" > stc1000p.js.tmp
+	echo "var stc1000p={};" > ../profile/stc1000p.js
+	echo "stc1000p[\"picprog\"]='' +" >> ../profile/stc1000p.js
+	while IFS= read r; do
+		echo "'$r\n' +"; 
+	done < stc1000p.js.tmp >> ../profile/stc1000p.js
+	echo "'';" >> ../profile/stc1000p.js
+	rm -f stc1000p.js.tmp
+}
 
 function build_stc1000p_version {
 	
-	if [[ $1 != "" ]]; then 
+	if [[ $1 != "" && $1 != "vanilla" ]]; then 
 		version=_$1
 	else
-		version=$1
+		version=""
 	fi
 	
 	# Build HEX
@@ -103,15 +105,42 @@ function build_stc1000p_version {
 
 }
 
-build_stc1000p_version
-build_stc1000p_version "probe2";
-build_stc1000p_version "com";
-build_stc1000p_version "fo433";
-build_stc1000p_version "minute";
-build_stc1000p_version "minute_probe2";
-build_stc1000p_version "minute_com";
-build_stc1000p_version "minute_fo433";
-build_stc1000p_version "ovbsc";
+all="vanilla probe2 com fo433 minute minute_probe2 minute_com minute_fo433 ovbsc rh"
+targets=""
+
+if [[ $# == 0 ]]; then
+	targets=$all;
+else
+	available_targets=$all
+	while [[ $# > 0 ]]; do
+		if [[ "$1" == "all" ]]; then
+			targets=$all;
+			break;
+		else
+			tat=""
+			for t in $available_targets; do
+				if [[ "$1" == $t ]]; then
+					targets="$targets $t";
+				else
+					tat="$tat $t"
+				fi
+			done
+			if [[ $available_targets = $tat ]]; then
+				echo "No target \"$1\"!"
+				exit -1;
+			else
+				available_targets=$tat
+			fi
+		fi
+		shift;
+	done
+fi
+
+init_js
+for t in $targets; do
+	build_stc1000p_version $t
+done
 
 make clean
+
 
