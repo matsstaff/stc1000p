@@ -61,6 +61,7 @@ Connections
 The absolutely easiest way to hook up the HIH 4000-001 is to use the programming header on the STC, which has all the connections needed.
 
 |STC|HIH 4000-001|
+|---|------------|
 |GND|-ve|
 |VDD|+ve|
 |ICSPCLK|OUT|
