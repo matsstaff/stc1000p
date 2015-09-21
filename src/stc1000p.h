@@ -69,7 +69,8 @@
 /* Special registers used as flags */ 
 #define	MENU_IDLE				TMR1GE
 #define	SENSOR_SELECT			TX9
-#ifdef OVBSC
+
+#if defined(OVBSC)
 	#define RUN_PRG				C1POL
 	#define ALARM				C2POL
 	#define	PAUSE				C1HYS
@@ -85,7 +86,10 @@
 	#define PUMP_MANUAL()		do { TRISA1=1; LATA1=0; } while(0)
 	// RA1 output, write low.
 	#define PUMP_OFF()			do { TRISA1=0; LATA1=0; } while(0)
-#else /* !OVBSC */
+#elif defined(RH)
+	#define HEATING				C1POL
+	#define HUMID				C2POL
+#else /* !OVBSC !RH */
 	#define	SHOW_SA_ALARM		RX9
 #endif
 
@@ -139,14 +143,17 @@
 enum e_item_type {
 	t_temperature=0,
 	t_tempdiff,
-#ifdef OVBSC
+#if defined(OVBSC)
 	t_percentage,
 	t_period,
 	t_apflags,
 	t_pumpflags,
+#elif defined(RH)
+	t_rh,
+	t_rhdiff,
 #else
 	t_hyst_1,
-#if defined PB2
+#if defined(PB2)
 	t_hyst_2,
 #endif
 	t_sp_alarm,
@@ -156,18 +163,18 @@ enum e_item_type {
 	t_step,
 	t_delay,
 	t_runmode,
-#endif
+#endif 
 	t_duration,
 	t_boolean
 };
 
-#ifdef OVBSC
+#if defined(OVBSC) || defined(RH)
 	#define MENU_TYPE_IS_TEMPERATURE(x) 	((x) <= t_tempdiff)
 #else
 	#define MENU_TYPE_IS_TEMPERATURE(x) 	((x) <= t_sp_alarm)
 #endif
 
-#if defined OVBSC
+#if defined(OVBSC)
 	#define MENU_DATA(_) \
 		_(Sd, 	LED_S, 	LED_d, 	LED_OFF,	t_duration,			0)				\
 		_(St, 	LED_S, 	LED_t, 	LED_OFF, 	t_temperature,		DEFAULT_St)		\
@@ -203,7 +210,7 @@ enum e_item_type {
 		_(cSP, 	LED_c, 	LED_S, 	LED_P, 		t_temperature,		0)				\
 		_(ASd, 	LED_A, 	LED_S, 	LED_d, 		t_duration,			70)
 
-#elif defined PB2
+#elif defined(PB2)
 	/* The data needed for the 'Set' menu
 	 * Using x macros to generate the data structures needed, all menu configuration can be kept in this
 	 * single place.
@@ -226,7 +233,7 @@ enum e_item_type {
 		_(Pb, 	LED_P, 	LED_b, 	LED_2, 		t_boolean,			0)				\
 		_(rn, 	LED_r, 	LED_n, 	LED_OFF, 	t_runmode,			6)
 
-#elif defined FO433
+#elif defined(FO433)
 
 	/* The data needed for the 'Set' menu
 	 * Using x macros to generate the data structures needed, all menu configuration can be kept in this
@@ -247,6 +254,32 @@ enum e_item_type {
 		_(hd, 	LED_h, 	LED_d, 	LED_OFF, 	t_delay,			2)				\
 		_(rP, 	LED_r, 	LED_P, 	LED_OFF, 	t_boolean,			0)				\
 		_(rn, 	LED_r, 	LED_n, 	LED_OFF, 	t_runmode,			6)
+
+#elif defined(RH)
+
+	/* The data needed for the 'Set' menu
+	 * Using x macros to generate the data structures needed, all menu configuration can be kept in this
+	 * single place.
+	 *
+	 * The values are:
+	 * 	name, LED data 10, LED data 1, LED data 01, min value, max value, default value
+	 */
+	#define MENU_DATA(_) \
+		_(r0, 	LED_r, 	LED_0, 	LED_OFF,	t_rh,				100)			\
+		_(r5, 	LED_r, 	LED_5, 	LED_OFF,	t_rh,				100)			\
+		_(r10, 	LED_r, 	LED_1, 	LED_0, 		t_rh,				84)				\
+		_(r15, 	LED_r, 	LED_1, 	LED_5, 		t_rh,				76)				\
+		_(r20, 	LED_r, 	LED_2, 	LED_0, 		t_rh,				73)				\
+		_(r25, 	LED_r, 	LED_2, 	LED_5, 		t_rh,				72)				\
+		_(r30, 	LED_r, 	LED_3, 	LED_0, 		t_rh,				71)				\
+		_(r35, 	LED_r, 	LED_3, 	LED_5, 		t_rh,				72)				\
+		_(r40, 	LED_r, 	LED_4, 	LED_0, 		t_rh,				77)				\
+		_(r45, 	LED_r, 	LED_4, 	LED_5, 		t_rh,				100)			\
+		_(r50, 	LED_r, 	LED_5, 	LED_0, 		t_rh,				100)			\
+		_(don, 	LED_d, 	LED_o, 	LED_n,	 	t_duration,			24)				\
+		_(dff, 	LED_d, 	LED_F, 	LED_F,	 	t_duration,			6)				\
+		_(tc, 	LED_t, 	LED_c, 	LED_OFF, 	t_tempdiff,			0)				\
+		_(rhc, 	LED_r, 	LED_h, 	LED_c, 		t_rhdiff,			0)
 
 #else
 
@@ -280,7 +313,7 @@ enum menu_enum {
 };
 
 /* Defines for EEPROM config addresses */
-#ifdef OVBSC
+#if defined(OVBSC) || defined(RH)
 	#define EEADR_MENU				0
 #else
 	#define NO_OF_PROFILES			6
@@ -292,6 +325,12 @@ enum menu_enum {
 	#define EEADR_MENU								EEADR_PROFILE_SETPOINT(NO_OF_PROFILES, 0)
 	#define EEADR_POWER_ON							127
 #endif
+
+#if defined(RH)
+	#define EEADR_COUNTER_INDEX		111
+	#define	EEADR_COUNTER(x)		(EEADR_COUNTER_INDEX + 1 + ((x) & 0xf))
+#endif
+
 #define EEADR_MENU_ITEM(name)		(EEADR_MENU + (name))
 #define MENU_SIZE					(sizeof(menu)/sizeof(menu[0]))
 
@@ -322,15 +361,17 @@ enum menu_enum {
 #define LED_L	0xcb
 #define LED_n	0xd5	
 #define LED_O	0x3
+#define LED_o	0xc5
 #define LED_P	0x19
 #define LED_r	0xdd	
 #define LED_S	0x61
 #define LED_t	0xc9
 #define LED_U	0x83
+#define LED_u	0xc7
 #define LED_y	0xa1
 
 /* Declare functions and variables from Page 0 */
-#if defined COM
+#if defined(COM)
 	#define COM_READ_EEPROM			0x20
 	#define COM_WRITE_EEPROM		0xE0
 	#define COM_READ_TEMP			0x01
@@ -340,7 +381,7 @@ enum menu_enum {
 	#define COM_NACK				0x66
 #endif
 
-#if defined OVBSC
+#if defined(OVBSC)
 	static enum prg_state_enum {
 		prg_off=0,
 		prg_wait_strike,
@@ -393,11 +434,11 @@ extern led_e_t led_e;
 extern led_t led_10, led_1, led_01;
 extern unsigned const char led_lookup[];
 
-#if defined MINUTE
+#if defined(MINUTE)
 	extern int setpoint;
 	extern unsigned int curr_dur;
 #endif
-#if defined OVBSC
+#if defined(OVBSC)
 	extern int setpoint;
 	extern int output;
 	extern unsigned char prg_state;

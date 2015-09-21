@@ -74,10 +74,11 @@ static int range(int x, int min, int max){
 /* Check and constrain a configuration value */
 static int check_config_value(int config_value, unsigned char eeadr){
 	int t_min = 0, t_max=999;
-#ifdef OVBSC
+#if defined(OVBSC)
 	if(eeadr == MENU_SIZE){
 		t_max = 3;
-	} 		
+	} else		
+#elif defined(RH)
 #else
 	if(eeadr < EEADR_MENU){
 		while(eeadr >= 19){
@@ -87,9 +88,9 @@ static int check_config_value(int config_value, unsigned char eeadr){
 			t_min = TEMP_MIN;
 			t_max = TEMP_MAX;
 		}
-	} 
+	} else
 #endif
-	else {
+	{
 		unsigned char type = menu[eeadr - EEADR_MENU].type;
 		if(type == t_temperature){
 			t_min = TEMP_MIN;
@@ -100,7 +101,7 @@ static int check_config_value(int config_value, unsigned char eeadr){
 //		} else if(type == t_duration){
 		} else if(type == t_boolean){
 			t_max = 1;
-#ifdef OVBSC
+#if defined(OVBSC)
 		} else if(type == t_percentage){
 			t_min = -200;
 			t_max = 200;
@@ -111,13 +112,19 @@ static int check_config_value(int config_value, unsigned char eeadr){
 			t_max = 511;
 		} else if(type == t_pumpflags){
 			t_max = 31;
+#elif defined(RH)
+		} else if(type == t_rh){
+			t_max = 100;
+		} else if(type == t_rhdiff){
+			t_min = -10;
+			t_max = 10;
 #else
 		} else if(type == t_hyst_1){
 			t_max = TEMP_HYST_1_MAX;
-#ifdef PB2
+#if defined(PB2)
 		} else if(type == t_hyst_2){
 			t_max = TEMP_HYST_2_MAX;
-#elif defined FO433
+#elif defined(FO433)
 		} else if(type == t_deviceid){
 			t_max = 15;
 #endif
@@ -136,8 +143,7 @@ static int check_config_value(int config_value, unsigned char eeadr){
 	return range(config_value, t_min, t_max);
 }
 
-#ifdef OVBSC
-
+#if defined(OVBSC)
 static void menu_to_led(unsigned char mi){
 	led_e.e_negative = 1;
 	led_e.e_deg = 1;
@@ -153,8 +159,19 @@ static void menu_to_led(unsigned char mi){
 		led_01.raw = LED_n;
 	}
 }
-
-#else // !OVBSC
+#elif defined(RH)
+static void menu_to_led(unsigned char mi){
+	led_e.e_negative = 1;
+	led_e.e_deg = 1;
+	led_e.e_c = 1;
+	led_e.e_point = 1;
+	if(mi < MENU_SIZE){
+		led_10.raw = menu[mi].led_c_10;
+		led_1.raw = menu[mi].led_c_1;
+		led_01.raw = menu[mi].led_c_01;
+	}
+}
+#else // !OVBSC !RH
 
 static void prx_to_led(unsigned char run_mode, unsigned char is_menu){
 	led_e.e_negative = 1;
@@ -189,8 +206,12 @@ enum menu_states {
 	menu_show_version,
 	menu_show_state_up,
 	menu_show_state_down,
+#if defined(RH)
+	menu_reset_wait,
+#else
 	menu_show_state_down_2,
-#ifndef OVBSC
+#endif
+#if !(defined(OVBSC) || defined(RH))
 	menu_show_state_down_3,
 	menu_power_down_wait,
 	menu_show_menu_item,
@@ -209,7 +230,7 @@ enum menu_states {
  * and made global.
  */
 static unsigned char menustate=menu_idle;
-#if defined OVBSC
+#if (defined(OVBSC) || defined(RH))
 static unsigned char config_item=0, m_countdown=0;
 #else
 static unsigned char menu_item=0, config_item=0, m_countdown=0;
@@ -254,11 +275,16 @@ void button_menu_fsm(){
 
 	switch(menustate){
 	case menu_idle:
-#ifdef OVBSC
+#if defined(OVBSC)
 		if(ALARM && ((_buttons & 0x0f) == 0) && ((_buttons & 0xf0) !=0)){
 			ALARM = 0;
 		} else if(BTN_RELEASED(BTN_PWR)){
 			PAUSE = !PAUSE;
+		} else {
+#elif defined(RH)
+		if(BTN_PRESSED(BTN_PWR)){
+			m_countdown = 27; // 3 sec
+			menustate = menu_reset_wait;
 		} else {
 #else
 		if(BTN_PRESSED(BTN_PWR)){
@@ -274,7 +300,7 @@ void button_menu_fsm(){
 				m_countdown = 13; // 1.5 sec
 				menustate = menu_show_state_down;
 			} else if(BTN_RELEASED(BTN_S)){
-#ifdef OVBSC
+#if (defined(OVBSC) || defined(RH))
 				menustate = menu_show_config_item;
 #else
 				menustate = menu_show_menu_item;
@@ -294,7 +320,7 @@ void button_menu_fsm(){
 		break;
 
 	case menu_show_state_up:
-#ifdef OVBSC
+#if defined(OVBSC)
 		if(OFF){
 			led_10.raw = LED_O;
 			led_1.raw = LED_F;
@@ -310,6 +336,8 @@ void button_menu_fsm(){
 		} else {
 			int_to_led(output);
 		}
+#elif defined(RH)
+		int_to_led(eeprom_read_config(EEADR_COUNTER(eeprom_read_config(EEADR_COUNTER_INDEX))));
 #else
 #ifdef MINUTE
 		temperature_to_led(setpoint);
@@ -323,7 +351,7 @@ void button_menu_fsm(){
 		break;
 
 	case menu_show_state_down:
-#ifdef OVBSC
+#if defined(OVBSC)
 		if(OFF){
 			led_10.raw = LED_O;
 			led_1.raw = LED_F;
@@ -373,6 +401,12 @@ void button_menu_fsm(){
 				menustate = menu_show_state_down_2;
 			}
 		}
+#elif defined(RH)
+		// TODO Show something else?
+		led_10.raw = LED_OFF;
+		led_1.raw = LED_OFF;
+		led_01.raw = LED_OFF;
+		led_e.raw = LED_OFF;
 #else
 		{
 			unsigned char run_mode = eeprom_read_config(EEADR_MENU_ITEM(rn));
@@ -388,8 +422,23 @@ void button_menu_fsm(){
 		}
 		break;
 
+#if defined(RH)
+	case menu_reset_wait:
+		if(m_countdown==0){
+			unsigned char cnti = eeprom_read_config(EEADR_COUNTER_INDEX);
+			cnti = (cnti + 1) & 0xf;
+			eeprom_write_config(EEADR_COUNTER(cnti), 0);
+			eeprom_write_config(EEADR_COUNTER_INDEX, cnti);
+			menustate = menu_idle;
+		} else if(!BTN_HELD(BTN_PWR)){
+			menustate = menu_idle;
+		}
+		break;
+#endif
+
+#if !defined(RH)
 	case menu_show_state_down_2:
-#ifdef OVBSC
+#if defined(OVBSC)
 		int_to_led(countdown);
 		if(m_countdown==0){
 			m_countdown = 20;
@@ -406,9 +455,10 @@ void button_menu_fsm(){
 			menustate = menu_idle;
 		}
 		break;
+#endif // !RH
 
 	case menu_show_config_item:
-#ifdef OVBSC
+#if (defined(OVBSC) || defined(RH))
 		menu_to_led(config_item);
 #else
 		led_e.e_negative = 1;
@@ -437,7 +487,7 @@ void button_menu_fsm(){
 		if(m_countdown==0){
 			menustate=menu_idle;
 		} else if(BTN_RELEASED(BTN_PWR)){
-#ifdef OVBSC
+#if defined(OVBSC)
 			menustate=menu_idle;
 		} else if(BTN_RELEASED(BTN_UP)){
 			config_item++;
@@ -467,7 +517,25 @@ void button_menu_fsm(){
 			}
 			menustate = menu_show_config_value;
 		}
-#else /* !OVBSC */
+#elif defined(RH)
+			menustate=menu_idle;
+		} else if(BTN_RELEASED(BTN_UP)){
+			config_item++;
+			if(config_item >= MENU_SIZE){
+				config_item = 0;
+			}
+			menustate = menu_show_config_item;
+		} else if(BTN_RELEASED(BTN_DOWN)){
+			config_item--;
+			if(config_item >= MENU_SIZE){
+				config_item = MENU_SIZE-1;
+			}
+			menustate = menu_show_config_item;
+		} else if(BTN_RELEASED(BTN_S)){
+			config_value = eeprom_read_config(config_item);
+			menustate = menu_show_config_value;
+		}
+#else /* !OVBSC !RH */
 			menustate = menu_show_menu_item;
 		} else if(BTN_RELEASED(BTN_UP)){
 			config_item++;
@@ -495,7 +563,7 @@ void button_menu_fsm(){
 					config_item = MENU_SIZE-1;
 				}
 chk_skip_menu_item:
-#ifndef MINUTE
+#if !defined(MINUTE)
 				if((unsigned char)eeprom_read_config(EEADR_MENU_ITEM(rn)) >= THERMOSTAT_MODE)
 #endif
 				{
@@ -518,7 +586,7 @@ chk_skip_menu_item:
 		break;
 
 		case menu_show_config_value:
-#ifdef OVBSC
+#if defined(OVBSC)
 			if(config_item < MENU_SIZE){
 				unsigned char type = menu[config_item].type;
 				if(MENU_TYPE_IS_TEMPERATURE(type)){
@@ -551,6 +619,15 @@ chk_skip_menu_item:
 					led_01.raw = LED_OFF;
 				}
 			}
+#elif defined(RH)
+			{
+				unsigned char type = menu[config_item].type;
+				if(MENU_TYPE_IS_TEMPERATURE(type)){
+					temperature_to_led(config_value);
+				} else {
+					int_to_led(config_value);
+				}
+			}
 #else
 		if(menu_item < MENU_ITEM_NO){
 			if(config_item & 0x1){
@@ -575,7 +652,7 @@ chk_skip_menu_item:
 
 	case menu_set_config_value:
 		{
-#ifdef OVBSC
+#if (defined(OVBSC) || defined(RH))
 			unsigned char adr = config_item;
 #else
 			unsigned char adr = MI_CI_TO_EEADR(menu_item, config_item);
@@ -603,7 +680,7 @@ chk_cfg_acc_label:
 				}
 				menustate = menu_show_config_value;
 			} else if(BTN_RELEASED(BTN_S)){
-#ifdef OVBSC
+#if defined(OVBSC)
 				if(config_item < MENU_SIZE){
 					eeprom_write_config(config_item, config_value);
 				} else {
@@ -625,12 +702,14 @@ chk_cfg_acc_label:
 						THERMOSTAT = 0;
 					}
 				}
+#elif defined(RH)
+					eeprom_write_config(config_item, config_value);
 #else
 				if(menu_item == MENU_ITEM_NO){
 					if(config_item == rn){
 						// When setting runmode, clear current step & duration
 						eeprom_write_config(EEADR_MENU_ITEM(St), 0);
-#ifdef MINUTE
+#if defined(MINUTE)
 						curr_dur = 0;
 #else
 						eeprom_write_config(EEADR_MENU_ITEM(dh), 0);
@@ -638,7 +717,7 @@ chk_cfg_acc_label:
 						if(config_value < THERMOSTAT_MODE){
 							unsigned char eeadr_sp = EEADR_PROFILE_SETPOINT(((unsigned char)config_value), 0);
 							// Set intial value for SP
-#ifdef MINUTE
+#if defined(MINUTE)
 							setpoint = eeprom_read_config(eeadr_sp);
 							eeprom_write_config(EEADR_MENU_ITEM(SP), setpoint);
 #else
@@ -652,7 +731,7 @@ chk_cfg_acc_label:
 					}
 				}
 				eeprom_write_config(adr, config_value);
-#endif // !OVBSC
+#endif // !OVBSC !RH
 				menustate=menu_show_config_item;
 			} else {
 				PR6 = 250;
@@ -660,7 +739,7 @@ chk_cfg_acc_label:
 		}
 		break;
 
-#ifndef OVBSC
+#if !(defined(OVBSC) || defined(RH))
 	case menu_power_down_wait:
 		if(m_countdown==0){
 			unsigned char pwr_on = eeprom_read_config(EEADR_POWER_ON);
@@ -678,7 +757,7 @@ chk_cfg_acc_label:
 			}
 			menustate = menu_idle;
 		} else if(!BTN_HELD(BTN_PWR)){
-#if defined PB2
+#if defined(PB2)
 			SENSOR_SELECT = !SENSOR_SELECT;
 #endif
 			menustate = menu_idle;
@@ -686,7 +765,7 @@ chk_cfg_acc_label:
 		break;
 
 	case menu_show_state_down_3: // profile duration
-#if defined MINUTE
+#if defined(MINUTE)
 		int_to_led(curr_dur);
 #else
 		int_to_led(eeprom_read_config(EEADR_MENU_ITEM(dh)));
@@ -725,7 +804,7 @@ chk_cfg_acc_label:
 			menustate = menu_show_config_item;
 		}
 		break;
-#endif // !OVBSC
+#endif // !(defined(OVBSC) || defined(RH))
 
 	default:
 		menustate = menu_idle;
