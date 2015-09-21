@@ -47,6 +47,11 @@ Additional notes
 
 The implementation samples relative humidity and temperature continuously, but 8 times per hour (that is 7.5 minutes apart), the values are compared to the limits set. The outcome is remembered. Then once an hour, these last eight comparisons are checked (that is the last hours worth). If a heating cycle is ongoing, then 6 (or more) of the 8 samples need to be below threshold (and heater must have been on at least *dff* hours) for heating cycle to end.
 If a heating cycle is not ongoing, then 6 (or more) of the 8 samples must be above threshold, or the the heating delay counter *don* is reset to the programmed value. When *don* hours have consecutively been above threshold, the heater is engaged.
+This also means that even if the *don* paramter is set to zero, the unit will need to be on for at least an hour to gather environment data, before it will turn on.
+
+When temperature is between two of the set humidity settings the *rh* limit value will be interpolated between these two points. For example, say that *r10* is set to 80% and *r15* to 75%, if temperature is 12°C then a relative humidity of more than 78% will be considered above the threshold.
+
+Every hour that the unit has been heating, a counter stored in EEPROM is updated. By pressing the *UP* button (while the unit is idle, i.e. not in the menu), this counter is shown. Pressing and holding the *power* button a few seconds will reset the counter (and also shift to use another EEPROM location). As EEPROM writes (to each single location) are limited (that is EEPROM will eventually wear out), if this is a feature of interest, then it is recommended to periodically reset the counter to limit the effects of this wear.
 
 The honewell HIH sensor was chosen before sensors such as the DHT22, because it is way simpler to use and just is the right choice for this setup. Even though is is more expensive and I have no experience with the DHT's, I have no doubt that it is worth the extra mulah. 
 
