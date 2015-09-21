@@ -47,7 +47,7 @@ Additional notes
 
 The implementation samples relative humidity and temperature continuously, but 8 times per hour (that is 7.5 minutes apart), the values are compared to the limits set. The outcome is remembered. Then once an hour, these last eight comparisons are checked (that is the last hours worth). If a heating cycle is ongoing, then 6 (or more) of the 8 samples need to be below threshold (and heater must have been on at least *dff* hours) for heating cycle to end.
 If a heating cycle is not ongoing, then 6 (or more) of the 8 samples must be above threshold, or the the heating delay counter *don* is reset to the programmed value. When *don* hours have consecutively been above threshold, the heater is engaged.
-This also means that even if the *don* paramter is set to zero, the unit will need to be on for at least an hour to gather environment data, before it will turn on.
+This also means that even if the *don* parameter is set to zero, the unit will need to be on for at least an hour to gather environment data, before it will turn on the heater.
 
 When temperature is between two of the set humidity settings the *rh* limit value will be interpolated between these two points. For example, say that *r10* is set to 80% and *r15* to 75%, if temperature is 12°C then a relative humidity of more than 78% will be considered above the threshold.
 
