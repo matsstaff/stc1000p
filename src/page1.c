@@ -118,6 +118,8 @@ static int check_config_value(int config_value, unsigned char eeadr){
 		} else if(type == t_rhdiff){
 			t_min = -10;
 			t_max = 10;
+		} else if(type == t_show_r_t){
+			t_max = 3;
 #else
 		} else if(type == t_hyst_1){
 			t_max = TEMP_HYST_1_MAX;

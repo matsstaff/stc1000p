@@ -38,9 +38,14 @@ Parameters
 |dff|Minimum number of hours heater is on before turning off (if conditions are ok)|0 to 999 hours|
 |tc|Temperature correction|-5.0 to 5°C|
 |rhc|Relative humidity correction|-10 to 10%|
+|Srt|Select display (relative humidity / temperature)|0 to 3|
 
 The rationale for the *don* parameter is that daily fluctuations may make conditions infavourable for growth, even though it might be above the threshold for some hours during the night.
 Similarily, the *dff* parameter is just to ensure, that if the heater is turned on, then it should at least be on long enough that it does some good.
+
+The *Srt* parameter selects what will be displayed when menu is idle. If set to 0, no value is displayed (i.e. display is dark, with the exception for any status LED's), set to 1 temperature is displayed, set to 2 relative humidity is displayed. Finally set to 3, temperature and relative humidity is shown, alternating every 2 seconds.
+
+The *cool* LED and *heat* LED are lit when relays are engaged. The *set* LED is flashing when the unit is in a wait state, that is heating is off and threshold is exceeded but waiting *don* delay or heating is on and climate is below threshold, but waiting on *dff* delay.
 
 Additional notes
 ----------------

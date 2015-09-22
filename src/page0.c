@@ -1219,11 +1219,14 @@ void main(void) __naked {
 				}
 
 				if(MENU_IDLE){
+					unsigned char show_r_t = eeprom_read_config(EEADR_MENU_ITEM(Srt));
 					led_e.e_set = !((HEATING ^ HUMID) && (millisx60 & 0x10));
-					if(millisx60 & 0x20){
+					if((show_r_t == 0x2) || ((show_r_t & 0x2) && (millisx60 & 0x20))){
 						int_to_led(humidity);
-					} else {
+					} else if(show_r_t & 0x1){
 						temperature_to_led(temperature);
+					} else {
+						led_01.raw = led_1.raw = led_10.raw = LED_OFF;
 					}
 				}
 #else

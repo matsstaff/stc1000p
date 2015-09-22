@@ -151,6 +151,7 @@ enum e_item_type {
 #elif defined(RH)
 	t_rh,
 	t_rhdiff,
+	t_show_r_t,
 #else
 	t_hyst_1,
 #if defined(PB2)
@@ -279,7 +280,8 @@ enum e_item_type {
 		_(don, 	LED_d, 	LED_o, 	LED_n,	 	t_duration,			24)				\
 		_(dff, 	LED_d, 	LED_F, 	LED_F,	 	t_duration,			6)				\
 		_(tc, 	LED_t, 	LED_c, 	LED_OFF, 	t_tempdiff,			0)				\
-		_(rhc, 	LED_r, 	LED_h, 	LED_c, 		t_rhdiff,			0)
+		_(rhc, 	LED_r, 	LED_h, 	LED_c, 		t_rhdiff,			0)				\
+		_(Srt, 	LED_S, 	LED_r, 	LED_t, 		t_show_r_t,			3)				\
 
 #else
 
