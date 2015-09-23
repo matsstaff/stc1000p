@@ -222,7 +222,7 @@ function update_temperature_scale(){
 }
 
 function update_duration_scale(){
-	if($("input[name='stc1000p_version']:checked").val() == ""){
+	if($("input[name='stc1000p_version']:checked").val() == "" || $("input[name='stc1000p_version']:checked").val() == "_rh"){
 		$("span.durscale").html("[h]");
 	} else {
 		$("span.durscale").html("[min]");
@@ -247,8 +247,25 @@ function generate_hex(){
 		adr[m] = 65535;
 	}
 
-	if($("input[name='stc1000p_version']:checked").val() != "_ovbsc"){
-
+	if($("input[name='stc1000p_version']:checked").val() == "_ovbsc"){
+		$("input[name^='menu_']:enabled").each(function(){
+			if($(this).hasClass('temperature') || $(this).hasClass('tempdiff') || $(this).hasClass('period')){
+				adr[x] = Math.round($(this).val() * 10.0);
+			} else {
+				adr[x] = Math.round($(this).val());
+			}
+			x++;
+		});
+	} else if($("input[name='stc1000p_version']:checked").val() == "_rh"){
+		$("input[name^='rh_menu_']:enabled").each(function(){
+			if($(this).hasClass('tempdiff')){
+				adr[x] = Math.round($(this).val() * 10.0);
+			} else {
+				adr[x] = Math.round($(this).val());
+			}
+			x++;
+		});
+	} else {
 		for(m=0; m<6; m++) {
 			for(n=0; n<10; n++) {
 				var sp = $('#sp' + m + '_' + n).val();
@@ -265,15 +282,6 @@ function generate_hex(){
 
 		$("input[name^='set_menu_']:enabled").each(function(){
 			if($(this).hasClass('temperature') || $(this).hasClass('tempdiff')){
-				adr[x] = Math.round($(this).val() * 10.0);
-			} else {
-				adr[x] = Math.round($(this).val());
-			}
-			x++;
-		});
-	} else { // OVBSC
-		$("input[name^='menu_']:enabled").each(function(){
-			if($(this).hasClass('temperature') || $(this).hasClass('tempdiff') || $(this).hasClass('period')){
 				adr[x] = Math.round($(this).val() * 10.0);
 			} else {
 				adr[x] = Math.round($(this).val());
@@ -340,14 +348,27 @@ $(document).ready(function () {
 
 	$("input[name='stc1000p_version']").change(
 		function(){
+			$("#tempscale_selector").show();
 			if($(this).val() == "_ovbsc") {
 				$("#stc1000p_subversion_selector").hide();
 				$("#stc1000p_eeprom_editor").hide();
 				$("#stc1000p_ovbsc_eeprom_editor").show();
+				$("#stc1000p_rh_eeprom_editor").hide();
+			} else if($(this).val() == "_rh") {
+				$("#stc1000p_subversion_selector").hide();
+				$("#stc1000p_eeprom_editor").hide();
+				$("#stc1000p_ovbsc_eeprom_editor").hide();
+				$("#stc1000p_rh_eeprom_editor").show();
+				if($("#tempscale").val() == "F"){
+					$("#tempscale").val("C");
+					update_temperature_scale();
+				}
+				$("#tempscale_selector").hide();
 			} else {
 				$("#stc1000p_subversion_selector").show();
 				$("#stc1000p_eeprom_editor").show();
 				$("#stc1000p_ovbsc_eeprom_editor").hide();
+				$("#stc1000p_rh_eeprom_editor").hide();
 				if($(this).val() == "_minute"){
 					$("#cheathours").hide();
 					$("#cheatminutes").show();
@@ -357,7 +378,6 @@ $(document).ready(function () {
 				}
 				calc();
 			}
-			$("#tempscale_selector").show();
 			update_duration_scale();
 		}
 	);
@@ -418,6 +438,7 @@ Save the file and open with the Arduino IDE if not prompted to open it directly.
 			<input type="radio" name="stc1000p_version" value="">STC-1000+<br>
 			<input type="radio" name="stc1000p_version" value="_minute">STC-1000+ (minute timebase)<br>
 			<input type="radio" name="stc1000p_version" value="_ovbsc">STC-1000+ OVBSC<br>
+			<input type="radio" name="stc1000p_version" value="_rh">STC-1000+ RH<br>
 		</td>
 		<td valign="top" id="stc1000p_subversion_selector" style="display: none">
 			<input type="radio" name="stc1000p_subversion" value="" checked>Vanilla version<br>
@@ -794,8 +815,8 @@ Save the file and open with the Arduino IDE if not prompted to open it directly.
 						<tr><td>hd3:</td><td><input class="plainnumber" type="text" id="menu_23" name="menu_hd3" maxlength="4" size="4" autocomplete="off" value="15" title="Hop alarm 3"><span class="mscale">[min]</span></td></tr>
 						<tr><td>hd4:</td><td><input class="plainnumber" type="text" id="menu_24" name="menu_hd4" maxlength="4" size="4" autocomplete="off" value="5" title="Hop alarm 4"><span class="mscale">[min]</span></td></tr>
 						<tr><td>tc:</td><td><input class="tempdiff" type="text" id="menu_25" name="menu_tc" maxlength="4" size="4" autocomplete="off" value="0.0" title="Temperature correction"><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>APF:</td><td><input class="plainnumber" type="text" id="menu_26" name="menu_APF" maxlength="4" size="4" autocomplete="off" value="511" title="Alarm/pause flags"><span class="flagscale">[b]</span></td></tr>
-						<tr><td>PF:</td><td><input class="plainnumber" type="text" id="menu_27" name="menu_PF" maxlength="4" size="4" autocomplete="off" value="6" title="Pump flags"><span class="flagscale">[b]</span></td></tr>
+						<tr><td>APF:</td><td><input class="plainnumber" type="text" id="menu_26" name="menu_APF" maxlength="4" size="4" autocomplete="off" value="511" title="Alarm/pause flags"><span class="flagscale">[bitfield]</span></td></tr>
+						<tr><td>PF:</td><td><input class="plainnumber" type="text" id="menu_27" name="menu_PF" maxlength="4" size="4" autocomplete="off" value="6" title="Pump flags"><span class="flagscale">[bitfield]</span></td></tr>
 
 						<tr><td>Pd:</td><td><input class="period" type="text" id="menu_28" name="menu_Pd" maxlength="4" size="4" autocomplete="off" value="5.0" title="Period (on + off cycle) time"><span class="pdscale">[s]</span></td></tr>
 						<tr><td>cO:</td><td><input class="planinumber" type="text" id="menu_29" name="menu_cO" maxlength="4" size="4" autocomplete="off" value="80" title="Constant output run mode output"><span class="perscale">[%]</span></td></tr>
@@ -816,6 +837,49 @@ Save the file and open with the Arduino IDE if not prompted to open it directly.
 <input type="button" id="downloadovbscino" name="downloadino" value="Download sketch" onclick="download();" title="Generate sketch for download">
 
 </span>
+
+<span id="stc1000p_rh_eeprom_editor" style="display: none">
+	<table>
+		<thead>
+			<tr>
+				<td><h3>Settings</h3></td>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td valign="top">
+					<table>
+						<tr><td>r0:</td><td><input class="plainnumber" type="text" id="rh_menu_0" name="rh_menu_r0" maxlength="4" size="4" autocomplete="off" value="100" title="Max allowed RH at 0 deg C"><span class="perscale">[%]</span></td></tr>
+						<tr><td>r5:</td><td><input class="plainnumber" type="text" id="rh_menu_1" name="rh_menu_r5" maxlength="4" size="4" autocomplete="off" value="100" title="Max allowed RH at 5 deg C"><span class="perscale">[%]</span></td></tr>
+						<tr><td>r10:</td><td><input class="plainnumber" type="text" id="rh_menu_2" name="rh_menu_r10" maxlength="4" size="4" autocomplete="off" value="84" title="Max allowed RH at 10 deg C"><span class="perscale">[%]</span></td></tr>
+						<tr><td>r15:</td><td><input class="plainnumber" type="text" id="rh_menu_3" name="rh_menu_r15" maxlength="4" size="4" autocomplete="off" value="76" title="Max allowed RH at 15 deg C"><span class="perscale">[%]</span></td></tr>
+						<tr><td>r20:</td><td><input class="plainnumber" type="text" id="rh_menu_4" name="rh_menu_r20" maxlength="4" size="4" autocomplete="off" value="73" title="Max allowed RH at 20 deg C"><span class="perscale">[%]</span></td></tr>
+						<tr><td>r25:</td><td><input class="plainnumber" type="text" id="rh_menu_5" name="rh_menu_r25" maxlength="4" size="4" autocomplete="off" value="72" title="Max allowed RH at 25 deg C"><span class="perscale">[%]</span></td></tr>
+						<tr><td>r30:</td><td><input class="plainnumber" type="text" id="rh_menu_6" name="rh_menu_r30" maxlength="4" size="4" autocomplete="off" value="71" title="Max allowed RH at 30 deg C"><span class="perscale">[%]</span></td></tr>
+						<tr><td>r35:</td><td><input class="plainnumber" type="text" id="rh_menu_7" name="rh_menu_r35" maxlength="4" size="4" autocomplete="off" value="72" title="Max allowed RH at 35 deg C"><span class="perscale">[%]</span></td></tr>
+						<tr><td>r40:</td><td><input class="plainnumber" type="text" id="rh_menu_8" name="rh_menu_r40" maxlength="4" size="4" autocomplete="off" value="77" title="Max allowed RH at 40 deg C"><span class="perscale">[%]</span></td></tr>
+						<tr><td>r45:</td><td><input class="plainnumber" type="text" id="rh_menu_9" name="rh_menu_r45" maxlength="4" size="4" autocomplete="off" value="100" title="Max allowed RH at 45 deg C"><span class="perscale">[%]</span></td></tr>
+						<tr><td>r50:</td><td><input class="plainnumber" type="text" id="rh_menu_10" name="rh_menu_r50" maxlength="4" size="4" autocomplete="off" value="100" title="Max allowed RH at 50 deg C"><span class="perscale">[%]</span></td></tr>
+						<tr><td>don:</td><td><input class="planinumber" type="text" id="rh_menu_11" name="rh_menu_don" maxlength="4" size="4" autocomplete="off" value="24" title="Min duration above threshold for on"><span class="durscale">[h]</span></td></tr>
+						<tr><td>dFF:</td><td><input class="planinumber" type="text" id="rh_menu_12" name="rh_menu_dFF" maxlength="4" size="4" autocomplete="off" value="6" title="Min on time before turn off"><span class="durscale">[h]</span></td></tr>
+						<tr><td>tc:</td><td><input class="tempdiff" type="text" id="rh_menu_13" name="rh_menu_tc" maxlength="4" size="4" autocomplete="off" value="0.0" title="Temperature correction"><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>rhc:</td><td><input class="plainnumber" type="text" id="rh_menu_14" name="rh_menu_rhc" maxlength="4" size="4" autocomplete="off" value="0" title="Relative humidity correction"><span class="perscale">[%]</span></td></tr>
+						<tr><td>Srt:</td><td><input class="plainnumber" type="text" id="rh_menu_17" name="rh_menu_Srt" maxlength="4" size="4" autocomplete="off" value="0" title="Show relative humidity and/or temperature on display [0=off, 1=temperature, 2=rh, 3=temp+rh]"><span class="flagscale">[bitfield]</span></td></tr>
+					</table>
+				</td>
+			</tr>
+		</tbody>
+	</table>
+
+
+
+<br />
+
+
+<input type="button" id="downloadrhino" name="downloadino" value="Download sketch" onclick="download();" title="Generate sketch for download">
+
+</span>
+
 
 </body>
 
