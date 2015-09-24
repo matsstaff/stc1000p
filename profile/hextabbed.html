@@ -318,7 +318,9 @@ function generate_hex(){
 	return output;	
 }
 
-function setCookie(cname, cvalue, exdays=999) {
+function setCookie(cname, cvalue, exdays) {
+	if (exdays === undefined) { exdays = 999; }
+
     var d = new Date();
     d.setTime(d.getTime() + (exdays*24*60*60*1000));
     var expires = "expires="+d.toUTCString();
