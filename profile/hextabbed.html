@@ -143,7 +143,7 @@ function calc(){
 				break;
 			}
 			for(j=0; j < dh; j++){
-				if($('#set10').val() != "0"){
+				if($('#menu_param_rP').val() != "0"){
 					d1.push([x/divisor, y]);
 					y = ramp(k, i, j);
 					d1.push([x/divisor, y]);
@@ -247,25 +247,9 @@ function generate_hex(){
 		adr[m] = 65535;
 	}
 
-	if($("input[name='stc1000p_version']:checked").val() == "_ovbsc"){
-		$("input[name^='menu_']:enabled").each(function(){
-			if($(this).hasClass('temperature') || $(this).hasClass('tempdiff') || $(this).hasClass('period')){
-				adr[x] = Math.round($(this).val() * 10.0);
-			} else {
-				adr[x] = Math.round($(this).val());
-			}
-			x++;
-		});
-	} else if($("input[name='stc1000p_version']:checked").val() == "_rh"){
-		$("input[name^='rh_menu_']:enabled").each(function(){
-			if($(this).hasClass('tempdiff')){
-				adr[x] = Math.round($(this).val() * 10.0);
-			} else {
-				adr[x] = Math.round($(this).val());
-			}
-			x++;
-		});
-	} else {
+	var fw_version = $("input[name='stc1000p_version']:checked").val();
+
+	if(fw_version == "" || fw_version == "_minute"){
 		for(m=0; m<6; m++) {
 			for(n=0; n<10; n++) {
 				var sp = $('#sp' + m + '_' + n).val();
@@ -279,16 +263,16 @@ function generate_hex(){
 				x++;
 			}
 		}
-
-		$("input[name^='set_menu_']:enabled").each(function(){
-			if($(this).hasClass('temperature') || $(this).hasClass('tempdiff')){
-				adr[x] = Math.round($(this).val() * 10.0);
-			} else {
-				adr[x] = Math.round($(this).val());
-			}
-			x++;
-		});
 	}
+
+	$("input[name^='menu" + fw_version + "_param_']:enabled").each(function(){
+		if($(this).hasClass('temperature') || $(this).hasClass('tempdiff') || $(this).hasClass('period')){
+			adr[x] = Math.round($(this).val() * 10.0);
+		} else {
+			adr[x] = Math.round($(this).val());
+		}
+		x++;
+	});
 
 	var i=0;
 	var output="";
@@ -334,72 +318,74 @@ function generate_hex(){
 	return output;	
 }
 
+function setCookie(cname, cvalue, exdays=999) {
+    var d = new Date();
+    d.setTime(d.getTime() + (exdays*24*60*60*1000));
+    var expires = "expires="+d.toUTCString();
+    document.cookie = cname + "=" + cvalue + "; " + expires;
+}
+
+function getCookie(cname) {
+    var name = cname + "=";
+    var ca = document.cookie.split(';');
+    for(var i=0; i<ca.length; i++) {
+        var c = ca[i];
+        while (c.charAt(0)==' ') c = c.substring(1);
+        if (c.indexOf(name) == 0) return c.substring(name.length, c.length);
+    }
+    return "";
+}
+
+function save_cookie(){
+	var t="tempscale~" + $("#tempscale").val();
+	$(":text").each(function(i, obj){
+	  t+="^";
+	  t+=obj.id;
+	  t+="~";
+	  t+=obj.value;
+	});
+
+	setCookie("stc1000p", t);
+}
+
+function restore_cookie(){
+	var cdata = getCookie("stc1000p");
+	var darr = cdata.split('^');
+	for(var i=0; i<darr.length; i++){
+		var kv = darr[i].split('~');
+		$("#"+kv[0]).val(kv[1]);
+	}
+	calc();
+}
+
 $(document).ready(function () {
 	$( "#tabs" ).tabs();
 
-	$( ".temperature" ).change(function() {
+	$( ".recalc" ).change(function() {
 		calc();
 	});
-	$( ".plainnumber" ).change(function() {
-		calc();
-	});
-
-//    calc();
 
 	$("input[name='stc1000p_version']").change(
 		function(){
-			$("#tempscale_selector").show();
-			if($(this).val() == "_ovbsc") {
-				$("#stc1000p_subversion_selector").hide();
-				$("#stc1000p_eeprom_editor").hide();
-				$("#stc1000p_ovbsc_eeprom_editor").show();
-				$("#stc1000p_rh_eeprom_editor").hide();
-			} else if($(this).val() == "_rh") {
-				$("#stc1000p_subversion_selector").hide();
-				$("#stc1000p_eeprom_editor").hide();
-				$("#stc1000p_ovbsc_eeprom_editor").hide();
-				$("#stc1000p_rh_eeprom_editor").show();
-				if($("#tempscale").val() == "F"){
-					$("#tempscale").val("C");
-					update_temperature_scale();
-				}
-				$("#tempscale_selector").hide();
-			} else {
-				$("#stc1000p_subversion_selector").show();
-				$("#stc1000p_eeprom_editor").show();
-				$("#stc1000p_ovbsc_eeprom_editor").hide();
-				$("#stc1000p_rh_eeprom_editor").hide();
-				if($(this).val() == "_minute"){
-					$("#cheathours").hide();
-					$("#cheatminutes").show();
-				} else {
-					$("#cheathours").show();
-					$("#cheatminutes").hide();
-				}
-				calc();
+			var fw_version = $(this).val();
+
+			$('*[class*="show_version"]').hide();
+			$(".show_version"+ fw_version).show();
+
+			if(fw_version == "_rh" && $("#tempscale").val() == "F"){
+				$("#tempscale").val("C");
+				update_temperature_scale();
 			}
+
 			update_duration_scale();
 		}
 	);
 
 	$("input[name='stc1000p_subversion']").change(
 		function(){
-			if($(this).val() == "_probe2") {
-				$("input[name='set_menu_hy2']").removeAttr('disabled');
-				$("input[name='set_menu_tc2']").removeAttr('disabled');
-				$("input[name='set_menu_dI']").attr('disabled', 'disabled');
-				$("input[name='set_menu_Pb2']").removeAttr('disabled');
-			} else if($(this).val() == "_fo433") {
-				$("input[name='set_menu_hy2']").attr('disabled', 'disabled');
-				$("input[name='set_menu_tc2']").attr('disabled', 'disabled');
-				$("input[name='set_menu_dI']").removeAttr('disabled');
-				$("input[name='set_menu_Pb2']").attr('disabled', 'disabled');
-			} else { // Vanilla & com
-				$("input[name='set_menu_hy2']").attr('disabled', 'disabled');
-				$("input[name='set_menu_tc2']").attr('disabled', 'disabled');
-				$("input[name='set_menu_dI']").attr('disabled', 'disabled');
-				$("input[name='set_menu_Pb2']").attr('disabled', 'disabled');
-			}
+			var fw_subversion = $(this).val();
+			$('*[class*="en_"]').attr('disabled', 'disabled');
+			$(".en"+ fw_subversion+"_subversion").removeAttr('disabled');
 		}
 	);
 
@@ -408,6 +394,9 @@ $(document).ready(function () {
 			update_temperature_scale();
 		}
 	);
+
+	
+
 	
 });
 
@@ -430,7 +419,9 @@ To do so, simply press one of the 'Download sketch' button at the bottom of the 
 Save the file and open with the Arduino IDE if not prompted to open it directly.<br>
 
 <br>
-
+<input type="button" id="savecookie" name="save" value="Save settings to cookie" onclick="save_cookie();" title="Save the current settings to a cookie in your browser">
+<input type="button" id="restorecookie" name="restore" value="Restore settings from cookie" onclick="restore_cookie();" title="Restore settings from a previously saved cookie">
+<br>
 <h3>Select sketch version</h3>
 <table id="stc1000p_version_selector_table">
 	<tr>
@@ -440,7 +431,7 @@ Save the file and open with the Arduino IDE if not prompted to open it directly.
 			<input type="radio" name="stc1000p_version" value="_ovbsc">STC-1000+ OVBSC<br>
 			<input type="radio" name="stc1000p_version" value="_rh">STC-1000+ RH<br>
 		</td>
-		<td valign="top" id="stc1000p_subversion_selector" style="display: none">
+		<td valign="top" id="stc1000p_subversion_selector" class="show_version show_version_minute" style="display: none">
 			<input type="radio" name="stc1000p_subversion" value="" checked>Vanilla version<br>
 			<input type="radio" name="stc1000p_subversion" value="_probe2">Dual probe version<br>
 			<input type="radio" name="stc1000p_subversion" value="_com">Communication version<br>
@@ -449,9 +440,9 @@ Save the file and open with the Arduino IDE if not prompted to open it directly.
 	</tr>
 </table>
 
-<span id="tempscale_selector" style="display: none">
+<span id="tempscale_selector" class="show_version show_version_minute show_version_ovbsc" style="display: none">
 <h3>Select temperature scale</h3>
-<select id="tempscale">
+<select id="tempscale" name="tempscale">
 	<option value="C" selected>Celsius</option>
 	<option value="F">Fahrenheit</option>
 </select>
@@ -459,7 +450,7 @@ Save the file and open with the Arduino IDE if not prompted to open it directly.
 
 <br />
 
-<span id="stc1000p_eeprom_editor" style="display: none">
+<span id="stc1000p_eeprom_editor" class="show_version show_version_minute" style="display: none">
 	<table>
 		<thead>
 			<tr>
@@ -477,162 +468,162 @@ Save the file and open with the Arduino IDE if not prompted to open it directly.
 			<tr>
 				<td valign="top">
 					<table>
-						<tr><td>sp0:</td><td><input class="temperature" type="text" id="sp0_0" name="sp0_0" maxlength="4" size="4" autocomplete="off" value="19.0" title="Setpoint 0"/><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dh0:</td><td><input class="plainnumber" type="text" id="dh0_0" name="dh0_0" maxlength="3" size="4" autocomplete="off" value="72" title="Duration 0"><span class="durscale">[h]</span></td></tr>
-						<tr><td>sp1:</td><td><input class="temperature" type="text" id="sp0_1" name="sp0_1" maxlength="4" size="4" autocomplete="off" value="19.0" title="Setpoint 1"/><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dh1:</td><td><input class="plainnumber" type="text" id="dh0_1" name="dh0_1" maxlength="3" size="4" autocomplete="off" value="12" title="Duration 1"><span class="durscale">[h]</span></td></tr>
-						<tr><td>sp2:</td><td><input class="temperature" type="text" id="sp0_2" name="sp0_2" maxlength="4" size="4" autocomplete="off" value="21.0" title="Setpoint 2"/><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dh2:</td><td><input class="plainnumber" type="text" id="dh0_2" name="dh0_2" maxlength="3" size="4" autocomplete="off" value="72" title="Duration 2"><span class="durscale">[h]</span></td></tr>
-						<tr><td>sp3:</td><td><input class="temperature" type="text" id="sp0_3" name="sp0_3" maxlength="4" size="4" autocomplete="off" value="21.0" title="Setpoint 3"/><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dh3:</td><td><input class="plainnumber" type="text" id="dh0_3" name="dh0_3" maxlength="3" size="4" autocomplete="off" value="60" title="Duration 3"><span class="durscale">[h]</span></td></tr>
-						<tr><td>sp4:</td><td><input class="temperature" type="text" id="sp0_4" name="sp0_4" maxlength="4" size="4" autocomplete="off" value="1.0" title="Setpoint 4"/><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dh4:</td><td><input class="plainnumber" type="text" id="dh0_4" name="dh0_4" maxlength="3" size="4" autocomplete="off" value="0" title="Duration 4"><span class="durscale">[h]</span></td></tr>
-						<tr><td>sp5:</td><td><input class="temperature" type="text" id="sp0_5" name="sp0_5" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint 5"/><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dh5:</td><td><input class="plainnumber" type="text" id="dh0_5" name="dh0_5" maxlength="3" size="4" autocomplete="off" value="0" title="Duration 5"><span class="durscale">[h]</span></td></tr>
-						<tr><td>sp6:</td><td><input class="temperature" type="text" id="sp0_6" name="sp0_6" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint 6"/><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dh6:</td><td><input class="plainnumber" type="text" id="dh0_6" name="dh0_6" maxlength="3" size="4" autocomplete="off" value="0" title="Duration 6"><span class="durscale">[h]</span></td></tr>
-						<tr><td>sp7:</td><td><input class="temperature" type="text" id="sp0_7" name="sp0_7" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint 7"/><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dh7:</td><td><input class="plainnumber" type="text" id="dh0_7" name="dh0_7" maxlength="3" size="4" autocomplete="off" value="0" title="Duration 7"><span class="durscale">[h]</span></td></tr>
-						<tr><td>sp8:</td><td><input class="temperature" type="text" id="sp0_8" name="sp0_8" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint 8"/><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dh8:</td><td><input class="plainnumber" type="text" id="dh0_8" name="dh0_8" maxlength="3" size="4" autocomplete="off" value="0" title="Duration 8"><span class="durscale">[h]</span></td></tr>
-						<tr><td>sp9:</td><td><input class="temperature" type="text" id="sp0_9" name="sp0_9" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint 9"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>sp0:</td><td><input class="temperature recalc" type="text" id="sp0_0" name="sp0_0" maxlength="4" size="4" autocomplete="off" value="19.0" title="Setpoint 0"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh0:</td><td><input class="duration recalc" type="text" id="dh0_0" name="dh0_0" maxlength="3" size="4" autocomplete="off" value="72" title="Duration 0"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp1:</td><td><input class="temperature recalc" type="text" id="sp0_1" name="sp0_1" maxlength="4" size="4" autocomplete="off" value="19.0" title="Setpoint 1"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh1:</td><td><input class="duration recalc" type="text" id="dh0_1" name="dh0_1" maxlength="3" size="4" autocomplete="off" value="12" title="Duration 1"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp2:</td><td><input class="temperature recalc" type="text" id="sp0_2" name="sp0_2" maxlength="4" size="4" autocomplete="off" value="21.0" title="Setpoint 2"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh2:</td><td><input class="duration recalc" type="text" id="dh0_2" name="dh0_2" maxlength="3" size="4" autocomplete="off" value="72" title="Duration 2"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp3:</td><td><input class="temperature recalc" type="text" id="sp0_3" name="sp0_3" maxlength="4" size="4" autocomplete="off" value="21.0" title="Setpoint 3"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh3:</td><td><input class="duration recalc" type="text" id="dh0_3" name="dh0_3" maxlength="3" size="4" autocomplete="off" value="60" title="Duration 3"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp4:</td><td><input class="temperature recalc" type="text" id="sp0_4" name="sp0_4" maxlength="4" size="4" autocomplete="off" value="1.0" title="Setpoint 4"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh4:</td><td><input class="duration recalc" type="text" id="dh0_4" name="dh0_4" maxlength="3" size="4" autocomplete="off" value="0" title="Duration 4"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp5:</td><td><input class="temperature recalc" type="text" id="sp0_5" name="sp0_5" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint 5"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh5:</td><td><input class="duration recalc" type="text" id="dh0_5" name="dh0_5" maxlength="3" size="4" autocomplete="off" value="0" title="Duration 5"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp6:</td><td><input class="temperature recalc" type="text" id="sp0_6" name="sp0_6" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint 6"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh6:</td><td><input class="duration recalc" type="text" id="dh0_6" name="dh0_6" maxlength="3" size="4" autocomplete="off" value="0" title="Duration 6"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp7:</td><td><input class="temperature recalc" type="text" id="sp0_7" name="sp0_7" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint 7"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh7:</td><td><input class="duration recalc" type="text" id="dh0_7" name="dh0_7" maxlength="3" size="4" autocomplete="off" value="0" title="Duration 7"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp8:</td><td><input class="temperature recalc" type="text" id="sp0_8" name="sp0_8" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint 8"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh8:</td><td><input class="duration recalc" type="text" id="dh0_8" name="dh0_8" maxlength="3" size="4" autocomplete="off" value="0" title="Duration 8"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp9:</td><td><input class="temperature recalc" type="text" id="sp0_9" name="sp0_9" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint 9"/><span class="tscale">[&deg;C]</span></td></tr>
 					</table>
 				</td>
 				<td valign="top">
 					<table>
-						<tr><td>sp0:</td><td><input class="temperature" type="text" id="sp1_0" name="sp1_0" maxlength="4" size="4" autocomplete="off" value="14.0" title="Setpoint 0"/><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dh0:</td><td><input class="plainnumber" type="text" id="dh1_0" name="dh1_0" maxlength="3" size="4" autocomplete="off" value="72" title="Duration 0"><span class="durscale">[h]</span></td></tr>
-						<tr><td>sp1:</td><td><input class="temperature" type="text" id="sp1_1" name="sp1_1" maxlength="4" size="4" autocomplete="off" value="14.0" title="Setpoint 1"/><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dh1:</td><td><input class="plainnumber" type="text" id="dh1_1" name="dh1_1" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 1"><span class="durscale">[h]</span></td></tr>
-						<tr><td>sp2:</td><td><input class="temperature" type="text" id="sp1_2" name="sp1_2" maxlength="4" size="4" autocomplete="off" value="20.0" title="Setpoint 2"/><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dh2:</td><td><input class="plainnumber" type="text" id="dh1_2" name="dh1_2" maxlength="3" size="4" autocomplete="off" value="120" title="Duration 2"><span class="durscale">[h]</span></td></tr>
-						<tr><td>sp3:</td><td><input class="temperature" type="text" id="sp1_3" name="sp1_3" maxlength="4" size="4" autocomplete="off" value="20.0" title="Setpoint 3"/><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dh3:</td><td><input class="plainnumber" type="text" id="dh1_3" name="dh1_3" maxlength="3" size="4" autocomplete="off" value="48" title="Duration 3"><span class="durscale">[h]</span></td></tr>
-						<tr><td>sp4:</td><td><input class="temperature" type="text" id="sp1_4" name="sp1_4" maxlength="4" size="4" autocomplete="off" value="1.0" title="Setpoint 4"/><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dh4:</td><td><input class="plainnumber" type="text" id="dh1_4" name="dh1_4" maxlength="3" size="4" autocomplete="off" value="0" title="Duration 4"><span class="durscale">[h]</span></td></tr>
-						<tr><td>sp5:</td><td><input class="temperature" type="text" id="sp1_5" name="sp1_5" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint 5"/><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dh5:</td><td><input class="plainnumber" type="text" id="dh1_5" name="dh1_5" maxlength="3" size="4" autocomplete="off" value="0" title="Duration 5"><span class="durscale">[h]</span></td></tr>
-						<tr><td>sp6:</td><td><input class="temperature" type="text" id="sp1_6" name="sp1_6" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint 6"/><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dh6:</td><td><input class="plainnumber" type="text" id="dh1_6" name="dh1_6" maxlength="3" size="4" autocomplete="off" value="0" title="Duration 6"><span class="durscale">[h]</span></td></tr>
-						<tr><td>sp7:</td><td><input class="temperature" type="text" id="sp1_7" name="sp1_7" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint 7"/><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dh7:</td><td><input class="plainnumber" type="text" id="dh1_7" name="dh1_7" maxlength="3" size="4" autocomplete="off" value="0" title="Duration 7"><span class="durscale">[h]</span></td></tr>
-						<tr><td>sp8:</td><td><input class="temperature" type="text" id="sp1_8" name="sp1_8" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint 8"/><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dh8:</td><td><input class="plainnumber" type="text" id="dh1_8" name="dh1_8" maxlength="3" size="4" autocomplete="off" value="0" title="Duration 8"><span class="durscale">[h]</span></td></tr>
-						<tr><td>sp9:</td><td><input class="temperature" type="text" id="sp1_9" name="sp1_9" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint 9"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>sp0:</td><td><input class="temperature recalc" type="text" id="sp1_0" name="sp1_0" maxlength="4" size="4" autocomplete="off" value="14.0" title="Setpoint 0"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh0:</td><td><input class="duration recalc" type="text" id="dh1_0" name="dh1_0" maxlength="3" size="4" autocomplete="off" value="72" title="Duration 0"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp1:</td><td><input class="temperature recalc" type="text" id="sp1_1" name="sp1_1" maxlength="4" size="4" autocomplete="off" value="14.0" title="Setpoint 1"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh1:</td><td><input class="duration recalc" type="text" id="dh1_1" name="dh1_1" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 1"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp2:</td><td><input class="temperature recalc" type="text" id="sp1_2" name="sp1_2" maxlength="4" size="4" autocomplete="off" value="20.0" title="Setpoint 2"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh2:</td><td><input class="duration recalc" type="text" id="dh1_2" name="dh1_2" maxlength="3" size="4" autocomplete="off" value="120" title="Duration 2"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp3:</td><td><input class="temperature recalc" type="text" id="sp1_3" name="sp1_3" maxlength="4" size="4" autocomplete="off" value="20.0" title="Setpoint 3"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh3:</td><td><input class="duration recalc" type="text" id="dh1_3" name="dh1_3" maxlength="3" size="4" autocomplete="off" value="48" title="Duration 3"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp4:</td><td><input class="temperature recalc" type="text" id="sp1_4" name="sp1_4" maxlength="4" size="4" autocomplete="off" value="1.0" title="Setpoint 4"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh4:</td><td><input class="duration recalc" type="text" id="dh1_4" name="dh1_4" maxlength="3" size="4" autocomplete="off" value="0" title="Duration 4"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp5:</td><td><input class="temperature recalc" type="text" id="sp1_5" name="sp1_5" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint 5"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh5:</td><td><input class="duration recalc" type="text" id="dh1_5" name="dh1_5" maxlength="3" size="4" autocomplete="off" value="0" title="Duration 5"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp6:</td><td><input class="temperature recalc" type="text" id="sp1_6" name="sp1_6" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint 6"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh6:</td><td><input class="duration recalc" type="text" id="dh1_6" name="dh1_6" maxlength="3" size="4" autocomplete="off" value="0" title="Duration 6"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp7:</td><td><input class="temperature recalc" type="text" id="sp1_7" name="sp1_7" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint 7"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh7:</td><td><input class="duration recalc" type="text" id="dh1_7" name="dh1_7" maxlength="3" size="4" autocomplete="off" value="0" title="Duration 7"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp8:</td><td><input class="temperature recalc" type="text" id="sp1_8" name="sp1_8" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint 8"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh8:</td><td><input class="duration recalc" type="text" id="dh1_8" name="dh1_8" maxlength="3" size="4" autocomplete="off" value="0" title="Duration 8"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp9:</td><td><input class="temperature recalc" type="text" id="sp1_9" name="sp1_9" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint 9"/><span class="tscale">[&deg;C]</span></td></tr>
 					</table>
 				</td>
 				<td valign="top">
 					<table>
-						<tr><td>sp0:</td><td><input class="temperature" type="text" id="sp2_0" name="sp2_0" maxlength="4" size="4" autocomplete="off" value="9.0" title="Setpoint 0"/><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dh0:</td><td><input class="plainnumber" type="text" id="dh2_0" name="dh2_0" maxlength="3" size="4" autocomplete="off" value="120" title="Duration 0"><span class="durscale">[h]</span></td></tr>
-						<tr><td>sp1:</td><td><input class="temperature" type="text" id="sp2_1" name="sp2_1" maxlength="4" size="4" autocomplete="off" value="9.0" title="Setpoint 1"/><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dh1:</td><td><input class="plainnumber" type="text" id="dh2_1" name="dh2_1" maxlength="3" size="4" autocomplete="off" value="120" title="Duration 1"><span class="durscale">[h]</span></td></tr>
-						<tr><td>sp2:</td><td><input class="temperature" type="text" id="sp2_2" name="sp2_2" maxlength="4" size="4" autocomplete="off" value="18.0" title="Setpoint 2"/><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dh2:</td><td><input class="plainnumber" type="text" id="dh2_2" name="dh2_2" maxlength="3" size="4" autocomplete="off" value="72" title="Duration 2"><span class="durscale">[h]</span></td></tr>
-						<tr><td>sp3:</td><td><input class="temperature" type="text" id="sp2_3" name="sp2_3" maxlength="4" size="4" autocomplete="off" value="18.0" title="Setpoint 3"/><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dh3:</td><td><input class="plainnumber" type="text" id="dh2_3" name="dh2_3" maxlength="3" size="4" autocomplete="off" value="168" title="Duration 3"><span class="durscale">[h]</span></td></tr>
-						<tr><td>sp4:</td><td><input class="temperature" type="text" id="sp2_4" name="sp2_4" maxlength="4" size="4" autocomplete="off" value="1.0" title="Setpoint 4"/><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dh4:</td><td><input class="plainnumber" type="text" id="dh2_4" name="dh2_4" maxlength="3" size="4" autocomplete="off" value="0" title="Duration 4"><span class="durscale">[h]</span></td></tr>
-						<tr><td>sp5:</td><td><input class="temperature" type="text" id="sp2_5" name="sp2_5" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint 5"/><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dh5:</td><td><input class="plainnumber" type="text" id="dh2_5" name="dh2_5" maxlength="3" size="4" autocomplete="off" value="0" title="Duration 5"><span class="durscale">[h]</span></td></tr>
-						<tr><td>sp6:</td><td><input class="temperature" type="text" id="sp2_6" name="sp2_6" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint 6"/><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dh6:</td><td><input class="plainnumber" type="text" id="dh2_6" name="dh2_6" maxlength="3" size="4" autocomplete="off" value="0" title="Duration 6"><span class="durscale">[h]</span></td></tr>
-						<tr><td>sp7:</td><td><input class="temperature" type="text" id="sp2_7" name="sp2_7" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint 7"/><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dh7:</td><td><input class="plainnumber" type="text" id="dh2_7" name="dh2_7" maxlength="3" size="4" autocomplete="off" value="0" title="Duration 7"><span class="durscale">[h]</span></td></tr>
-						<tr><td>sp8:</td><td><input class="temperature" type="text" id="sp2_8" name="sp2_8" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint 8"/><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dh8:</td><td><input class="plainnumber" type="text" id="dh2_8" name="dh2_8" maxlength="3" size="4" autocomplete="off" value="0" title="Duration 8"><span class="durscale">[h]</span></td></tr>
-						<tr><td>sp9:</td><td><input class="temperature" type="text" id="sp2_9" name="sp2_9" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint 9"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>sp0:</td><td><input class="temperature recalc" type="text" id="sp2_0" name="sp2_0" maxlength="4" size="4" autocomplete="off" value="9.0" title="Setpoint 0"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh0:</td><td><input class="duration recalc" type="text" id="dh2_0" name="dh2_0" maxlength="3" size="4" autocomplete="off" value="120" title="Duration 0"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp1:</td><td><input class="temperature recalc" type="text" id="sp2_1" name="sp2_1" maxlength="4" size="4" autocomplete="off" value="9.0" title="Setpoint 1"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh1:</td><td><input class="duration recalc" type="text" id="dh2_1" name="dh2_1" maxlength="3" size="4" autocomplete="off" value="120" title="Duration 1"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp2:</td><td><input class="temperature recalc" type="text" id="sp2_2" name="sp2_2" maxlength="4" size="4" autocomplete="off" value="18.0" title="Setpoint 2"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh2:</td><td><input class="duration recalc" type="text" id="dh2_2" name="dh2_2" maxlength="3" size="4" autocomplete="off" value="72" title="Duration 2"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp3:</td><td><input class="temperature recalc" type="text" id="sp2_3" name="sp2_3" maxlength="4" size="4" autocomplete="off" value="18.0" title="Setpoint 3"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh3:</td><td><input class="duration recalc" type="text" id="dh2_3" name="dh2_3" maxlength="3" size="4" autocomplete="off" value="168" title="Duration 3"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp4:</td><td><input class="temperature recalc" type="text" id="sp2_4" name="sp2_4" maxlength="4" size="4" autocomplete="off" value="1.0" title="Setpoint 4"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh4:</td><td><input class="duration recalc" type="text" id="dh2_4" name="dh2_4" maxlength="3" size="4" autocomplete="off" value="0" title="Duration 4"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp5:</td><td><input class="temperature recalc" type="text" id="sp2_5" name="sp2_5" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint 5"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh5:</td><td><input class="duration recalc" type="text" id="dh2_5" name="dh2_5" maxlength="3" size="4" autocomplete="off" value="0" title="Duration 5"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp6:</td><td><input class="temperature recalc" type="text" id="sp2_6" name="sp2_6" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint 6"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh6:</td><td><input class="duration recalc" type="text" id="dh2_6" name="dh2_6" maxlength="3" size="4" autocomplete="off" value="0" title="Duration 6"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp7:</td><td><input class="temperature recalc" type="text" id="sp2_7" name="sp2_7" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint 7"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh7:</td><td><input class="duration recalc" type="text" id="dh2_7" name="dh2_7" maxlength="3" size="4" autocomplete="off" value="0" title="Duration 7"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp8:</td><td><input class="temperature recalc" type="text" id="sp2_8" name="sp2_8" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint 8"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh8:</td><td><input class="duration recalc" type="text" id="dh2_8" name="dh2_8" maxlength="3" size="4" autocomplete="off" value="0" title="Duration 8"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp9:</td><td><input class="temperature recalc" type="text" id="sp2_9" name="sp2_9" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint 9"/><span class="tscale">[&deg;C]</span></td></tr>
 					</table>
 				</td>
 				<td valign="top">
 					<table>
-						<tr><td>sp0:</td><td><input class="temperature" type="text" id="sp3_0" name="sp3_0" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 0"/><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dh0:</td><td><input class="plainnumber" type="text" id="dh3_0" name="dh3_0" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 0"><span class="durscale">[h]</span></td></tr>
-						<tr><td>sp1:</td><td><input class="temperature" type="text" id="sp3_1" name="sp3_1" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 1"/><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dh1:</td><td><input class="plainnumber" type="text" id="dh3_1" name="dh3_1" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 1"><span class="durscale">[h]</span></td></tr>
-						<tr><td>sp2:</td><td><input class="temperature" type="text" id="sp3_2" name="sp3_2" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 2"/><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dh2:</td><td><input class="plainnumber" type="text" id="dh3_2" name="dh3_2" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 2"><span class="durscale">[h]</span></td></tr>
-						<tr><td>sp3:</td><td><input class="temperature" type="text" id="sp3_3" name="sp3_3" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 3"/><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dh3:</td><td><input class="plainnumber" type="text" id="dh3_3" name="dh3_3" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 3"><span class="durscale">[h]</span></td></tr>
-						<tr><td>sp4:</td><td><input class="temperature" type="text" id="sp3_4" name="sp3_4" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 4"/><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dh4:</td><td><input class="plainnumber" type="text" id="dh3_4" name="dh3_4" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 4"><span class="durscale">[h]</span></td></tr>
-						<tr><td>sp5:</td><td><input class="temperature" type="text" id="sp3_5" name="sp3_5" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 5"/><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dh5:</td><td><input class="plainnumber" type="text" id="dh3_5" name="dh3_5" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 5"><span class="durscale">[h]</span></td></tr>
-						<tr><td>sp6:</td><td><input class="temperature" type="text" id="sp3_6" name="sp3_6" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 6"/><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dh6:</td><td><input class="plainnumber" type="text" id="dh3_6" name="dh3_6" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 6"><span class="durscale">[h]</span></td></tr>
-						<tr><td>sp7:</td><td><input class="temperature" type="text" id="sp3_7" name="sp3_7" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 7"/><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dh7:</td><td><input class="plainnumber" type="text" id="dh3_7" name="dh3_7" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 7"><span class="durscale">[h]</span></td></tr>
-						<tr><td>sp8:</td><td><input class="temperature" type="text" id="sp3_8" name="sp3_8" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 8"/><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dh8:</td><td><input class="plainnumber" type="text" id="dh3_8" name="dh3_8" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 8"><span class="durscale">[h]</span></td></tr>
-						<tr><td>sp9:</td><td><input class="temperature" type="text" id="sp3_9" name="sp3_9" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 9"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>sp0:</td><td><input class="temperature recalc" type="text" id="sp3_0" name="sp3_0" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 0"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh0:</td><td><input class="duration recalc" type="text" id="dh3_0" name="dh3_0" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 0"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp1:</td><td><input class="temperature recalc" type="text" id="sp3_1" name="sp3_1" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 1"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh1:</td><td><input class="duration recalc" type="text" id="dh3_1" name="dh3_1" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 1"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp2:</td><td><input class="temperature recalc" type="text" id="sp3_2" name="sp3_2" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 2"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh2:</td><td><input class="duration recalc" type="text" id="dh3_2" name="dh3_2" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 2"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp3:</td><td><input class="temperature recalc" type="text" id="sp3_3" name="sp3_3" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 3"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh3:</td><td><input class="duration recalc" type="text" id="dh3_3" name="dh3_3" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 3"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp4:</td><td><input class="temperature recalc" type="text" id="sp3_4" name="sp3_4" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 4"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh4:</td><td><input class="duration recalc" type="text" id="dh3_4" name="dh3_4" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 4"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp5:</td><td><input class="temperature recalc" type="text" id="sp3_5" name="sp3_5" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 5"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh5:</td><td><input class="duration recalc" type="text" id="dh3_5" name="dh3_5" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 5"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp6:</td><td><input class="temperature recalc" type="text" id="sp3_6" name="sp3_6" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 6"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh6:</td><td><input class="duration recalc" type="text" id="dh3_6" name="dh3_6" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 6"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp7:</td><td><input class="temperature recalc" type="text" id="sp3_7" name="sp3_7" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 7"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh7:</td><td><input class="duration recalc" type="text" id="dh3_7" name="dh3_7" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 7"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp8:</td><td><input class="temperature recalc" type="text" id="sp3_8" name="sp3_8" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 8"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh8:</td><td><input class="duration recalc" type="text" id="dh3_8" name="dh3_8" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 8"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp9:</td><td><input class="temperature recalc" type="text" id="sp3_9" name="sp3_9" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 9"/><span class="tscale">[&deg;C]</span></td></tr>
 					</table>
 				</td>
 				<td valign="top">
 					<table>
-						<tr><td>sp0:</td><td><input class="temperature" type="text" id="sp4_0" name="sp4_0" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 0"/><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dh0:</td><td><input class="plainnumber" type="text" id="dh4_0" name="dh4_0" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 0"><span class="durscale">[h]</span></td></tr>
-						<tr><td>sp1:</td><td><input class="temperature" type="text" id="sp4_1" name="sp4_1" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 1"/><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dh1:</td><td><input class="plainnumber" type="text" id="dh4_1" name="dh4_1" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 1"><span class="durscale">[h]</span></td></tr>
-						<tr><td>sp2:</td><td><input class="temperature" type="text" id="sp4_2" name="sp4_2" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 2"/><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dh2:</td><td><input class="plainnumber" type="text" id="dh4_2" name="dh4_2" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 2"><span class="durscale">[h]</span></td></tr>
-						<tr><td>sp3:</td><td><input class="temperature" type="text" id="sp4_3" name="sp4_3" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 3"/><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dh3:</td><td><input class="plainnumber" type="text" id="dh4_3" name="dh4_3" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 3"><span class="durscale">[h]</span></td></tr>
-						<tr><td>sp4:</td><td><input class="temperature" type="text" id="sp4_4" name="sp4_4" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 4"/><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dh4:</td><td><input class="plainnumber" type="text" id="dh4_4" name="dh4_4" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 4"><span class="durscale">[h]</span></td></tr>
-						<tr><td>sp5:</td><td><input class="temperature" type="text" id="sp4_5" name="sp4_5" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 5"/><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dh5:</td><td><input class="plainnumber" type="text" id="dh4_5" name="dh4_5" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 5"><span class="durscale">[h]</span></td></tr>
-						<tr><td>sp6:</td><td><input class="temperature" type="text" id="sp4_6" name="sp4_6" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 6"/><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dh6:</td><td><input class="plainnumber" type="text" id="dh4_6" name="dh4_6" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 6"><span class="durscale">[h]</span></td></tr>
-						<tr><td>sp7:</td><td><input class="temperature" type="text" id="sp4_7" name="sp4_7" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 7"/><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dh7:</td><td><input class="plainnumber" type="text" id="dh4_7" name="dh4_7" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 7"><span class="durscale">[h]</span></td></tr>
-						<tr><td>sp8:</td><td><input class="temperature" type="text" id="sp4_8" name="sp4_8" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 8"/><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dh8:</td><td><input class="plainnumber" type="text" id="dh4_8" name="dh4_8" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 8"><span class="durscale">[h]</span></td></tr>
-						<tr><td>sp9:</td><td><input class="temperature" type="text" id="sp4_9" name="sp4_9" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 9"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>sp0:</td><td><input class="temperature recalc" type="text" id="sp4_0" name="sp4_0" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 0"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh0:</td><td><input class="duration recalc" type="text" id="dh4_0" name="dh4_0" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 0"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp1:</td><td><input class="temperature recalc" type="text" id="sp4_1" name="sp4_1" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 1"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh1:</td><td><input class="duration recalc" type="text" id="dh4_1" name="dh4_1" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 1"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp2:</td><td><input class="temperature recalc" type="text" id="sp4_2" name="sp4_2" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 2"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh2:</td><td><input class="duration recalc" type="text" id="dh4_2" name="dh4_2" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 2"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp3:</td><td><input class="temperature recalc" type="text" id="sp4_3" name="sp4_3" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 3"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh3:</td><td><input class="duration recalc" type="text" id="dh4_3" name="dh4_3" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 3"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp4:</td><td><input class="temperature recalc" type="text" id="sp4_4" name="sp4_4" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 4"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh4:</td><td><input class="duration recalc" type="text" id="dh4_4" name="dh4_4" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 4"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp5:</td><td><input class="temperature recalc" type="text" id="sp4_5" name="sp4_5" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 5"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh5:</td><td><input class="duration recalc" type="text" id="dh4_5" name="dh4_5" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 5"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp6:</td><td><input class="temperature recalc" type="text" id="sp4_6" name="sp4_6" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 6"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh6:</td><td><input class="duration recalc" type="text" id="dh4_6" name="dh4_6" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 6"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp7:</td><td><input class="temperature recalc" type="text" id="sp4_7" name="sp4_7" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 7"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh7:</td><td><input class="duration recalc" type="text" id="dh4_7" name="dh4_7" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 7"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp8:</td><td><input class="temperature recalc" type="text" id="sp4_8" name="sp4_8" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 8"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh8:</td><td><input class="duration recalc" type="text" id="dh4_8" name="dh4_8" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 8"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp9:</td><td><input class="temperature recalc" type="text" id="sp4_9" name="sp4_9" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 9"/><span class="tscale">[&deg;C]</span></td></tr>
 					</table>
 				</td>
 				<td valign="top">
 					<table>
-						<tr><td>sp0:</td><td><input class="temperature" type="text" id="sp5_0" name="sp5_0" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 0"/><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dh0:</td><td><input class="plainnumber" type="text" id="dh5_0" name="dh5_0" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 0"><span class="durscale">[h]</span></td></tr>
-						<tr><td>sp1:</td><td><input class="temperature" type="text" id="sp5_1" name="sp5_1" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 1"/><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dh1:</td><td><input class="plainnumber" type="text" id="dh5_1" name="dh5_1" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 1"><span class="durscale">[h]</span></td></tr>
-						<tr><td>sp2:</td><td><input class="temperature" type="text" id="sp5_2" name="sp5_2" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 2"/><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dh2:</td><td><input class="plainnumber" type="text" id="dh5_2" name="dh5_2" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 2"><span class="durscale">[h]</span></td></tr>
-						<tr><td>sp3:</td><td><input class="temperature" type="text" id="sp5_3" name="sp5_3" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 3"/><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dh3:</td><td><input class="plainnumber" type="text" id="dh5_3" name="dh5_3" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 3"><span class="durscale">[h]</span></td></tr>
-						<tr><td>sp4:</td><td><input class="temperature" type="text" id="sp5_4" name="sp5_4" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 4"/><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dh4:</td><td><input class="plainnumber" type="text" id="dh5_4" name="dh5_4" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 4"><span class="durscale">[h]</span></td></tr>
-						<tr><td>sp5:</td><td><input class="temperature" type="text" id="sp5_5" name="sp5_5" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 5"/><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dh5:</td><td><input class="plainnumber" type="text" id="dh5_5" name="dh5_5" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 5"><span class="durscale">[h]</span></td></tr>
-						<tr><td>sp6:</td><td><input class="temperature" type="text" id="sp5_6" name="sp5_6" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 6"/><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dh6:</td><td><input class="plainnumber" type="text" id="dh5_6" name="dh5_6" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 6"><span class="durscale">[h]</span></td></tr>
-						<tr><td>sp7:</td><td><input class="temperature" type="text" id="sp5_7" name="sp5_7" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 7"/><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dh7:</td><td><input class="plainnumber" type="text" id="dh5_7" name="dh5_7" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 7"><span class="durscale">[h]</span></td></tr>
-						<tr><td>sp8:</td><td><input class="temperature" type="text" id="sp5_8" name="sp5_8" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 8"/><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dh8:</td><td><input class="plainnumber" type="text" id="dh5_8" name="dh5_8" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 8"><span class="durscale">[h]</span></td></tr>
-						<tr><td>sp9:</td><td><input class="temperature" type="text" id="sp5_9" name="sp5_9" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 9"/><span class="tscale">[&deg;C]</span></td></tr>					</table>
+						<tr><td>sp0:</td><td><input class="temperature recalc" type="text" id="sp5_0" name="sp5_0" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 0"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh0:</td><td><input class="duration recalc" type="text" id="dh5_0" name="dh5_0" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 0"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp1:</td><td><input class="temperature recalc" type="text" id="sp5_1" name="sp5_1" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 1"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh1:</td><td><input class="duration recalc" type="text" id="dh5_1" name="dh5_1" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 1"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp2:</td><td><input class="temperature recalc" type="text" id="sp5_2" name="sp5_2" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 2"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh2:</td><td><input class="duration recalc" type="text" id="dh5_2" name="dh5_2" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 2"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp3:</td><td><input class="temperature recalc" type="text" id="sp5_3" name="sp5_3" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 3"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh3:</td><td><input class="duration recalc" type="text" id="dh5_3" name="dh5_3" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 3"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp4:</td><td><input class="temperature recalc" type="text" id="sp5_4" name="sp5_4" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 4"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh4:</td><td><input class="duration recalc" type="text" id="dh5_4" name="dh5_4" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 4"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp5:</td><td><input class="temperature recalc" type="text" id="sp5_5" name="sp5_5" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 5"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh5:</td><td><input class="duration recalc" type="text" id="dh5_5" name="dh5_5" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 5"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp6:</td><td><input class="temperature recalc" type="text" id="sp5_6" name="sp5_6" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 6"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh6:</td><td><input class="duration recalc" type="text" id="dh5_6" name="dh5_6" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 6"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp7:</td><td><input class="temperature recalc" type="text" id="sp5_7" name="sp5_7" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 7"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh7:</td><td><input class="duration recalc" type="text" id="dh5_7" name="dh5_7" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 7"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp8:</td><td><input class="temperature recalc" type="text" id="sp5_8" name="sp5_8" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 8"/><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dh8:</td><td><input class="duration recalc" type="text" id="dh5_8" name="dh5_8" maxlength="3" size="4" autocomplete="off" value="24" title="Duration 8"><span class="durscale">[h]</span></td></tr>
+						<tr><td>sp9:</td><td><input class="temperature recalc" type="text" id="sp5_9" name="sp5_9" maxlength="4" size="4" autocomplete="off" value="16.0" title="Setpoint 9"/><span class="tscale">[&deg;C]</span></td></tr>					</table>
 				</td>
 				<td valign="top">
 					<table>
-						<tr><td>SP:</td><td><input class="temperature" type="text" id="set0" name="set_menu_SP" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint"><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>hy:</td><td><input class="tempdiff" type="text" id="set1" name="set_menu_hy" maxlength="4" size="4" autocomplete="off" value="0.0" title="Hysteresis"><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>hy2:</td><td><input class="tempdiff" type="text" id="set2" name="set_menu_hy2" maxlength="4" size="4" autocomplete="off" disabled value="0.0" title="Hysteresis probe 2"><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>tc:</td><td><input class="tempdiff" type="text" id="set3" name="set_menu_tc" maxlength="4" size="4" autocomplete="off" value="0.0" title="Temperature correction"><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>tc2:</td><td><input class="tempdiff" type="text" id="set4" name="set_menu_tc2" maxlength="4" size="4" autocomplete="off" disabled value="0.0" title="Temperature correction probe 2"><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>dI:</td><td><input class="plainnumber" type="text" id="set5" name="set_menu_dI" maxlength="4" size="4" autocomplete="off" disabled value="0" title="FO433 Device ID"><span class="devidscale">[ID]</span></td></tr>
-						<tr><td>SA:</td><td><input class="tempdiff" type="text" id="set6" name="set_menu_SA" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint Alarm"><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>St:</td><td><input class="plainnumber" type="text" id="set7" name="set_menu_St" maxlength="1" size="4" autocomplete="off" value="0" title="Running profile step number"><span class="nscale">[#]</span></td></tr>
-						<tr><td>dh:</td><td><input class="plainnumber" type="text" id="set8" name="set_menu_dh" maxlength="3" size="4" autocomplete="off" value="0" title="Running profile duration"><span class="durscale">[h]</span></td></tr>
-						<tr><td>cd:</td><td><input class="plainnumber" type="text" id="set9" name="set_menu_cd" maxlength="2" size="4" autocomplete="off" value="2" title="Cooling delay"><span class="mscale">[min]</span></td></tr>
-						<tr><td>hd:</td><td><input class="plainnumber" type="text" id="set10" name="set_menu_hd" maxlength="2" size="4" autocomplete="off" value="2" title="Heating delay"><span class="mscale">[min]</span></td></tr>
-						<tr><td>rP:</td><td><input class="plainnumber" type="text" id="set11" name="set_menu_rP" maxlength="1" size="4" autocomplete="off" value="1" title="Ramping enabled"><span class="bscale">[b]</span></td></tr>
-						<tr><td>Pb2:</td><td><input class="plainnumber" type="text" id="set12" name="set_menu_Pb2" maxlength="1" size="4" autocomplete="off" disabled value="0" title="Probe 2 regulation enabled"><span class="bscale">[b]</span></td></tr>
-						<tr><td>rn:</td><td><input class="plainnumber" type="text" id="set13" name="set_menu_rn" maxlength="1" size="4" autocomplete="off" value="6" title="Run mode [0-5 = profile, 6=thermostat]"><span class="nscale">[#]</span></td></tr>
-						<tr><td>on:</td><td><input class="plainnumber" type="text" id="set14" name="set_menu_on" maxlength="1" size="4" autocomplete="off" value="1" title="On [1=On, 0=Soft off]]"><span class="bscale">[b]</span></td></tr>
+						<tr><td>SP:</td><td><input class="temperature" type="text" id="menu_param_SP" name="menu_param_SP" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint"><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>hy:</td><td><input class="tempdiff" type="text" id="menu_param_hy" name="menu_param_hy" maxlength="4" size="4" autocomplete="off" value="0.0" title="Hysteresis"><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>hy2:</td><td><input class="tempdiff en_probe2_subversion" type="text" id="menu_param_hy2" name="menu_param_hy2" maxlength="4" size="4" autocomplete="off" disabled value="0.0" title="Hysteresis probe 2"><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>tc:</td><td><input class="tempdiff" type="text" id="menu_param_tc" name="menu_param_tc" maxlength="4" size="4" autocomplete="off" value="0.0" title="Temperature correction"><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>tc2:</td><td><input class="tempdiff en_probe2_subversion" type="text" id="menu_param_tc2" name="menu_param_tc2" maxlength="4" size="4" autocomplete="off" disabled value="0.0" title="Temperature correction probe 2"><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>dI:</td><td><input class="fodeviceid en_fo433_subversion" type="text" id="menu_param_dI" name="menu_param_dI" maxlength="4" size="4" autocomplete="off" disabled value="0" title="FO433 Device ID"><span class="devidscale">[ID]</span></td></tr>
+						<tr><td>SA:</td><td><input class="tempdiff" type="text" id="menu_param_SA" name="menu_param_SA" maxlength="4" size="4" autocomplete="off" value="0.0" title="Setpoint Alarm"><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>St:</td><td><input class="profilestep" type="text" id="menu_param_St" name="menu_param_St" maxlength="1" size="4" autocomplete="off" value="0" title="Running profile step number"><span class="nscale">[#]</span></td></tr>
+						<tr><td>dh:</td><td><input class="duration" type="text" id="menu_param_dh" name="menu_param_dh" maxlength="3" size="4" autocomplete="off" value="0" title="Running profile duration"><span class="durscale">[h]</span></td></tr>
+						<tr><td>cd:</td><td><input class="coolingdelay" type="text" id="menu_param_cd" name="menu_param_cd" maxlength="2" size="4" autocomplete="off" value="2" title="Cooling delay"><span class="mscale">[min]</span></td></tr>
+						<tr><td>hd:</td><td><input class="heatingdelay" type="text" id="menu_param_hd" name="menu_param_hd" maxlength="2" size="4" autocomplete="off" value="2" title="Heating delay"><span class="mscale">[min]</span></td></tr>
+						<tr><td>rP:</td><td><input class="boolean recalc" type="text" id="menu_param_rP" name="menu_param_rP" maxlength="1" size="4" autocomplete="off" value="1" title="Ramping enabled"><span class="bscale">[b]</span></td></tr>
+						<tr><td>Pb2:</td><td><input class="boolean en_probe2_subversion" type="text" id="menu_param_Pb2" name="menu_param_Pb2" maxlength="1" size="4" autocomplete="off" disabled value="0" title="Probe 2 regulation enabled"><span class="bscale">[b]</span></td></tr>
+						<tr><td>rn:</td><td><input class="runmode" type="text" id="menu_param_rn" name="menu_param_rn" maxlength="1" size="4" autocomplete="off" value="6" title="Run mode [0-5 = profile, 6=thermostat]"><span class="nscale">[#]</span></td></tr>
+						<tr><td>on:</td><td><input class="boolean" type="text" id="menu_param_on" name="menu_param_on" maxlength="1" size="4" autocomplete="off" value="1" title="On [1=On, 0=Soft off]]"><span class="bscale">[b]</span></td></tr>
 					</table>
 				</td>
 				<td valign="top">
-					<table id="cheathours">
+					<table id="cheathours" class="show_version">
 						<tr><td>1 day = 24 hours</td></tr>
 						<tr><td>2 days = 48 hours</td></tr>
 						<tr><td>3 days = 72 hours</td></tr>
@@ -654,7 +645,7 @@ Save the file and open with the Arduino IDE if not prompted to open it directly.
 						<tr><td>19 days = 456 hours</td></tr>
 						<tr><td>20 days = 480 hours</td></tr>
 					</table>
-					<table id="cheatminutes" style='display: none'>
+					<table id="cheatminutes" class="show_version_minute" style='display: none'>
 						<tr><td>1 hour = 60 minutes</td></tr>
 						<tr><td>2 hours = 120 minutes</td></tr>
 						<tr><td>3 hours = 180 minutes</td></tr>
@@ -777,7 +768,7 @@ Save the file and open with the Arduino IDE if not prompted to open it directly.
 
 </span>
 
-<span id="stc1000p_ovbsc_eeprom_editor" style="display: none">
+<span id="stc1000p_ovbsc_eeprom_editor" class="show_version_ovbsc" style="display: none">
 	<table>
 		<thead>
 			<tr>
@@ -788,41 +779,41 @@ Save the file and open with the Arduino IDE if not prompted to open it directly.
 			<tr>
 				<td valign="top">
 					<table>
-						<tr><td>Sd:</td><td><input class="plainnumber" type="text" id="menu_0" name="menu_Sd" maxlength="4" size="4" autocomplete="off" value="0" title="Strike delay"><span class="mscale">[min]</span></td></tr>
-						<tr><td>St:</td><td><input class="temperature" type="text" id="menu_1" name="menu_St" maxlength="4" size="4" autocomplete="off" value="69.0" title="Strike temperature"><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>SO:</td><td><input class="planinumber" type="text" id="menu_2" name="menu_SO" maxlength="4" size="4" autocomplete="off" value="100" title="Strike output"><span class="perscale">[%]</span></td></tr>
+						<tr><td>Sd:</td><td><input class="duration" type="text" id="menu_ovbsc_param_Sd" name="menu_ovbsc_param_Sd" maxlength="4" size="4" autocomplete="off" value="0" title="Strike delay"><span class="mscale">[min]</span></td></tr>
+						<tr><td>St:</td><td><input class="temperature" type="text" id="menu_ovbsc_param_St" name="menu_ovbsc_param_St" maxlength="4" size="4" autocomplete="off" value="69.0" title="Strike temperature"><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>SO:</td><td><input class="outputpercent" type="text" id="menu_ovbsc_param_SO" name="menu_ovbsc_param_SO" maxlength="4" size="4" autocomplete="off" value="100" title="Strike output"><span class="perscale">[%]</span></td></tr>
 
-						<tr><td>Pt1:</td><td><input class="temperature" type="text" id="menu_3" name="menu_Pt1" maxlength="4" size="4" autocomplete="off" value="65.0" title="Mash step 1 temperature"><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>Pd1:</td><td><input class="planinumber" type="text" id="menu_4" name="menu_Pd1" maxlength="4" size="4" autocomplete="off" value="30" title="Mash step 1 duration"><span class="mscale">[min]</span></td></tr>
-						<tr><td>Pt2:</td><td><input class="temperature" type="text" id="menu_5" name="menu_Pt2" maxlength="4" size="4" autocomplete="off" value="67.0" title="Mash step 2 temperature"><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>Pd2:</td><td><input class="planinumber" type="text" id="menu_6" name="menu_Pd2" maxlength="4" size="4" autocomplete="off" value="20" title="Mash step 2 duration"><span class="mscale">[min]</span></td></tr>
-						<tr><td>Pt3:</td><td><input class="temperature" type="text" id="menu_7" name="menu_Pt3" maxlength="4" size="4" autocomplete="off" value="70.0" title="Mash step 3 temperature"><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>Pd3:</td><td><input class="planinumber" type="text" id="menu_8" name="menu_Pd3" maxlength="4" size="4" autocomplete="off" value="10" title="Mash step 3 duration"><span class="mscale">[min]</span></td></tr>
-						<tr><td>Pt4:</td><td><input class="temperature" type="text" id="menu_9" name="menu_Pt4" maxlength="4" size="4" autocomplete="off" value="0.0" title="Mash step 4 temperature"><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>Pd4:</td><td><input class="planinumber" type="text" id="menu_10" name="menu_Pd4" maxlength="4" size="4" autocomplete="off" value="0" title="Mash step 4 duration"><span class="mscale">[min]</span></td></tr>
-						<tr><td>Pt5:</td><td><input class="temperature" type="text" id="menu_11" name="menu_Pt5" maxlength="4" size="4" autocomplete="off" value="0.0" title="Mash step 4 temperature"><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>Pd5:</td><td><input class="planinumber" type="text" id="menu_12" name="menu_Pd5" maxlength="4" size="4" autocomplete="off" value="0" title="Mash step 4 duration"><span class="mscale">[min]</span></td></tr>
-						<tr><td>Pt6:</td><td><input class="temperature" type="text" id="menu_13" name="menu_Pt6" maxlength="4" size="4" autocomplete="off" value="0.0" title="Mash step 4 temperature"><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>Pd6:</td><td><input class="planinumber" type="text" id="menu_14" name="menu_Pd6" maxlength="4" size="4" autocomplete="off" value="0" title="Mash step 4 duration"><span class="mscale">[min]</span></td></tr>
-						<tr><td>PO:</td><td><input class="planinumber" type="text" id="menu_15" name="menu_PO" maxlength="4" size="4" autocomplete="off" value="30" title="Mash output"><span class="perscale">[%]</span></td></tr>
-						<tr><td>Ht:</td><td><input class="temperature" type="text" id="menu_16" name="menu_Ht" maxlength="4" size="4" autocomplete="off" value="97.0" title="Hot break temperature"><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>HO:</td><td><input class="planinumber" type="text" id="menu_17" name="menu_HO" maxlength="4" size="4" autocomplete="off" value="80" title="Hot break output"><span class="perscale">[%]</span></td></tr>
-						<tr><td>Hd:</td><td><input class="plainnumber" type="text" id="menu_18" name="menu_Hd" maxlength="4" size="4" autocomplete="off" value="15" title="Hot break duration"><span class="mscale">[min]</span></td></tr>
-						<tr><td>bO:</td><td><input class="planinumber" type="text" id="menu_19" name="menu_bO" maxlength="4" size="4" autocomplete="off" value="100" title="Boil output"><span class="perscale">[%]</span></td></tr>
-						<tr><td>bd:</td><td><input class="plainnumber" type="text" id="menu_20" name="menu_bd" maxlength="4" size="4" autocomplete="off" value="90" title="boil duration"><span class="mscale">[min]</span></td></tr>
-						<tr><td>hd1:</td><td><input class="plainnumber" type="text" id="menu_21" name="menu_hd1" maxlength="4" size="4" autocomplete="off" value="60" title="Hop alarm 1"><span class="mscale">[min]</span></td></tr>
-						<tr><td>hd2:</td><td><input class="plainnumber" type="text" id="menu_22" name="menu_hd2" maxlength="4" size="4" autocomplete="off" value="30" title="Hop alarm 2"><span class="mscale">[min]</span></td></tr>
-						<tr><td>hd3:</td><td><input class="plainnumber" type="text" id="menu_23" name="menu_hd3" maxlength="4" size="4" autocomplete="off" value="15" title="Hop alarm 3"><span class="mscale">[min]</span></td></tr>
-						<tr><td>hd4:</td><td><input class="plainnumber" type="text" id="menu_24" name="menu_hd4" maxlength="4" size="4" autocomplete="off" value="5" title="Hop alarm 4"><span class="mscale">[min]</span></td></tr>
-						<tr><td>tc:</td><td><input class="tempdiff" type="text" id="menu_25" name="menu_tc" maxlength="4" size="4" autocomplete="off" value="0.0" title="Temperature correction"><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>APF:</td><td><input class="plainnumber" type="text" id="menu_26" name="menu_APF" maxlength="4" size="4" autocomplete="off" value="511" title="Alarm/pause flags"><span class="flagscale">[bitfield]</span></td></tr>
-						<tr><td>PF:</td><td><input class="plainnumber" type="text" id="menu_27" name="menu_PF" maxlength="4" size="4" autocomplete="off" value="6" title="Pump flags"><span class="flagscale">[bitfield]</span></td></tr>
+						<tr><td>Pt1:</td><td><input class="temperature" type="text" id="menu_ovbsc_param_Pt1" name="menu_ovbsc_param_Pt1" maxlength="4" size="4" autocomplete="off" value="65.0" title="Mash step 1 temperature"><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>Pd1:</td><td><input class="duration" type="text" id="menu_ovbsc_param_Pd1" name="menu_ovbsc_param_Pd1" maxlength="4" size="4" autocomplete="off" value="30" title="Mash step 1 duration"><span class="mscale">[min]</span></td></tr>
+						<tr><td>Pt2:</td><td><input class="temperature" type="text" id="menu_ovbsc_param_Pt2" name="menu_ovbsc_param_Pt2" maxlength="4" size="4" autocomplete="off" value="67.0" title="Mash step 2 temperature"><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>Pd2:</td><td><input class="duration" type="text" id="menu_ovbsc_param_Pd2" name="menu_ovbsc_param_Pd2" maxlength="4" size="4" autocomplete="off" value="20" title="Mash step 2 duration"><span class="mscale">[min]</span></td></tr>
+						<tr><td>Pt3:</td><td><input class="temperature" type="text" id="menu_ovbsc_param_Pt3" name="menu_ovbsc_param_Pt3" maxlength="4" size="4" autocomplete="off" value="70.0" title="Mash step 3 temperature"><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>Pd3:</td><td><input class="duration" type="text" id="menu_ovbsc_param_Pd3" name="menu_ovbsc_param_Pd3" maxlength="4" size="4" autocomplete="off" value="10" title="Mash step 3 duration"><span class="mscale">[min]</span></td></tr>
+						<tr><td>Pt4:</td><td><input class="temperature" type="text" id="menu_ovbsc_param_Pt4" name="menu_ovbsc_param_Pt4" maxlength="4" size="4" autocomplete="off" value="0.0" title="Mash step 4 temperature"><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>Pd4:</td><td><input class="duration" type="text" id="menu_ovbsc_param_Pd4" name="menu_ovbsc_param_Pd4" maxlength="4" size="4" autocomplete="off" value="0" title="Mash step 4 duration"><span class="mscale">[min]</span></td></tr>
+						<tr><td>Pt5:</td><td><input class="temperature" type="text" id="menu_ovbsc_param_Pt5" name="menu_ovbsc_param_Pt5" maxlength="4" size="4" autocomplete="off" value="0.0" title="Mash step 5 temperature"><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>Pd5:</td><td><input class="duration" type="text" id="menu_ovbsc_param_Pd5" name="menu_ovbsc_param_Pd5" maxlength="4" size="4" autocomplete="off" value="0" title="Mash step 5 duration"><span class="mscale">[min]</span></td></tr>
+						<tr><td>Pt6:</td><td><input class="temperature" type="text" id="menu_ovbsc_param_Pt6" name="menu_ovbsc_param_Pt6" maxlength="4" size="4" autocomplete="off" value="0.0" title="Mash step 6 temperature"><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>Pd6:</td><td><input class="duration" type="text" id="menu_ovbsc_param_Pd6" name="menu_ovbsc_param_Pd6" maxlength="4" size="4" autocomplete="off" value="0" title="Mash step 6 duration"><span class="mscale">[min]</span></td></tr>
+						<tr><td>PO:</td><td><input class="outputpercent" type="text" id="menu_ovbsc_param_PO" name="menu_ovbsc_param_PO" maxlength="4" size="4" autocomplete="off" value="30" title="Mash output"><span class="perscale">[%]</span></td></tr>
+						<tr><td>Ht:</td><td><input class="temperature" type="text" id="menu_ovbsc_param_Ht" name="menu_ovbsc_param_Ht" maxlength="4" size="4" autocomplete="off" value="97.0" title="Hot break temperature"><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>HO:</td><td><input class="outputpercent" type="text" id="menu_ovbsc_param_HO" name="menu_ovbsc_param_HO" maxlength="4" size="4" autocomplete="off" value="80" title="Hot break output"><span class="perscale">[%]</span></td></tr>
+						<tr><td>Hd:</td><td><input class="duration" type="text" id="menu_ovbsc_param_Hd" name="menu_ovbsc_param_Hd" maxlength="4" size="4" autocomplete="off" value="15" title="Hot break duration"><span class="mscale">[min]</span></td></tr>
+						<tr><td>bO:</td><td><input class="outputpercent" type="text" id="menu_ovbsc_param_bO" name="menu_ovbsc_param_bO" maxlength="4" size="4" autocomplete="off" value="100" title="Boil output"><span class="perscale">[%]</span></td></tr>
+						<tr><td>bd:</td><td><input class="duration" type="text" id="menu_ovbsc_param_bd" name="menu_ovbsc_param_bd" maxlength="4" size="4" autocomplete="off" value="90" title="boil duration"><span class="mscale">[min]</span></td></tr>
+						<tr><td>hd1:</td><td><input class="duration" type="text" id="menu_ovbsc_param_hd1" name="menu_ovbsc_param_hd1" maxlength="4" size="4" autocomplete="off" value="60" title="Hop alarm 1"><span class="mscale">[min]</span></td></tr>
+						<tr><td>hd2:</td><td><input class="duration" type="text" id="menu_ovbsc_param_hd2" name="menu_ovbsc_param_hd2" maxlength="4" size="4" autocomplete="off" value="30" title="Hop alarm 2"><span class="mscale">[min]</span></td></tr>
+						<tr><td>hd3:</td><td><input class="duration" type="text" id="menu_ovbsc_param_hd3" name="menu_ovbsc_param_hd3" maxlength="4" size="4" autocomplete="off" value="15" title="Hop alarm 3"><span class="mscale">[min]</span></td></tr>
+						<tr><td>hd4:</td><td><input class="duration" type="text" id="menu_ovbsc_param_hd4" name="menu_ovbsc_param_hd4" maxlength="4" size="4" autocomplete="off" value="5" title="Hop alarm 4"><span class="mscale">[min]</span></td></tr>
+						<tr><td>tc:</td><td><input class="tempdiff" type="text" id="menu_ovbsc_param_tc" name="menu_ovbsc_param_tc" maxlength="4" size="4" autocomplete="off" value="0.0" title="Temperature correction"><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>APF:</td><td><input class="apflags" type="text" id="menu_ovbsc_param_APF" name="menu_ovbsc_param_APF" maxlength="4" size="4" autocomplete="off" value="511" title="Alarm/pause flags"><span class="flagscale">[bitfield]</span></td></tr>
+						<tr><td>PF:</td><td><input class="pumpflags" type="text" id="menu_ovbsc_param_PF" name="menu_ovbsc_param_PF" maxlength="4" size="4" autocomplete="off" value="6" title="Pump flags"><span class="flagscale">[bitfield]</span></td></tr>
 
-						<tr><td>Pd:</td><td><input class="period" type="text" id="menu_28" name="menu_Pd" maxlength="4" size="4" autocomplete="off" value="5.0" title="Period (on + off cycle) time"><span class="pdscale">[s]</span></td></tr>
-						<tr><td>cO:</td><td><input class="planinumber" type="text" id="menu_29" name="menu_cO" maxlength="4" size="4" autocomplete="off" value="80" title="Constant output run mode output"><span class="perscale">[%]</span></td></tr>
-						<tr><td>cP:</td><td><input class="plainnumber" type="text" id="menu_30" name="menu_cP" maxlength="1" size="4" autocomplete="off" value="1" title="Constant output/temperature run mode pump enabled"><span class="bscale">[b]</span></td></tr>
-						<tr><td>cSP:</td><td><input class="temperature" type="text" id="menu_31" name="menu_cSP" maxlength="4" size="4" autocomplete="off" value="0.0" title="Constant temperature run mode setpoint"><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>ASd:</td><td><input class="plainnumber" type="text" id="menu_32" name="menu_ASd" maxlength="4" size="4" autocomplete="off" value="90" title="Automatic/safety shutdown timer"><span class="mscale">[min]</span></td></tr>
+						<tr><td>Pd:</td><td><input class="period" type="text" id="menu_ovbsc_param_Pd" name="menu_ovbsc_param_Pd" maxlength="4" size="4" autocomplete="off" value="5.0" title="Period (on + off cycle) time"><span class="pdscale">[s]</span></td></tr>
+						<tr><td>cO:</td><td><input class="outputpercent" type="text" id="menu_ovbsc_param_cO" name="menu_ovbsc_param_cO" maxlength="4" size="4" autocomplete="off" value="80" title="Constant output run mode output"><span class="perscale">[%]</span></td></tr>
+						<tr><td>cP:</td><td><input class="boolean" type="text" id="menu_ovbsc_param_cP" name="menu_ovbsc_param_cP" maxlength="1" size="4" autocomplete="off" value="1" title="Constant output/temperature run mode pump enabled"><span class="bscale">[b]</span></td></tr>
+						<tr><td>cSP:</td><td><input class="temperature" type="text" id="menu_ovbsc_param_cSP" name="menu_ovbsc_param_cSP" maxlength="4" size="4" autocomplete="off" value="0.0" title="Constant temperature run mode setpoint"><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>ASd:</td><td><input class="duration" type="text" id="menu_ovbsc_param_ASd" name="menu_ovbsc_ASd" maxlength="4" size="4" autocomplete="off" value="90" title="Automatic/safety shutdown timer"><span class="mscale">[min]</span></td></tr>
 					</table>
 				</td>
 			</tr>
@@ -838,7 +829,7 @@ Save the file and open with the Arduino IDE if not prompted to open it directly.
 
 </span>
 
-<span id="stc1000p_rh_eeprom_editor" style="display: none">
+<span id="stc1000p_rh_eeprom_editor" class="show_version_rh" style="display: none">
 	<table>
 		<thead>
 			<tr>
@@ -849,22 +840,22 @@ Save the file and open with the Arduino IDE if not prompted to open it directly.
 			<tr>
 				<td valign="top">
 					<table>
-						<tr><td>r0:</td><td><input class="plainnumber" type="text" id="rh_menu_0" name="rh_menu_r0" maxlength="4" size="4" autocomplete="off" value="100" title="Max allowed RH at 0 deg C"><span class="perscale">[%]</span></td></tr>
-						<tr><td>r5:</td><td><input class="plainnumber" type="text" id="rh_menu_1" name="rh_menu_r5" maxlength="4" size="4" autocomplete="off" value="100" title="Max allowed RH at 5 deg C"><span class="perscale">[%]</span></td></tr>
-						<tr><td>r10:</td><td><input class="plainnumber" type="text" id="rh_menu_2" name="rh_menu_r10" maxlength="4" size="4" autocomplete="off" value="84" title="Max allowed RH at 10 deg C"><span class="perscale">[%]</span></td></tr>
-						<tr><td>r15:</td><td><input class="plainnumber" type="text" id="rh_menu_3" name="rh_menu_r15" maxlength="4" size="4" autocomplete="off" value="76" title="Max allowed RH at 15 deg C"><span class="perscale">[%]</span></td></tr>
-						<tr><td>r20:</td><td><input class="plainnumber" type="text" id="rh_menu_4" name="rh_menu_r20" maxlength="4" size="4" autocomplete="off" value="73" title="Max allowed RH at 20 deg C"><span class="perscale">[%]</span></td></tr>
-						<tr><td>r25:</td><td><input class="plainnumber" type="text" id="rh_menu_5" name="rh_menu_r25" maxlength="4" size="4" autocomplete="off" value="72" title="Max allowed RH at 25 deg C"><span class="perscale">[%]</span></td></tr>
-						<tr><td>r30:</td><td><input class="plainnumber" type="text" id="rh_menu_6" name="rh_menu_r30" maxlength="4" size="4" autocomplete="off" value="71" title="Max allowed RH at 30 deg C"><span class="perscale">[%]</span></td></tr>
-						<tr><td>r35:</td><td><input class="plainnumber" type="text" id="rh_menu_7" name="rh_menu_r35" maxlength="4" size="4" autocomplete="off" value="72" title="Max allowed RH at 35 deg C"><span class="perscale">[%]</span></td></tr>
-						<tr><td>r40:</td><td><input class="plainnumber" type="text" id="rh_menu_8" name="rh_menu_r40" maxlength="4" size="4" autocomplete="off" value="77" title="Max allowed RH at 40 deg C"><span class="perscale">[%]</span></td></tr>
-						<tr><td>r45:</td><td><input class="plainnumber" type="text" id="rh_menu_9" name="rh_menu_r45" maxlength="4" size="4" autocomplete="off" value="100" title="Max allowed RH at 45 deg C"><span class="perscale">[%]</span></td></tr>
-						<tr><td>r50:</td><td><input class="plainnumber" type="text" id="rh_menu_10" name="rh_menu_r50" maxlength="4" size="4" autocomplete="off" value="100" title="Max allowed RH at 50 deg C"><span class="perscale">[%]</span></td></tr>
-						<tr><td>don:</td><td><input class="planinumber" type="text" id="rh_menu_11" name="rh_menu_don" maxlength="4" size="4" autocomplete="off" value="24" title="Min duration above threshold for on"><span class="durscale">[h]</span></td></tr>
-						<tr><td>dFF:</td><td><input class="planinumber" type="text" id="rh_menu_12" name="rh_menu_dFF" maxlength="4" size="4" autocomplete="off" value="6" title="Min on time before turn off"><span class="durscale">[h]</span></td></tr>
-						<tr><td>tc:</td><td><input class="tempdiff" type="text" id="rh_menu_13" name="rh_menu_tc" maxlength="4" size="4" autocomplete="off" value="0.0" title="Temperature correction"><span class="tscale">[&deg;C]</span></td></tr>
-						<tr><td>rhc:</td><td><input class="plainnumber" type="text" id="rh_menu_14" name="rh_menu_rhc" maxlength="4" size="4" autocomplete="off" value="0" title="Relative humidity correction"><span class="perscale">[%]</span></td></tr>
-						<tr><td>Srt:</td><td><input class="plainnumber" type="text" id="rh_menu_17" name="rh_menu_Srt" maxlength="4" size="4" autocomplete="off" value="0" title="Show relative humidity and/or temperature on display [0=off, 1=temperature, 2=rh, 3=temp+rh]"><span class="flagscale">[bitfield]</span></td></tr>
+						<tr><td>r0:</td><td><input class="rhpercent" type="text" id="menu_rh_param_r0" name="menu_rh_param_r0" maxlength="4" size="4" autocomplete="off" value="100" title="Max allowed RH at 0 deg C"><span class="perscale">[%]</span></td></tr>
+						<tr><td>r5:</td><td><input class="rhpercent" type="text" id="menu_rh_param_r5" name="menu_rh_param_r5" maxlength="4" size="4" autocomplete="off" value="100" title="Max allowed RH at 5 deg C"><span class="perscale">[%]</span></td></tr>
+						<tr><td>r10:</td><td><input class="rhpercent" type="text" id="menu_rh_param_r10" name="menu_rh_param_r10" maxlength="4" size="4" autocomplete="off" value="84" title="Max allowed RH at 10 deg C"><span class="perscale">[%]</span></td></tr>
+						<tr><td>r15:</td><td><input class="rhpercent" type="text" id="menu_rh_param_r15" name="menu_rh_param_r15" maxlength="4" size="4" autocomplete="off" value="76" title="Max allowed RH at 15 deg C"><span class="perscale">[%]</span></td></tr>
+						<tr><td>r20:</td><td><input class="rhpercent" type="text" id="menu_rh_param_r20" name="menu_rh_param_r20" maxlength="4" size="4" autocomplete="off" value="73" title="Max allowed RH at 20 deg C"><span class="perscale">[%]</span></td></tr>
+						<tr><td>r25:</td><td><input class="rhpercent" type="text" id="menu_rh_param_r25" name="menu_rh_param_r25" maxlength="4" size="4" autocomplete="off" value="72" title="Max allowed RH at 25 deg C"><span class="perscale">[%]</span></td></tr>
+						<tr><td>r30:</td><td><input class="rhpercent" type="text" id="menu_rh_param_r30" name="menu_rh_param_r30" maxlength="4" size="4" autocomplete="off" value="71" title="Max allowed RH at 30 deg C"><span class="perscale">[%]</span></td></tr>
+						<tr><td>r35:</td><td><input class="rhpercent" type="text" id="menu_rh_param_r35" name="menu_rh_param_r35" maxlength="4" size="4" autocomplete="off" value="72" title="Max allowed RH at 35 deg C"><span class="perscale">[%]</span></td></tr>
+						<tr><td>r40:</td><td><input class="rhpercent" type="text" id="menu_rh_param_r40" name="menu_rh_param_r40" maxlength="4" size="4" autocomplete="off" value="77" title="Max allowed RH at 40 deg C"><span class="perscale">[%]</span></td></tr>
+						<tr><td>r45:</td><td><input class="rhpercent" type="text" id="menu_rh_param_r45" name="menu_rh_param_r45" maxlength="4" size="4" autocomplete="off" value="100" title="Max allowed RH at 45 deg C"><span class="perscale">[%]</span></td></tr>
+						<tr><td>r50:</td><td><input class="rhpercent" type="text" id="menu_rh_param_r50" name="menu_rh_param_r50" maxlength="4" size="4" autocomplete="off" value="100" title="Max allowed RH at 50 deg C"><span class="perscale">[%]</span></td></tr>
+						<tr><td>don:</td><td><input class="duration" type="text" id="menu_rh_param_don" name="menu_rh_param_don" maxlength="4" size="4" autocomplete="off" value="24" title="Min duration above threshold for on"><span class="durscale">[h]</span></td></tr>
+						<tr><td>dFF:</td><td><input class="duration" type="text" id="menu_rh_param_dFF" name="menu_rh_param_dFF" maxlength="4" size="4" autocomplete="off" value="6" title="Min on time before turn off"><span class="durscale">[h]</span></td></tr>
+						<tr><td>tc:</td><td><input class="tempdiff" type="text" id="menu_rh_param_tc" name="menu_rh_param_tc" maxlength="4" size="4" autocomplete="off" value="0.0" title="Temperature correction"><span class="tscale">[&deg;C]</span></td></tr>
+						<tr><td>rhc:</td><td><input class="rhdiff" type="text" id="menu_rh_param_rhc" name="menu_rh_param_rhc" maxlength="4" size="4" autocomplete="off" value="0" title="Relative humidity correction"><span class="perscale">[%]</span></td></tr>
+						<tr><td>Srt:</td><td><input class="srtflags" type="text" id="menu_rh_param_Srt" name="menu_rh_param_Srt" maxlength="4" size="4" autocomplete="off" value="3" title="Show relative humidity and/or temperature on display [0=off, 1=temperature, 2=rh, 3=temp+rh]"><span class="flagscale">[bitfield]</span></td></tr>
 					</table>
 				</td>
 			</tr>
