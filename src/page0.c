@@ -1101,9 +1101,9 @@ static void fo433_fsm(){
  */
 void main(void) __naked {
 	unsigned int millisx60 = 0;
-	unsigned int ad_filter = (512 << FILTER_SHIFT);
+	unsigned int ad_filter = (512L << FILTER_SHIFT);
 #if defined(PB2) || defined(RH)
-	unsigned int ad_filter2 = (512 << FILTER_SHIFT);
+	unsigned int ad_filter2 = (512L << FILTER_SHIFT);
 #endif
 
 	init();
