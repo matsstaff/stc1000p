@@ -98,7 +98,7 @@ A negative percentage value is also allowed, which does the exact same thing, bu
 The output percentage is also used in thermostat mode, so if temperature is below setpoint, the output will be the specified one. If output is at or over the setpoint the output will be 0.
 
 The unpopulated terminal on the STC can be used as pump control. The firmware will put this output in high impedance to turn pump on and pull it low to turn pump off.
-![Pump output](probeterm.jpg)<br>
+![Pump output](../img/probeterm.jpg)<br>
 *Fig 1: Connection terminal of the LED dimmer*
 
 This can be used directly with an 8A LED dimmer for flow control of a 12V pump.
