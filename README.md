@@ -5,7 +5,11 @@ STC\-1000+ is an open source implementation of firmware(s) for the STC\-1000 dua
  
 ![STC-1000](img/STC-1000.jpg)
 
-The main purpose of this project is provide firmwares that add features that are desirable for brewing beer, but the usage is not limited to this. 
+The main purpose of this project is provide firmwares that add features that are desirable for brewing beer, but the usage is not limited to this.
+
+Questions?
+----------
+Please don't open github issues for general questions. Ask freely [in the Homebrewtalk STC\-1000+ thread](http://www.homebrewtalk.com/showthread.php?t=464348). Only open an issue if you discovered an actual bug or have a (realistic) feature request (or better yet, send a pull request).
 
 Quick start
 -----------
