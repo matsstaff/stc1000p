@@ -83,183 +83,6 @@ extern const char hex_eeprom_fahrenheit[] PROGMEM;
 /* Set to 1 to enable automatic upload of Celsius version */
 #define AUTOMATIC_UPLOAD_CELSIUS		0
 
-void setup() {
-	pinMode(ICSPCLK, INPUT);
-	digitalWrite(ICSPCLK, LOW); // Disable pull-up
-	pinMode(ICSPDAT, INPUT);
-	digitalWrite(ICSPDAT, LOW); // Disable pull-up
-	pinMode(nMCLR, INPUT);
-	digitalWrite(nMCLR, LOW); // Disable pull-up
-
-	Serial.begin(115200);
-
-	delay(2);
-
-	Serial.println("STC-1000+ firmware sketch.");
-	Serial.println("Copyright 2014 Mats Staffansson");
-	Serial.println("");
-	Serial.println("Send 'd' to check for STC-1000");
-
-#if AUTOMATIC_UPLOAD_CELSIUS || AUTOMATIC_UPLOAD_FAHRENHEIT
-	{
-		unsigned int magic, ver, deviceid;
-		delay(100); // Make sure STC has time to wake up.
-		get_device_id(&magic, &ver, &deviceid);
-
-		if((deviceid & 0x3FE0) == 0x27C0) {
-			Serial.println("STC-1000 detected");
-			lvp_entry();
-			bulk_erase_device();
-#if AUTOMATIC_UPLOAD_FAHRENHEIT
-			upload_hex_from_progmem(hex_fahrenheit);
-			upload_hex_from_progmem(hex_eeprom_fahrenheit);
-			write_magic(STC1000P_MAGIC_F);
-#else // AUTOMATIC_UPLOAD_CELSIUS
-			upload_hex_from_progmem(hex_celsius);
-			upload_hex_from_progmem(hex_eeprom_celsius);
-			write_magic(STC1000P_MAGIC_C);
-#endif
-			write_version(STC1000P_VERSION);
-			p_exit();
-		} else {
-			Serial.println("No STC-1000 detected");
-		}
-	}
-#endif
-
-}
-
-void loop() {
-	if (Serial.available() > 0) {
-		char command = Serial.read();
-		switch (command) {
-		case 'h':
-			hvp_entry();
-			break;
-		case 'l':
-			lvp_entry();
-			break;
-		case 'e':
-			p_exit();
-			break;
-		case 'c':
-			load_configuration(0);
-			break;
-		case 'p':
-			Serial.print('0');
-			Serial.print('x');
-			Serial.print(read_data_from_program_memory(), HEX);
-			Serial.println();
-			break;
-		case 'i':
-			increment_address();
-			break;
-		case 'u':
-			lvp_entry();
-			bulk_erase_program_memory();
-			upload_hex_file_to_device();
-			p_exit();
-			break;
-		case 'v':
-			lvp_entry();
-			bulk_erase_data_memory();
-			upload_hex_file_to_device();
-			p_exit();
-			break;
-		case 'a':
-			lvp_entry();
-			bulk_erase_device();
-			upload_hex_from_progmem (hex_celsius);
-			upload_hex_from_progmem (hex_eeprom_celsius);
-			write_magic(STC1000P_MAGIC_C);
-			write_version(STC1000P_VERSION);
-			p_exit();
-			break;
-		case 'b':
-			lvp_entry();
-			load_configuration(0);
-			bulk_erase_program_memory();
-			reset_address();
-			upload_hex_from_progmem(hex_celsius);
-			write_magic(STC1000P_MAGIC_C);
-			write_version(STC1000P_VERSION);
-			p_exit();
-			break;
-		case 'd': {
-			unsigned int magic, ver, deviceid;
-			get_device_id(&magic, &ver, &deviceid);
-			Serial.print("Device ID is: 0x");
-			Serial.println(deviceid, HEX);
-			if ((deviceid & 0x3FE0) == 0x27C0) {
-				Serial.println("STC-1000 detected.");
-				if (magic == STC1000P_MAGIC_C || magic == STC1000P_MAGIC_F) {
-					Serial.print("STC-1000+ ");
-					if (magic == STC1000P_MAGIC_F) {
-						Serial.print("Fahrenheit ");
-					} else {
-						Serial.print("Celsius ");
-					}
-					Serial.print("firmware with version ");
-					Serial.print(ver / 100, DEC);
-					Serial.print(".");
-					Serial.print((ver % 100) / 10, DEC);
-					Serial.print((ver % 10), DEC);
-					Serial.println(" detected.");
-					if (ver < STC1000P_EEPROM_VERSION) {
-						Serial.println(
-								"EEPROM has changes, consider initializing EEPROM when flashing.");
-					}
-
-				} else {
-					Serial.println("No previous STC-1000+ firmware detected.");
-					Serial.println(
-							"Consider initializing EEPROM when flashing.");
-				}
-				Serial.print("Sketch has version ");
-				Serial.print(STC1000P_VERSION / 100, DEC);
-				Serial.print(".");
-				Serial.print((STC1000P_VERSION % 100) / 10, DEC);
-				Serial.print((STC1000P_VERSION % 10), DEC);
-				Serial.println("");
-				Serial.println("");
-				Serial.println(
-						"Send 'a' to upload Celsius version and initialize EEPROM data.");
-				Serial.println(
-						"Send 'b' to upload Celsius version (program memory only).");
-				Serial.println(
-						"Send 'f' to upload Fahrenheit version and initialize EEPROM data.");
-				Serial.println(
-						"Send 'g' to upload Fahrenheit version (program memory only).");
-			} else {
-				Serial.println("STC-1000 NOT detected. Check wiring.");
-			}
-		}
-			break;
-		case 'f':
-			lvp_entry();
-			bulk_erase_device();
-			upload_hex_from_progmem (hex_fahrenheit);
-			upload_hex_from_progmem (hex_eeprom_fahrenheit);
-			write_magic(STC1000P_MAGIC_F);
-			write_version(STC1000P_VERSION);
-			p_exit();
-			break;
-		case 'g':
-			lvp_entry();
-			load_configuration(0);
-			bulk_erase_program_memory();
-			reset_address();
-			upload_hex_from_progmem(hex_fahrenheit);
-			write_magic(STC1000P_MAGIC_F);
-			write_version(STC1000P_VERSION);
-			p_exit();
-			break;
-		default:
-			break;
-		}
-	}
-}
-
 unsigned char hex_nibble(unsigned char data) {
 	data = toupper(data);
 	return (data >= 'A' ? data - 'A' + 10 : data - '0') & 0xf;
@@ -703,6 +526,183 @@ void write_version(unsigned int data_word_out) {
 	increment_address();
 	load_data_for_program_memory(data_word_out);
 	begin_internally_timed_programming();
+}
+
+void setup() {
+	pinMode(ICSPCLK, INPUT);
+	digitalWrite(ICSPCLK, LOW); // Disable pull-up
+	pinMode(ICSPDAT, INPUT);
+	digitalWrite(ICSPDAT, LOW); // Disable pull-up
+	pinMode(nMCLR, INPUT);
+	digitalWrite(nMCLR, LOW); // Disable pull-up
+
+	Serial.begin(115200);
+
+	delay(2);
+
+	Serial.println("STC-1000+ firmware sketch.");
+	Serial.println("Copyright 2014 Mats Staffansson");
+	Serial.println("");
+	Serial.println("Send 'd' to check for STC-1000");
+
+#if AUTOMATIC_UPLOAD_CELSIUS || AUTOMATIC_UPLOAD_FAHRENHEIT
+	{
+		unsigned int magic, ver, deviceid;
+		delay(100); // Make sure STC has time to wake up.
+		get_device_id(&magic, &ver, &deviceid);
+
+		if((deviceid & 0x3FE0) == 0x27C0) {
+			Serial.println("STC-1000 detected");
+			lvp_entry();
+			bulk_erase_device();
+#if AUTOMATIC_UPLOAD_FAHRENHEIT
+			upload_hex_from_progmem(hex_fahrenheit);
+			upload_hex_from_progmem(hex_eeprom_fahrenheit);
+			write_magic(STC1000P_MAGIC_F);
+#else // AUTOMATIC_UPLOAD_CELSIUS
+			upload_hex_from_progmem(hex_celsius);
+			upload_hex_from_progmem(hex_eeprom_celsius);
+			write_magic(STC1000P_MAGIC_C);
+#endif
+			write_version(STC1000P_VERSION);
+			p_exit();
+		} else {
+			Serial.println("No STC-1000 detected");
+		}
+	}
+#endif
+
+}
+
+void loop() {
+	if (Serial.available() > 0) {
+		char command = Serial.read();
+		switch (command) {
+		case 'h':
+			hvp_entry();
+			break;
+		case 'l':
+			lvp_entry();
+			break;
+		case 'e':
+			p_exit();
+			break;
+		case 'c':
+			load_configuration(0);
+			break;
+		case 'p':
+			Serial.print('0');
+			Serial.print('x');
+			Serial.print(read_data_from_program_memory(), HEX);
+			Serial.println();
+			break;
+		case 'i':
+			increment_address();
+			break;
+		case 'u':
+			lvp_entry();
+			bulk_erase_program_memory();
+			upload_hex_file_to_device();
+			p_exit();
+			break;
+		case 'v':
+			lvp_entry();
+			bulk_erase_data_memory();
+			upload_hex_file_to_device();
+			p_exit();
+			break;
+		case 'a':
+			lvp_entry();
+			bulk_erase_device();
+			upload_hex_from_progmem (hex_celsius);
+			upload_hex_from_progmem (hex_eeprom_celsius);
+			write_magic(STC1000P_MAGIC_C);
+			write_version(STC1000P_VERSION);
+			p_exit();
+			break;
+		case 'b':
+			lvp_entry();
+			load_configuration(0);
+			bulk_erase_program_memory();
+			reset_address();
+			upload_hex_from_progmem(hex_celsius);
+			write_magic(STC1000P_MAGIC_C);
+			write_version(STC1000P_VERSION);
+			p_exit();
+			break;
+		case 'd': {
+			unsigned int magic, ver, deviceid;
+			get_device_id(&magic, &ver, &deviceid);
+			Serial.print("Device ID is: 0x");
+			Serial.println(deviceid, HEX);
+			if ((deviceid & 0x3FE0) == 0x27C0) {
+				Serial.println("STC-1000 detected.");
+				if (magic == STC1000P_MAGIC_C || magic == STC1000P_MAGIC_F) {
+					Serial.print("STC-1000+ ");
+					if (magic == STC1000P_MAGIC_F) {
+						Serial.print("Fahrenheit ");
+					} else {
+						Serial.print("Celsius ");
+					}
+					Serial.print("firmware with version ");
+					Serial.print(ver / 100, DEC);
+					Serial.print(".");
+					Serial.print((ver % 100) / 10, DEC);
+					Serial.print((ver % 10), DEC);
+					Serial.println(" detected.");
+					if (ver < STC1000P_EEPROM_VERSION) {
+						Serial.println(
+								"EEPROM has changes, consider initializing EEPROM when flashing.");
+					}
+
+				} else {
+					Serial.println("No previous STC-1000+ firmware detected.");
+					Serial.println(
+							"Consider initializing EEPROM when flashing.");
+				}
+				Serial.print("Sketch has version ");
+				Serial.print(STC1000P_VERSION / 100, DEC);
+				Serial.print(".");
+				Serial.print((STC1000P_VERSION % 100) / 10, DEC);
+				Serial.print((STC1000P_VERSION % 10), DEC);
+				Serial.println("");
+				Serial.println("");
+				Serial.println(
+						"Send 'a' to upload Celsius version and initialize EEPROM data.");
+				Serial.println(
+						"Send 'b' to upload Celsius version (program memory only).");
+				Serial.println(
+						"Send 'f' to upload Fahrenheit version and initialize EEPROM data.");
+				Serial.println(
+						"Send 'g' to upload Fahrenheit version (program memory only).");
+			} else {
+				Serial.println("STC-1000 NOT detected. Check wiring.");
+			}
+		}
+			break;
+		case 'f':
+			lvp_entry();
+			bulk_erase_device();
+			upload_hex_from_progmem (hex_fahrenheit);
+			upload_hex_from_progmem (hex_eeprom_fahrenheit);
+			write_magic(STC1000P_MAGIC_F);
+			write_version(STC1000P_VERSION);
+			p_exit();
+			break;
+		case 'g':
+			lvp_entry();
+			load_configuration(0);
+			bulk_erase_program_memory();
+			reset_address();
+			upload_hex_from_progmem(hex_fahrenheit);
+			write_magic(STC1000P_MAGIC_F);
+			write_version(STC1000P_VERSION);
+			p_exit();
+			break;
+		default:
+			break;
+		}
+	}
 }
 
 const char hex_celsius[] PROGMEM = {
