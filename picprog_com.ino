@@ -30,6 +30,38 @@
  *
  */
 
+/* User configurable defines */
+
+/* Set to 0 to omit Fahrenheit version from sketch */
+#define INCLUDE_FAHRENHEIT_HEX_DATA		1
+/* Set to 0 to omit Celsius version from sketch */
+#define INCLUDE_CELSIUS_HEX_DATA		1
+
+/* Set to 1 to enable automatic upload of Fahrenheit version */
+#define AUTOMATIC_UPLOAD_FAHRENHEIT		0
+/* Set to 1 to enable automatic upload of Celsius version */
+#define AUTOMATIC_UPLOAD_CELSIUS		0
+
+/* End of user configurable defines - DO NOT EDIT BEYOND THIS POINT - unless you know what you're doing that is... */
+
+/* Sanity check */
+
+#if AUTOMATIC_UPLOAD_FAHRENHEIT && AUTOMATIC_UPLOAD_CELSIUS
+#error "Cannot automatically upload both versions, set *just one* of AUTOMATIC_UPLOAD_FAHRENHEIT or AUTOMATIC_UPLOAD_CELSIUS."
+#endif
+
+#if !INCLUDE_FAHRENHEIT_HEX_DATA && !INCLUDE_CELSIUS_HEX_DATA
+#error "No HEX data selected, set *at least one* of INCLUDE_FAHRENHEIT_HEX_DATA or INCLUDE_CELSIUS_HEX_DATA to 1."
+#endif
+
+#if AUTOMATIC_UPLOAD_FAHRENHEIT && !INCLUDE_FAHRENHEIT_HEX_DATA
+#error "To automatically upload Fahrenheit version, INCLUDE_FAHRENHEIT_HEX_DATA must be set to 1."
+#endif
+
+#if AUTOMATIC_UPLOAD_CELSIUS && !INCLUDE_CELSIUS_HEX_DATA
+#error "To automatically upload Celsius version, INCLUDE_CELSIUS_HEX_DATA must be set to 1."
+#endif
+
 /* Define STC-1000+ version number (XYY, X=major, YY=minor) and EEROM revision */
 #define STC1000P_MAGIC_F		0x192C
 #define STC1000P_MAGIC_C		0x26D3
@@ -73,15 +105,12 @@
 #define ROW_ERASE_PROGRAM_MEMORY            0x11    /* Internally Timed */
 
 /* declare hex data */
+/* For some reason PROGMEM messes with conditional compilation, */
+/* so better not put #if INCLUDE_???_HEX_DATA around these */
 extern const char hex_celsius[] PROGMEM;
-extern const char hex_fahrenheit[] PROGMEM;
 extern const char hex_eeprom_celsius[] PROGMEM;
+extern const char hex_fahrenheit[] PROGMEM;
 extern const char hex_eeprom_fahrenheit[] PROGMEM;
-
-/* Set to 1 to enable automatic upload of Fahrenheit version */
-#define AUTOMATIC_UPLOAD_FAHRENHEIT		0
-/* Set to 1 to enable automatic upload of Celsius version */
-#define AUTOMATIC_UPLOAD_CELSIUS		0
 
 unsigned char hex_nibble(unsigned char data) {
 	data = toupper(data);
@@ -611,6 +640,7 @@ void loop() {
 			upload_hex_file_to_device();
 			p_exit();
 			break;
+#if INCLUDE_CELSIUS_HEX_DATA
 		case 'a':
 			lvp_entry();
 			bulk_erase_device();
@@ -630,6 +660,7 @@ void loop() {
 			write_version(STC1000P_VERSION);
 			p_exit();
 			break;
+#endif
 		case 'd': {
 			unsigned int magic, ver, deviceid;
 			get_device_id(&magic, &ver, &deviceid);
@@ -667,19 +698,24 @@ void loop() {
 				Serial.print((STC1000P_VERSION % 10), DEC);
 				Serial.println("");
 				Serial.println("");
+#if INCLUDE_CELSIUS_HEX_DATA
 				Serial.println(
 						"Send 'a' to upload Celsius version and initialize EEPROM data.");
 				Serial.println(
 						"Send 'b' to upload Celsius version (program memory only).");
+#endif
+#if INCLUDE_FAHRENHEIT_HEX_DATA
 				Serial.println(
 						"Send 'f' to upload Fahrenheit version and initialize EEPROM data.");
 				Serial.println(
 						"Send 'g' to upload Fahrenheit version (program memory only).");
+#endif
 			} else {
 				Serial.println("STC-1000 NOT detected. Check wiring.");
 			}
 		}
 			break;
+#if INCLUDE_FAHRENHEIT_HEX_DATA
 		case 'f':
 			lvp_entry();
 			bulk_erase_device();
@@ -699,12 +735,14 @@ void loop() {
 			write_version(STC1000P_VERSION);
 			p_exit();
 			break;
+#endif
 		default:
 			break;
 		}
 	}
 }
 
+#if INCLUDE_CELSIUS_HEX_DATA
 const char hex_celsius[] PROGMEM = {
    0x02,0x00,0x00,0x04,0x00,0x00,0xFA,
    0x10,0x00,0x00,0x00,0x00,0x00,0x86,0x31,0x3B,0x2E,0xFF,0x34,0x8A,0x01,0x27,0x00,0x93,0x1C,0x23,0x28,0xF1,
@@ -1217,6 +1255,8 @@ const char hex_celsius[] PROGMEM = {
    0x02,0x00,0x10,0x00,0xFF,0x3A,0xB5,
    0x00,0x00,0x00,0x01,0xFF
 };
+#endif
+#if INCLUDE_FAHRENHEIT_HEX_DATA
 const char hex_fahrenheit[] PROGMEM = {
    0x02,0x00,0x00,0x04,0x00,0x00,0xFA,
    0x10,0x00,0x00,0x00,0x00,0x00,0x86,0x31,0x3B,0x2E,0xFF,0x34,0x8A,0x01,0x27,0x00,0x93,0x1C,0x23,0x28,0xF1,
@@ -1729,6 +1769,8 @@ const char hex_fahrenheit[] PROGMEM = {
    0x02,0x00,0x10,0x00,0xFF,0x3A,0xB5,
    0x00,0x00,0x00,0x01,0xFF
 };
+#endif
+#if INCLUDE_CELSIUS_HEX_DATA
 const char hex_eeprom_celsius[] PROGMEM = {
    0x02,0x00,0x00,0x04,0x00,0x00,0xFA,
    0x02,0x00,0x00,0x04,0x00,0x01,0xF9,
@@ -1765,6 +1807,8 @@ const char hex_eeprom_celsius[] PROGMEM = {
    0x10,0xE1,0xE0,0x00,0x05,0x34,0x00,0x34,0x02,0x34,0x00,0x34,0x00,0x34,0x00,0x34,0x06,0x34,0x00,0x34,0x82,
    0x00,0x00,0x00,0x01,0xFF
 };
+#endif
+#if INCLUDE_FAHRENHEIT_HEX_DATA
 const char hex_eeprom_fahrenheit[] PROGMEM = {
    0x02,0x00,0x00,0x04,0x00,0x00,0xFA,
    0x02,0x00,0x00,0x04,0x00,0x01,0xF9,
@@ -1801,3 +1845,4 @@ const char hex_eeprom_fahrenheit[] PROGMEM = {
    0x10,0xE1,0xE0,0x00,0x05,0x34,0x00,0x34,0x02,0x34,0x00,0x34,0x00,0x34,0x00,0x34,0x06,0x34,0x00,0x34,0x82,
    0x00,0x00,0x00,0x01,0xFF
 };
+#endif

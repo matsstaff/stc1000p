@@ -57,17 +57,21 @@ function build_stc1000p_version {
 	cat picprog.template | sed "s/^#define STC1000P_VERSION.*/$v/" | sed "s/^#define STC1000P_EEPROM_VERSION.*/$e/" > ../picprog$version.ino
 
 	# Convert firmware HEX data to embed in sketch
-	echo "const char hex_celsius[] PROGMEM = {" > stc1000p_hex.tmp; 
+	echo "#if INCLUDE_CELSIUS_HEX_DATA" > stc1000p_hex.tmp; 
+	echo "const char hex_celsius[] PROGMEM = {" >> stc1000p_hex.tmp; 
 	for l in `cat build/stc1000p_celsius$version.hex | sed 's/^://' | sed 's/\(..\)/0\x\1\,/g'`; do 
 		echo "   $l" | sed 's/0x00,0x00,0x00,0x01,0xFF,/0x00,0x00,0x00,0x01,0xFF/' >> stc1000p_hex.tmp; 
 	done; 
 	echo "};" >> stc1000p_hex.tmp
+	echo "#endif" >> stc1000p_hex.tmp
 
+	echo "#if INCLUDE_FAHRENHEIT_HEX_DATA" >> stc1000p_hex.tmp; 
 	echo "const char hex_fahrenheit[] PROGMEM = {" >> stc1000p_hex.tmp; 
 	for l in `cat build/stc1000p_fahrenheit$version.hex | sed 's/^://' | sed 's/\(..\)/0\x\1\,/g'`; do 
 		echo "   $l" | sed 's/0x00,0x00,0x00,0x01,0xFF,/0x00,0x00,0x00,0x01,0xFF/' >> stc1000p_hex.tmp; 
 	done; 
 	echo "};" >> stc1000p_hex.tmp
+	echo "#endif" >> stc1000p_hex.tmp
 
 	cat stc1000p_hex.tmp | sed "s/'/\\\\\\\'/g" > stc1000p_hex.js.tmp
 	echo "stc1000p[\"stc1000p$version\"]='' +" >> ../profile/stc1000p.js
@@ -77,17 +81,21 @@ function build_stc1000p_version {
 	echo "'';" >> ../profile/stc1000p.js
 	rm -f stc1000p_hex.js.tmp
 
+	echo "#if INCLUDE_CELSIUS_HEX_DATA" >> stc1000p_hex.tmp; 
 	echo "const char hex_eeprom_celsius[] PROGMEM = {" >> stc1000p_hex.tmp; 
 	for l in `cat build/eedata_celsius$version.hex | sed 's/^://' | sed 's/\(..\)/0\x\1\,/g'`; do 
 		echo "   $l" | sed 's/0x00,0x00,0x00,0x01,0xFF,/0x00,0x00,0x00,0x01,0xFF/' >> stc1000p_hex.tmp; 
 	done; 
 	echo "};" >> stc1000p_hex.tmp
+	echo "#endif" >> stc1000p_hex.tmp
 
+	echo "#if INCLUDE_FAHRENHEIT_HEX_DATA" >> stc1000p_hex.tmp; 
 	echo "const char hex_eeprom_fahrenheit[] PROGMEM = {" >> stc1000p_hex.tmp; 
 	for l in `cat build/eedata_fahrenheit$version.hex | sed 's/^://' | sed 's/\(..\)/0\x\1\,/g'`; do 
 		echo "   $l" | sed 's/0x00,0x00,0x00,0x01,0xFF,/0x00,0x00,0x00,0x01,0xFF/' >> stc1000p_hex.tmp; 
 	done; 
 	echo "};" >> stc1000p_hex.tmp
+	echo "#endif" >> stc1000p_hex.tmp
 
 	cat stc1000p_hex.tmp >> ../picprog$version.ino
 	rm -f stc1000p_hex.tmp
