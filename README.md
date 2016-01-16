@@ -57,6 +57,11 @@ The exact same thing as the normal STC\-1000+ firmware, except profile is update
 
 Firmware built to control a single vessel brew system (for example Braumeister, Grainfather and similar systems/DIY setups). Read more [here](/ovbsc/README.md)
 
+### STC\-1000+ RH (relative humidity controller) firmware
+
+This is firmware I wrote for a friend of mine (Totte). The purpose is to control a heater (heating cable) in the crawl space under his house. By measuring relative humidity and temperature, and then comparing it to a (user settable) table of 'safe limits', the heater is activated when out of the safe region. The idea is to raise temperature (and thereby lowering relative humidity), so that conditions do not arise such that organic growth (mold, et.c.) can occur. The firmware is currently *ONLY* available in Celsius.
+Read more [here](/rh/README.md)
+
 
 # Flashing the firmware
 
