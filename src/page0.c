@@ -176,16 +176,6 @@ void eeprom_write_config(unsigned char eeprom_address,unsigned int data)
 
 }
 
-static unsigned int divu10(unsigned int n) {
-	unsigned int q, r;
-	q = (n >> 1) + (n >> 2);
-	q = q + (q >> 4);
-	q = q + (q >> 8);
-	q = q >> 3;
-	r = n - ((q << 3) + (q << 1));
-	return q + ((r + 6) >> 4);
-}
-
 /* Update LED globals with temperature or integer data.
  * arguments: value (actual temperature multiplied by 10 or an integer)
  *            decimal indicates if the value is multiplied by 10 (i.e. a temperature)
@@ -216,31 +206,38 @@ void value_to_led(int value, unsigned char decimal) {
 
 	// If temperature >= 100 we must lose decimal...
 	if (value >= 1000) {
-		value = divu10((unsigned int) value);
 		decimal = 0;
+	} else { // Otherwise multiply by 10
+		value = (value << 3) + (value << 1);
 	}
 
 	// Convert value to BCD and set LED outputs
-	if(value >= 100){
-		for(i=0; value >= 100; i++){
-			value -= 100;
+	if(value >= 1000){
+		for(i=0; value >= 1000; i++){
+			value -= 1000;
 		}
-		led_10.raw = led_lookup[i & 0xf];
+		led_10.raw = led_lookup[i];
 	} else {
 		led_10.raw = LED_OFF; // Turn off led if zero (lose leading zeros)
-	}
-	if(value >= 10 || decimal || led_10.raw!=LED_OFF){ // If decimal, we want 1 leading zero
-		for(i=0; value >= 10; i++){
-			value -= 10;
+		if(value < 100 && !decimal){
+			led_1.raw = LED_OFF; // Turn off led if zero (lose leading zeros)
+			goto last_digit_label;
 		}
-		led_1.raw = led_lookup[i];
-		if(decimal){
-			led_1.decimal = 0;
-		}
-	} else {
-		led_1.raw = LED_OFF; // Turn off led if zero (lose leading zeros)
 	}
-	led_01.raw = led_lookup[(unsigned char)value];
+
+	for(i=0; value >= 100; i++){
+		value -= 100;
+	}
+	led_1.raw = led_lookup[i];
+	if(decimal){
+		led_1.decimal = 0;
+	}
+
+last_digit_label:
+	for(i=0; value >= 10; i++){
+		value -= 10;
+	}
+	led_01.raw = led_lookup[i];
 }
 
 #if defined OVBSC
