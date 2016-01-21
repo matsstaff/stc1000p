@@ -860,13 +860,9 @@ static void interrupt_service_routine(void) __interrupt 0 {
 #define START_TCONV_2()		(ADCON0 = _CHS0 | _ADON)
 #define FILTER_SHIFT		6
 static unsigned int read_ad(unsigned int adfilter){
-	unsigned char adfilter_l = adfilter >> 8;
 	ADGO = 1;
 	while(ADGO);
 	ADON = 0;
-	if ((adfilter_l >= 248) || (adfilter_l <=8 )) {
-		state_flags.ad_badrange = 1;
-	}
 	return ((adfilter - (adfilter >> FILTER_SHIFT)) + ((ADRESH << 8) | ADRESL));
 }
 
@@ -875,6 +871,11 @@ static int ad_to_temp(unsigned int adfilter){
 	long temp = 32;
 	unsigned char a = ((adfilter >> (FILTER_SHIFT-1)) & 0x3f); // Lower 6 bits
 	unsigned char b = ((adfilter >> (FILTER_SHIFT+5)) & 0x1f); // Upper 5 bits
+	unsigned char adfilter_l = adfilter >> 8;
+
+	if ((adfilter_l >= 248) || (adfilter_l <=8 )) {
+		state_flags.ad_badrange = 1;
+	}
 
 	// Interpolate between lookup table points
 	for (i = 0; i < 64; i++) {
@@ -1193,10 +1194,12 @@ void main(void) __naked {
 			// Close enough to 1s for our purposes.
 			if((millisx60 & 0xf) == 0) {
 
-				temperature = ad_to_temp(ad_filter) + eeprom_read_config(EEADR_MENU_ITEM(tc));
 #if defined(PB2)
 				temperature2 = ad_to_temp(ad_filter2) + eeprom_read_config(EEADR_MENU_ITEM(tc2));
+				// Disable sensor alarm for probe2 if it is not active
+				state_flags.ad_badrange = state_flags.ad_badrange & state_flags.probe2;
 #endif
+				temperature = ad_to_temp(ad_filter) + eeprom_read_config(EEADR_MENU_ITEM(tc));
 #if defined(RH)
 				humidity = ad_to_rh(ad_filter2);
 #endif
@@ -1269,9 +1272,11 @@ void main(void) __naked {
 #endif
 
 				if(LATA0){ // On alarm, disable outputs
-					led_10.raw = LED_A;
-					led_1.raw = LED_L;
-					led_e.raw = led_01.raw = LED_OFF;
+					if(MENU_IDLE){ // Make it less anoying to nagivate menu during alarm
+						led_10.raw = LED_A;
+						led_1.raw = LED_L;
+						led_e.raw = led_01.raw = LED_OFF;
+					}
 					LATA4 = 0;
 					LATA5 = 0;
 					cooling_delay = heating_delay = 60;
