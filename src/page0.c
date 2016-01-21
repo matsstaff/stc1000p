@@ -57,7 +57,7 @@ union {
 		unsigned                   : 1;
 		unsigned                   : 1;
 	};
-} state_flags;
+} state_flags = {0};
 
 static int temperature=0;
 
@@ -1127,8 +1127,6 @@ void main(void) __naked {
 #if defined(PB2) || defined(RH)
 	unsigned int ad_filter2 = (512L << FILTER_SHIFT);
 #endif
-
-	state_flags.raw = 0;
 
 	init();
 
