@@ -264,7 +264,29 @@ make all clean
 
 * Avoid multiplication and division, especially by variable
 
-* HEX files can be uploaded directly to STC-1000, via the sketch, over serial (without having to create and upload a new sketch with the HEX data embedded), by using the 'u' command (or 'v' for EEPROM data HEX). However, the 115200 baudrate is too fast, so delays need to be inserted. I use CuteCom in Linux and set the character delay to 2ms, just send the 'u' and press 'send file' and select the HEX. 
+* HEX files can be uploaded directly to STC-1000, via the sketch, over serial (without having to create and upload a new sketch with the HEX data embedded), by using the 'u' command (or 'v' for EEPROM data HEX). However, the 115200 baudrate is too fast, so delays need to be inserted. I use CuteCom in Linux and set the character delay to 2ms, just send the 'u' and press 'send file' and select the HEX.
+
+## Useful tips for code optimization
+
+* The output code size appears as "code size estimation" in the .lst output files.
+
+* It is easy to check the initial code size, make some optimizations, rebuild, and check to see if you made things better or worse.
+
+* Using 16-bit values is much more expensive than 8-bit values.
+
+* Bit-wise operations are cheaper than comparing full bytes.  On the store side, this saves one instruction, and on the compare side, this saves 3 instructions!  (NOTE: I believe the bitwise &=~ clear operator does not optimize properly with the current sdcc version, so using bitfields or inline assembler to set/clear bits is preferable)
+
+* Intermediate value re-use is not guaranteed. If you need to use the same expression twice in your code: e.g., (ad_filter >> 8), it is usually best to declare a new variable and explicitly assign this value to be referenced twice or more (especially if you know the result would be 8-bits instead of 16-bits!)
+
+* If/else statements are more expensive than placing the else condition before the if.  For example: B=0; if (A) { B=1; }  saves 2 instructions vs if(A) { B=1; } else { B=0; }
+
+* Compound conditions such as if (A || B && C) { foo } may be better rewritten as stand-alone if statements, since the short-circuit logic can consume additional instructions.  However, if foo is a lengthy statement, it may be best to just cache a flag and act on it after the compound conditions are all evaluated.
+
+* Try to keep accesses to the same variable close together without interleaving accesses to other variables. The compiler has to insert bank switching code when accessing different variables.  This doesn't always help, but sometimes it does.  When in doubt, check the "code size estimation".
+
+* For simple conditional variable assignment such as if (A) { B=1;} else { B=2; }, bank selection happens unnecessarily on both branches.  This sort of operation would be a good candidate for an inline assembler macro.
+
+* The compiler will blindly issue bank switching code when accessing variables in the same bank back-to-back.  Again, this is a candidate for hand optimization using inline assembler.
 
 # Other resources
 

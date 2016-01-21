@@ -40,6 +40,21 @@ unsigned const char led_lookup[] = { LED_0, LED_1, LED_2, LED_3, LED_4, LED_5, L
 led_e_t led_e = {0xff};
 led_t led_10, led_1, led_01;
 
+/* Global state flags for various optimizations (uses fewer instructions and data space vs 1/0 chars) */
+union {
+	unsigned char raw;
+	struct {
+		unsigned ad_badrange       : 1;  // used for adc range checking
+		unsigned probe2            : 1;  // cached flag indicating whether 2nd probe is active
+		unsigned                   : 1;
+		unsigned                   : 1;
+		unsigned                   : 1;
+		unsigned                   : 1;
+		unsigned                   : 1;
+		unsigned                   : 1;
+	};
+} state_flags;
+
 static int temperature=0;
 
 #if defined(OVBSC)
@@ -543,7 +558,6 @@ static void temperature_control(){
 #endif
 #if defined PB2
 	int hysteresis2 = eeprom_read_config(EEADR_MENU_ITEM(hy2));
-	unsigned char probe2 = eeprom_read_config(EEADR_MENU_ITEM(Pb));
 #endif
 
 	if(cooling_delay){
@@ -559,7 +573,7 @@ static void temperature_control(){
 
 	// This is the thermostat logic
 #if defined PB2
-	if((LATA4 && (temperature <= setpoint || (probe2 && (temperature2 < (setpoint - hysteresis2))))) || (LATA5 && (temperature >= setpoint || (probe2 && (temperature2 > (setpoint + hysteresis2)))))){
+	if((LATA4 && (temperature <= setpoint || (state_flags.probe2 && (temperature2 < (setpoint - hysteresis2))))) || (LATA5 && (temperature >= setpoint || (state_flags.probe2 && (temperature2 > (setpoint + hysteresis2)))))){
 #else
 	if((LATA4 && (temperature <= setpoint )) || (LATA5 && (temperature >= setpoint))){
 #endif
@@ -574,7 +588,7 @@ static void temperature_control(){
 		int hysteresis = eeprom_read_config(EEADR_MENU_ITEM(hy));
 #ifdef PB2
 		hysteresis2 >>= 2; // Halve hysteresis 2
-		if ((temperature > setpoint + hysteresis) && (!probe2 || (temperature2 >= setpoint - hysteresis2))) {
+		if ((temperature > setpoint + hysteresis) && (!state_flags.probe2 || (temperature2 >= setpoint - hysteresis2))) {
 #else
 		if (temperature > setpoint + hysteresis) {
 #endif
@@ -584,7 +598,7 @@ static void temperature_control(){
 				LATA4 = 1;
 			}
 #if defined PB2
-		} else if ((temperature < setpoint - hysteresis) && (!probe2 || (temperature2 <= setpoint + hysteresis2))) {
+		} else if ((temperature < setpoint - hysteresis) && (!state_flags.probe2 || (temperature2 <= setpoint + hysteresis2))) {
 #else
 		} else if (temperature < setpoint - hysteresis) {
 #endif
@@ -842,9 +856,13 @@ static void interrupt_service_routine(void) __interrupt 0 {
 #define START_TCONV_2()		(ADCON0 = _CHS0 | _ADON)
 #define FILTER_SHIFT		6
 static unsigned int read_ad(unsigned int adfilter){
+	unsigned char adfilter_l = adfilter >> 8;
 	ADGO = 1;
 	while(ADGO);
 	ADON = 0;
+	if ((adfilter_l >= 248) || (adfilter_l <=8 )) {
+		state_flags.ad_badrange = 1;
+	}
 	return ((adfilter - (adfilter >> FILTER_SHIFT)) + ((ADRESH << 8) | ADRESL));
 }
 
@@ -1106,6 +1124,8 @@ void main(void) __naked {
 	unsigned int ad_filter2 = (512L << FILTER_SHIFT);
 #endif
 
+	state_flags.raw = 0;
+
 	init();
 
 	START_TCONV_1();
@@ -1231,11 +1251,20 @@ void main(void) __naked {
 				}
 #else
 				// Alarm on sensor error (AD result out of range)
-				LATA0 = ((ad_filter>>8) >= 248 || (ad_filter>>8) <= 8) 
+				if (state_flags.ad_badrange) {
+					LATA0 = 1;
+				} else {
+					LATA0 = 0;
+				}
+				// unlatch badrange flag for next iteration
+				state_flags.ad_badrange = 0;
 #if defined(PB2)
-					|| (eeprom_read_config(EEADR_MENU_ITEM(Pb)) && ((ad_filter2>>8) >= 248 || (ad_filter2>>8) <= 8))
+				// cache whether the 2nd probe is enabled or not.
+				state_flags.probe2 = 0;
+				if (eeprom_read_config(EEADR_MENU_ITEM(Pb))) {
+					state_flags.probe2 = 1;
+				}
 #endif
-				;
 
 				if(LATA0){ // On alarm, disable outputs
 					led_10.raw = LED_A;
