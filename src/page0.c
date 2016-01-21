@@ -45,7 +45,11 @@ union {
 	unsigned char raw;
 	struct {
 		unsigned ad_badrange       : 1;  // used for adc range checking
+#if defined(PB2)
 		unsigned probe2            : 1;  // cached flag indicating whether 2nd probe is active
+#else
+		unsigned                   : 1;
+#endif
 		unsigned                   : 1;
 		unsigned                   : 1;
 		unsigned                   : 1;
