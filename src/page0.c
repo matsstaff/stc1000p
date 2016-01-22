@@ -234,8 +234,11 @@ void value_to_led(int value, unsigned char decimal) {
 	}
 
 last_digit_label:
-	for(i=0; value >= 10; i++){
-		value -= 10;
+	{
+		unsigned char v = value;
+		for(i=0; v >= 10; i++){
+			v -= 10;
+		}
 	}
 	led_01.raw = led_lookup[i];
 }
