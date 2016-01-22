@@ -178,10 +178,10 @@ void eeprom_write_config(unsigned char eeprom_address,unsigned int data)
 
 /* Update LED globals with temperature or integer data.
  * arguments: value (actual temperature multiplied by 10 or an integer)
- *            decimal indicates if the value is multiplied by 10 (i.e. a temperature)
+ *            ledformat bitfield indicating the input format. (see LEDFORMAT_XXX bits)
  * return: nothing
  */
-void value_to_led(int value, unsigned char decimal) {
+void value_to_led(int value, unsigned char ledformat) {
 	unsigned char i;
 
 	// Handle negative values
@@ -192,7 +192,7 @@ void value_to_led(int value, unsigned char decimal) {
 		led_e.e_negative = 1;
 	}
 
-	if(decimal==1){
+	if(ledformat & LEDFORMAT_DEGREES){
 		led_e.e_deg = 0;
 #ifdef FAHRENHEIT
 		led_e.e_c = 1;
@@ -206,7 +206,7 @@ void value_to_led(int value, unsigned char decimal) {
 
 	// If temperature >= 100 we must lose decimal...
 	if (value >= 1000) {
-		decimal = 0;
+		ledformat = LEDFORMAT_NONE;
 	} else { // Otherwise multiply by 10
 		value += (value << 3) + value;
 	}
@@ -219,7 +219,7 @@ void value_to_led(int value, unsigned char decimal) {
 		led_10.raw = led_lookup[i];
 	} else {
 		led_10.raw = LED_OFF; // Turn off led if zero (lose leading zeros)
-		if(value < 100 && !decimal){
+		if((value < 100) && !(ledformat & LEDFORMAT_DECIMAL)){
 			led_1.raw = LED_OFF; // Turn off led if zero (lose leading zeros)
 			goto last_digit_label;
 		}
@@ -229,15 +229,18 @@ void value_to_led(int value, unsigned char decimal) {
 		value -= 100;
 	}
 	led_1.raw = led_lookup[i];
-	if(decimal){
+	if(ledformat & LEDFORMAT_DECIMAL){
 		led_1.decimal = 0;
 	}
 
 last_digit_label:
-	decimal = value;	// Re-use decimal, saves a few instrucions
-	for(i=0; decimal >= 10; i++){
-		decimal -= 10;
+	// Re-use ledformat variable. saves a few instrucions
+#define value8 ledformat
+	value8 = value;
+	for(i=0; value8 >= 10; i++){
+		value8 -= 10;
 	}
+#undef value8
 	led_01.raw = led_lookup[i];
 }
 
