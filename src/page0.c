@@ -127,9 +127,9 @@ unsigned int eeprom_read_config(unsigned char eeprom_address){
 void eeprom_write_config(unsigned char eeprom_address,unsigned int data)
 {
 	// Avoid unnecessary EEPROM writes
-	if(data == eeprom_read_config(eeprom_address)){
-		return;
-	}
+//	if(data == eeprom_read_config(eeprom_address)){
+//		return;
+//	}
 
 	// multiply address by 2 to get eeprom address, as we will be storing 2 bytes.
 	eeprom_address = (eeprom_address << 1);
@@ -525,12 +525,14 @@ static void update_profile(){
 
 			// Linear interpolation calculation of new setpoint (64 substeps)
 			for (i = 0; i < 64; i++) {
+			 int sp_temp;
 			 if (t >= profile_step_dur) {
 			    t -= profile_step_dur;
-			    sp += profile_next_step_sp;
+			    sp_temp = profile_next_step_sp;
 			  } else {
-			    sp += profile_step_sp;
+			    sp_temp = profile_step_sp;
 			  }
+			    sp += sp_temp;
 			}
 			sp >>= 6;
 
