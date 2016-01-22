@@ -451,9 +451,13 @@ extern unsigned const char led_lookup[];
 extern unsigned int eeprom_read_config(unsigned char eeprom_address);
 extern void eeprom_write_config(unsigned char eeprom_address,unsigned int data);
 extern void value_to_led(int value, unsigned char decimal);
-#define int_to_led(v)				value_to_led(v, 0)
-#define temperature_to_led(v)		value_to_led(v, 3)
-#define decimal_to_led(v)			value_to_led(v, 1);
+
+#define LEDFORMAT_NONE          (0)
+#define LEDFORMAT_DECIMAL       1
+#define LEDFORMAT_DEGREES       2
+#define int_to_led(v)				value_to_led(v, LEDFORMAT_NONE)
+#define temperature_to_led(v)		value_to_led(v, (LEDFORMAT_DECIMAL | LEDFORMAT_DEGREES))
+#define decimal_to_led(v)			value_to_led(v, LEDFORMAT_DECIMAL);
 
 /* Declare functions and variables from Page 1 */
 extern void button_menu_fsm();
