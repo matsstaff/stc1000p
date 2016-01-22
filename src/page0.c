@@ -45,11 +45,7 @@ union {
 	unsigned char raw;
 	struct {
 		unsigned ad_badrange       : 1;  // used for adc range checking
-#if defined(PB2)
-		unsigned probe2            : 1;  // cached flag indicating whether 2nd probe is active
-#else
 		unsigned                   : 1;
-#endif
 		unsigned bool              : 1;  // a generic single-bit flag for local function use
 		unsigned                   : 1;
 		unsigned                   : 1;
@@ -564,8 +560,16 @@ static void temperature_control(){
 #ifndef MINUTE
 	int setpoint = eeprom_read_config(EEADR_MENU_ITEM(SP));
 #endif
-#if defined PB2
-	int hysteresis2 = eeprom_read_config(EEADR_MENU_ITEM(hy2));
+#if defined(PB2)
+	int setpoint2 = setpoint;
+
+	// TODO Implement some AWSOME regulator here...
+
+#define	sp	setpoint2
+#define temp	temperature2
+#else
+#define sp	setpoint
+#define temp	temperature
 #endif
 
 	if(delay_minute_countdown){
@@ -585,11 +589,7 @@ static void temperature_control(){
 	led_e.e_heat = !LATA5;
 
 	// This is the thermostat logic
-#if defined PB2
-	if((LATA4 && (temperature <= setpoint || (state_flags.probe2 && (temperature2 < (setpoint - hysteresis2))))) || (LATA5 && (temperature >= setpoint || (state_flags.probe2 && (temperature2 > (setpoint + hysteresis2)))))){
-#else
-	if((LATA4 && (temperature <= setpoint )) || (LATA5 && (temperature >= setpoint))){
-#endif
+	if((LATA4 && (temp <= sp )) || (LATA5 && (temp >= sp))){
 		cooling_delay = eeprom_read_config(EEADR_MENU_ITEM(cd));
 		heating_delay = eeprom_read_config(EEADR_MENU_ITEM(hd));
 		delay_minute_countdown = 60; // Need to reset minute countdown here 
@@ -598,22 +598,13 @@ static void temperature_control(){
 	}
 	else if(LATA4 == 0 && LATA5 == 0) {
 		int hysteresis = eeprom_read_config(EEADR_MENU_ITEM(hy));
-#ifdef PB2
-		hysteresis2 >>= 2; // Halve hysteresis 2
-		if ((temperature > setpoint + hysteresis) && (!state_flags.probe2 || (temperature2 >= setpoint - hysteresis2))) {
-#else
-		if (temperature > setpoint + hysteresis) {
-#endif
+		if (temp > sp + hysteresis) {
 			if (cooling_delay) {
 				led_e.e_cool = led_e.e_cool ^ (delay_minute_countdown & 0x1); // Flash to indicate cooling delay
 			} else {
 				LATA4 = 1;
 			}
-#if defined PB2
-		} else if ((temperature < setpoint - hysteresis) && (!state_flags.probe2 || (temperature2 <= setpoint + hysteresis2))) {
-#else
-		} else if (temperature < setpoint - hysteresis) {
-#endif
+		} else if (temp < sp - hysteresis) {
 			if (heating_delay) {
 				led_e.e_heat = led_e.e_heat ^ (delay_minute_countdown & 0x1); // Flash to indicate heating delay
 			} else {
@@ -621,6 +612,8 @@ static void temperature_control(){
 			}
 		}
 	}
+#undef sp
+#undef temp
 }
 
 #endif // !OVBSC
@@ -1213,16 +1206,10 @@ void main(void) __naked {
 			// Close enough to 1s for our purposes.
 			if((millisx60 & 0xf) == 0) {
 
+				temperature = ad_to_temp(ad_filter) + eeprom_read_config(EEADR_MENU_ITEM(tc));
 #if defined(PB2)
 				temperature2 = ad_to_temp(ad_filter2) + eeprom_read_config(EEADR_MENU_ITEM(tc2));
-				// Disable sensor alarm for probe2 if it is not active
-				if (state_flags.ad_badrange) {
-					if (!state_flags.probe2) {
-						state_flags.ad_badrange = 0;
-					}
-				}
 #endif
-				temperature = ad_to_temp(ad_filter) + eeprom_read_config(EEADR_MENU_ITEM(tc));
 #if defined(RH)
 				humidity = ad_to_rh(ad_filter2);
 #endif
@@ -1286,13 +1273,6 @@ void main(void) __naked {
 				}
 				// unlatch badrange flag for next iteration
 				state_flags.ad_badrange = 0;
-#if defined(PB2)
-				// cache whether the 2nd probe is enabled or not.
-				state_flags.probe2 = 0;
-				if (eeprom_read_config(EEADR_MENU_ITEM(Pb))) {
-					state_flags.probe2 = 1;
-				}
-#endif
 
 				if(LATA0){ // On alarm, disable outputs
 					if(MENU_IDLE){ // Make it less anoying to nagivate menu during alarm

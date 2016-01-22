@@ -123,10 +123,7 @@ static int check_config_value(int config_value, unsigned char eeadr){
 #else
 		} else if(type == t_hyst_1){
 			t_max = TEMP_HYST_1_MAX;
-#if defined(PB2)
-		} else if(type == t_hyst_2){
-			t_max = TEMP_HYST_2_MAX;
-#elif defined(FO433)
+#if defined(FO433)
 		} else if(type == t_deviceid){
 			t_max = 15;
 #endif

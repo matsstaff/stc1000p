@@ -121,7 +121,6 @@
 		#define DEFAULT_mt			(149)
 	#else
 		#define DEFAULT_hy			(10)
-		#define DEFAULT_hy2			(100)
 		#define DEFAULT_SP			(680)
 	#endif
 #else  // CELSIUS
@@ -130,7 +129,6 @@
 		#define DEFAULT_mt			(660)
 	#else
 		#define DEFAULT_hy			(5)
-		#define DEFAULT_hy2			(50)
 		#define DEFAULT_SP			(200)
 	#endif
 #endif
@@ -154,9 +152,6 @@ enum e_item_type {
 	t_show_r_t,
 #else
 	t_hyst_1,
-#if defined(PB2)
-	t_hyst_2,
-#endif
 	t_sp_alarm,
 #if defined FO433
 	t_deviceid,
@@ -221,8 +216,7 @@ enum e_item_type {
 	 */
 	#define MENU_DATA(_) \
 		_(SP, 	LED_S, 	LED_P, 	LED_OFF, 	t_temperature,		DEFAULT_SP)		\
-		_(hy, 	LED_h, 	LED_y, 	LED_OFF, 	t_hyst_1,			DEFAULT_hy) 	\
-		_(hy2, 	LED_h, 	LED_y, 	LED_2, 		t_hyst_2, 			DEFAULT_hy2)	\
+		_(hy, 	LED_h, 	LED_y, 	LED_2, 		t_hyst_1, 			DEFAULT_hy)	\
 		_(tc, 	LED_t, 	LED_c, 	LED_OFF, 	t_tempdiff,			0)				\
 		_(tc2, 	LED_t, 	LED_c, 	LED_2, 		t_tempdiff,			0)				\
 		_(SA, 	LED_S, 	LED_A, 	LED_OFF, 	t_sp_alarm,			0)				\
@@ -231,7 +225,6 @@ enum e_item_type {
 		_(cd, 	LED_c, 	LED_d, 	LED_OFF, 	t_delay,			5)				\
 		_(hd, 	LED_h, 	LED_d, 	LED_OFF, 	t_delay,			2)				\
 		_(rP, 	LED_r, 	LED_P, 	LED_OFF, 	t_boolean,			0)				\
-		_(Pb, 	LED_P, 	LED_b, 	LED_2, 		t_boolean,			0)				\
 		_(rn, 	LED_r, 	LED_n, 	LED_OFF, 	t_runmode,			6)
 
 #elif defined(FO433)
