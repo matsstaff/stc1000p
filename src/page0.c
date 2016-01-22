@@ -1210,7 +1210,11 @@ void main(void) __naked {
 #if defined(PB2)
 				temperature2 = ad_to_temp(ad_filter2) + eeprom_read_config(EEADR_MENU_ITEM(tc2));
 				// Disable sensor alarm for probe2 if it is not active
-				state_flags.ad_badrange = state_flags.ad_badrange & state_flags.probe2;
+				if (state_flags.ad_badrange) {
+					if (!state_flags.probe2) {
+						state_flags.ad_badrange = 0;
+					}
+				}
 #endif
 				temperature = ad_to_temp(ad_filter) + eeprom_read_config(EEADR_MENU_ITEM(tc));
 #if defined(RH)
