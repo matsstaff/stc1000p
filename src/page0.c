@@ -599,7 +599,7 @@ static void temperature_control(){
 		if (temperature > setpoint + hysteresis) {
 #endif
 			if (cooling_delay) {
-				led_e.e_cool = led_e.e_cool ^ (cooling_delay & 0x1); // Flash to indicate cooling delay
+				led_e.e_cool = led_e.e_cool ^ (delay_minute_countdown & 0x1); // Flash to indicate cooling delay
 			} else {
 				LATA4 = 1;
 			}
@@ -609,7 +609,7 @@ static void temperature_control(){
 		} else if (temperature < setpoint - hysteresis) {
 #endif
 			if (heating_delay) {
-				led_e.e_heat = led_e.e_heat ^ (heating_delay & 0x1); // Flash to indicate heating delay
+				led_e.e_heat = led_e.e_heat ^ (delay_minute_countdown & 0x1); // Flash to indicate heating delay
 			} else {
 				LATA5 = 1;
 			}
