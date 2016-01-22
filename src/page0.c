@@ -208,7 +208,7 @@ void value_to_led(int value, unsigned char decimal) {
 	if (value >= 1000) {
 		decimal = 0;
 	} else { // Otherwise multiply by 10
-		value = (value << 3) + (value << 1);
+		value += (value << 3) + value;
 	}
 
 	// Convert value to BCD and set LED outputs
