@@ -871,11 +871,22 @@ static unsigned int read_ad(unsigned int adfilter){
 static int ad_to_temp(unsigned int adfilter){
 	unsigned char i;
 	long temp = 32;
-	unsigned char a = ((adfilter >> (FILTER_SHIFT-1)) & 0x3f); // Lower 6 bits
-	unsigned char b = ((adfilter >> (FILTER_SHIFT+5)) & 0x1f); // Upper 5 bits
-	unsigned char adfilter_l = adfilter >> 8;
-
-	if ((adfilter_l >= 248) || (adfilter_l <=8 )) {
+	unsigned char b = adfilter >> 8;
+	unsigned char a = (adfilter >> (FILTER_SHIFT-1)) & 0x3f;  // Lower 6 bits
+#if (FILTER_SHIFT >= 3)
+	b = b >> (FILTER_SHIFT+5-8);                              // Upper 5 bits
+	// range check that upper 8 bits are between [8..247].
+	if ((b >= (248 >> (FILTER_SHIFT+5-8))) || 
+#else
+#error This code was optimized for FILTER_SHIFT >= 3
+#endif
+#if (FILTER_SHIFT == 6)
+		// Minor optimization if FILTER_SHIFT = 6
+		(!b))
+#else
+		(b < (8 >> (FILTER_SHIFT+5-8)))
+#endif
+	{
 		state_flags.ad_badrange = 1;
 	}
 
@@ -1199,7 +1210,11 @@ void main(void) __naked {
 #if defined(PB2)
 				temperature2 = ad_to_temp(ad_filter2) + eeprom_read_config(EEADR_MENU_ITEM(tc2));
 				// Disable sensor alarm for probe2 if it is not active
-				state_flags.ad_badrange = state_flags.ad_badrange & state_flags.probe2;
+				if (state_flags.ad_badrange) {
+					if (!state_flags.probe2) {
+						state_flags.ad_badrange = 0;
+					}
+				}
 #endif
 				temperature = ad_to_temp(ad_filter) + eeprom_read_config(EEADR_MENU_ITEM(tc));
 #if defined(RH)
