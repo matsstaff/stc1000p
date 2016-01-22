@@ -178,7 +178,9 @@ void eeprom_write_config(unsigned char eeprom_address,unsigned int data)
 
 /* Update LED globals with temperature or integer data.
  * arguments: value (actual temperature multiplied by 10 or an integer)
- *            decimal indicates if the value is multiplied by 10 (i.e. a temperature)
+ *            decimal bitfield indicating the input format:
+ *                    - bit 0 : input is premultiplied by 10, show a decimal point
+ *                    - bit 1 : input is in degrees F or C
  * return: nothing
  */
 void value_to_led(int value, unsigned char decimal) {
@@ -192,7 +194,7 @@ void value_to_led(int value, unsigned char decimal) {
 		led_e.e_negative = 1;
 	}
 
-	if(decimal==1){
+	if(decimal & 2){
 		led_e.e_deg = 0;
 #ifdef FAHRENHEIT
 		led_e.e_c = 1;
@@ -219,7 +221,7 @@ void value_to_led(int value, unsigned char decimal) {
 		led_10.raw = led_lookup[i];
 	} else {
 		led_10.raw = LED_OFF; // Turn off led if zero (lose leading zeros)
-		if(value < 100 && !decimal){
+		if((value < 100) && !(decimal & 1)){
 			led_1.raw = LED_OFF; // Turn off led if zero (lose leading zeros)
 			goto last_digit_label;
 		}
@@ -229,7 +231,7 @@ void value_to_led(int value, unsigned char decimal) {
 		value -= 100;
 	}
 	led_1.raw = led_lookup[i];
-	if(decimal){
+	if(decimal & 1){
 		led_1.decimal = 0;
 	}
 
