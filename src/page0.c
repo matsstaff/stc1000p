@@ -564,6 +564,7 @@ static void temperature_control(){
 	int setpoint2 = setpoint;
 
 	// TODO Implement some AWSOME regulator here...
+	// Calculate setpoint2 from temperature and setpoint
 
 #define	sp	setpoint2
 #define temp	temperature2
@@ -860,7 +861,16 @@ static void interrupt_service_routine(void) __interrupt 0 {
 #define START_TCONV_1()		(ADCON0 = _CHS1 | _ADON)
 #define START_TCONV_2()		(ADCON0 = _CHS0 | _ADON)
 #define FILTER_SHIFT		6
+#if (FILTER_SHIFT > 6) || (FILTER_SHIFT < 1)
+#error "FILTER_SHIFT must be between 1 and 6"
+#endif
+
 static unsigned int read_ad(unsigned int adfilter){
+	unsigned char adfilter_l = adfilter >> (8 + FILTER_SHIFT -1);
+	if(adfilter_l == 31 || adfilter_l==0) {
+		state_flags.ad_badrange = 1;
+	}
+
 	ADGO = 1;
 	while(ADGO);
 	ADON = 0;
@@ -870,24 +880,8 @@ static unsigned int read_ad(unsigned int adfilter){
 static int ad_to_temp(unsigned int adfilter){
 	unsigned char i;
 	long temp = 32;
-	unsigned char b = adfilter >> 8;
 	unsigned char a = (adfilter >> (FILTER_SHIFT-1)) & 0x3f;  // Lower 6 bits
-#if (FILTER_SHIFT >= 3)
-	b = b >> (FILTER_SHIFT+5-8);                              // Upper 5 bits
-	// range check that upper 8 bits are between [8..247].
-	if ((b >= (248 >> (FILTER_SHIFT+5-8))) || 
-#else
-#error This code was optimized for FILTER_SHIFT >= 3
-#endif
-#if (FILTER_SHIFT == 6)
-		// Minor optimization if FILTER_SHIFT = 6
-		(!b))
-#else
-		(b < (8 >> (FILTER_SHIFT+5-8)))
-#endif
-	{
-		state_flags.ad_badrange = 1;
-	}
+	unsigned char b = (adfilter >> (FILTER_SHIFT+5)) & 0x1f; // Upper 5 bits
 
 	// Interpolate between lookup table points
 	for (i = 0; i < 64; i++) {
