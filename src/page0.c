@@ -50,7 +50,7 @@ union {
 #else
 		unsigned                   : 1;
 #endif
-		unsigned                   : 1;
+		unsigned bool              : 1;  // a generic single-bit flag for local function use
 		unsigned                   : 1;
 		unsigned                   : 1;
 		unsigned                   : 1;
@@ -892,11 +892,11 @@ static int ad_to_temp(unsigned int adfilter){
 
 	// Interpolate between lookup table points
 	for (i = 0; i < 64; i++) {
-		if(a <= i) {
-			temp += ad_lookup[b];
-		} else {
-			temp += ad_lookup[b + 1];
+		unsigned char ofs = 0;
+		if(a > i) {
+			ofs = 1;
 		}
+		temp += ad_lookup[b + ofs];
 	}
 
 	// Divide by 64 to get back to normal temperature
