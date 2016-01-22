@@ -551,8 +551,9 @@ static void update_profile(){
  * properly, so the variables below were moved from temperature_control()
  * and made global.
  */
-unsigned int cooling_delay = 60;  // Initial cooling delay
-unsigned int heating_delay = 60;  // Initial heating delay
+unsigned char cooling_delay = 1;  // Initial cooling delay
+unsigned char heating_delay = 1;  // Initial heating delay
+unsigned char delay_minute_countdown = 60;
 static void temperature_control(){
 #ifndef MINUTE
 	int setpoint = eeprom_read_config(EEADR_MENU_ITEM(SP));
@@ -561,11 +562,16 @@ static void temperature_control(){
 	int hysteresis2 = eeprom_read_config(EEADR_MENU_ITEM(hy2));
 #endif
 
-	if(cooling_delay){
-		cooling_delay--;
-	}
-	if(heating_delay){
-		heating_delay--;
+	if(delay_minute_countdown){
+		delay_minute_countdown--;
+	} else {
+		if(cooling_delay){
+			cooling_delay--;
+		}
+		if(heating_delay){
+			heating_delay--;
+		}
+		delay_minute_countdown = 60;
 	}
 
 	// Set LED outputs
@@ -578,10 +584,9 @@ static void temperature_control(){
 #else
 	if((LATA4 && (temperature <= setpoint )) || (LATA5 && (temperature >= setpoint))){
 #endif
-		cooling_delay = eeprom_read_config(EEADR_MENU_ITEM(cd)) << 6;
-		cooling_delay = cooling_delay - (cooling_delay >> 4);
-		heating_delay = eeprom_read_config(EEADR_MENU_ITEM(hd)) << 6;
-		heating_delay = heating_delay - (heating_delay >> 4);
+		cooling_delay = eeprom_read_config(EEADR_MENU_ITEM(cd));
+		heating_delay = eeprom_read_config(EEADR_MENU_ITEM(hd));
+		delay_minute_countdown = 60; // Need to reset minute countdown here 
 		LATA4 = 0;
 		LATA5 = 0;
 	}
