@@ -866,17 +866,20 @@ static void interrupt_service_routine(void) __interrupt 0 {
 #endif
 
 static unsigned int read_ad(unsigned int adfilter){
-	unsigned char adfilter_l = adfilter >> 8;
-
-	// Check of A/D value is out of range
-	if(adfilter_l >= (0x1f << (FILTER_SHIFT-1)) || adfilter_l <= (0x3 << (FILTER_SHIFT-1))) {
+	word_lo_hi_t temp;
+	unsigned char adfilter_h = adfilter >> 8;
+	if(adfilter_h >= 248 || adfilter_h <= 8) {
 		state_flags.ad_badrange = 1;
 	}
 
 	ADGO = 1;
 	while(ADGO);
 	ADON = 0;
-	return ((adfilter - (adfilter >> FILTER_SHIFT)) + ((ADRESH << 8) | ADRESL));
+	temp.hi= ADRESH;
+	temp.lo = ADRESL;
+	adfilter -= (adfilter >> FILTER_SHIFT);
+	adfilter += temp.word;
+	return adfilter;
 }
 
 static int ad_to_temp(unsigned int adfilter){
