@@ -556,16 +556,15 @@ static void update_profile(){
 unsigned char cooling_delay = 1;  // Initial cooling delay
 unsigned char heating_delay = 1;  // Initial heating delay
 unsigned char delay_minute_countdown = 60;
+#if defined(PB2)
+int error_integrator = 0;
+#endif
 static void temperature_control(){
 #ifndef MINUTE
 	int setpoint = eeprom_read_config(EEADR_MENU_ITEM(SP));
 #endif
 #if defined(PB2)
-	int setpoint2 = setpoint;
-
-	// TODO Implement some AWSOME regulator here...
-	// Calculate setpoint2 from temperature and setpoint
-
+	int setpoint2;
 #define	sp	setpoint2
 #define temp	temperature2
 #else
@@ -583,8 +582,31 @@ static void temperature_control(){
 			heating_delay--;
 		}
 		delay_minute_countdown = 60;
+#if defined(PB2)
+		{
+			int error = setpoint - temperature;
+			unsigned char ec = eeprom_read_config(EEADR_MENU_ITEM(EC));
+
+			if(error > 0){
+				if(error_integrator < 32704){
+					error_integrator += ec;
+				}
+			} else if(error < 0) {
+				if(error_integrator > -32705){
+					error_integrator -= ec;
+				}
+			}
+		}
+#endif
 	}
 
+#if defined(PB2)
+#if defined(CELSIUS)
+	setpoint2 = setpoint + (error_integrator >> 8);
+#else
+	setpoint2 = setpoint + (error_integrator >> 7);
+#endif
+#endif
 	// Set LED outputs
 	led_e.e_cool = !LATA4;
 	led_e.e_heat = !LATA5;

@@ -163,8 +163,11 @@ enum e_item_type {
 #else
 	t_hyst_1,
 	t_sp_alarm,
-#if defined FO433
+#if defined(FO433)
 	t_deviceid,
+#endif
+#if defined(PB2)
+	t_err_const,
 #endif
 	t_step,
 	t_delay,
@@ -225,8 +228,8 @@ enum e_item_type {
 	 * 	name, LED data 10, LED data 1, LED data 01, min value, max value, default value
 	 */
 	#define MENU_DATA(_) \
-		_(SP, 	LED_S, 	LED_P, 	LED_OFF, 	t_temperature,		DEFAULT_SP)		\
-		_(hy, 	LED_h, 	LED_y, 	LED_2, 		t_hyst_1, 			DEFAULT_hy)	\
+		_(SP, 	LED_S, 	LED_P, 	LED_OFF, 	t_temperature,			DEFAULT_SP)			\
+		_(hy, 	LED_h, 	LED_y, 	LED_2, 		t_hyst_1, 			DEFAULT_hy)			\
 		_(tc, 	LED_t, 	LED_c, 	LED_OFF, 	t_tempdiff,			0)				\
 		_(tc2, 	LED_t, 	LED_c, 	LED_2, 		t_tempdiff,			0)				\
 		_(SA, 	LED_S, 	LED_A, 	LED_OFF, 	t_sp_alarm,			0)				\
@@ -235,6 +238,7 @@ enum e_item_type {
 		_(cd, 	LED_c, 	LED_d, 	LED_OFF, 	t_delay,			5)				\
 		_(hd, 	LED_h, 	LED_d, 	LED_OFF, 	t_delay,			2)				\
 		_(rP, 	LED_r, 	LED_P, 	LED_OFF, 	t_boolean,			0)				\
+		_(EC, 	LED_E, 	LED_C, 	LED_OFF, 	t_err_const,			4)				\
 		_(rn, 	LED_r, 	LED_n, 	LED_OFF, 	t_runmode,			6)
 
 #elif defined(FO433)
@@ -247,8 +251,8 @@ enum e_item_type {
 	 * 	name, LED data 10, LED data 1, LED data 01, min value, max value, default value
 	 */
 	#define MENU_DATA(_) \
-		_(SP, 	LED_S, 	LED_P, 	LED_OFF, 	t_temperature,		DEFAULT_SP)		\
-		_(hy, 	LED_h, 	LED_y, 	LED_OFF, 	t_hyst_1,			DEFAULT_hy) 	\
+		_(SP, 	LED_S, 	LED_P, 	LED_OFF, 	t_temperature,			DEFAULT_SP)			\
+		_(hy, 	LED_h, 	LED_y, 	LED_OFF, 	t_hyst_1,			DEFAULT_hy) 			\
 		_(tc, 	LED_t, 	LED_c, 	LED_OFF, 	t_tempdiff,			0)				\
 		_(dI, 	LED_d, 	LED_I, 	LED_OFF, 	t_deviceid,			0)				\
 		_(SA, 	LED_S, 	LED_A, 	LED_OFF, 	t_sp_alarm,			0)				\
@@ -296,8 +300,8 @@ enum e_item_type {
 	 * 	name, LED data 10, LED data 1, LED data 01, min value, max value, default value
 	 */
 	#define MENU_DATA(_) \
-		_(SP, 	LED_S, 	LED_P, 	LED_OFF, 	t_temperature,		DEFAULT_SP)		\
-		_(hy, 	LED_h, 	LED_y, 	LED_OFF, 	t_hyst_1,			DEFAULT_hy) 	\
+		_(SP, 	LED_S, 	LED_P, 	LED_OFF, 	t_temperature,			DEFAULT_SP)			\
+		_(hy, 	LED_h, 	LED_y, 	LED_OFF, 	t_hyst_1,			DEFAULT_hy) 			\
 		_(tc, 	LED_t, 	LED_c, 	LED_OFF, 	t_tempdiff,			0)				\
 		_(SA, 	LED_S, 	LED_A, 	LED_OFF, 	t_sp_alarm,			0)				\
 		_(St, 	LED_S, 	LED_t, 	LED_OFF, 	t_step,				0)				\

@@ -127,6 +127,10 @@ static int check_config_value(int config_value, unsigned char eeadr){
 		} else if(type == t_deviceid){
 			t_max = 15;
 #endif
+#if defined(FO433)
+		} else if(type == t_deviceid){
+			t_max = 8;
+#endif
 		} else if(type == t_sp_alarm){
 			t_min = SP_ALARM_MIN;
 			t_max = SP_ALARM_MAX;
