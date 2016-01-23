@@ -70,6 +70,16 @@
 #define	MENU_IDLE				TMR1GE
 #define	SENSOR_SELECT			TX9
 
+// a fun optimization which lets us more quickly assemble a 16-bit word out of two bytes
+// note: instances receives their own allocation in the UDL_page0_0 register page when used privately in a function
+typedef union {
+	unsigned int word;
+	struct {
+		unsigned char lo;
+		unsigned char hi;
+	};
+} word_lo_hi_t;
+
 #if defined(OVBSC)
 	#define RUN_PRG				C1POL
 	#define ALARM				C2POL
