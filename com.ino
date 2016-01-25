@@ -235,7 +235,7 @@ void print_config_value(unsigned char address, int value){
 			} else {
 				Serial.println("th");
 			}
-		} else if(address <= EEADR_SET_MENU_ITEM(setpoint)){
+		} else if(address <= EEADR_SET_MENU_ITEM(setpoint_alarm)){
 			print_temperature(value);
 		} else {
 			Serial.println(value);
@@ -339,7 +339,7 @@ unsigned char parse_config_value(const char *cmd, int address, bool pretty, int 
 			if((address & 1) == 0){
 				return parse_temperature(cmd, data);
 			}
-		} else if(address <= EEADR_SET_MENU_ITEM(setpoint)){
+		} else if(address <= EEADR_SET_MENU_ITEM(setpoint_alarm)){
 			return parse_temperature(cmd, data);
 		} else if(address == EEADR_SET_MENU_ITEM(run_mode)) {
 			if(!strncmp(cmd, "Pr", 2)){
