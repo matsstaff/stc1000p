@@ -26,17 +26,28 @@
 
 #define reset() { __asm RESET __endasm; }
 
-/* Helpful defines to handle buttons */
-#define BTN_PWR						0x88
-#define BTN_S						0x44
-#define BTN_UP						0x22
-#define BTN_DOWN					0x11
+typedef union {
+	unsigned char raw;
+	struct {
+		unsigned BTN_DOWN_cur     : 1;
+		unsigned BTN_UP_cur       : 1;
+		unsigned BTN_S_cur        : 1;
+		unsigned BTN_PWR_cur      : 1;
+		unsigned BTN_DOWN_prev    : 1;
+		unsigned BTN_UP_prev      : 1;
+		unsigned BTN_S_prev       : 1;
+		unsigned BTN_PWR_prev     : 1;
+	};
+} buttons_t;
 
-#define BTN_IDLE(btn)				((_buttons & (btn)) == 0x00)
-#define BTN_PRESSED(btn)			((_buttons & (btn)) == ((btn) & 0x0f))
-#define BTN_HELD(btn)				((_buttons & (btn)) == (btn))
-#define BTN_RELEASED(btn)			((_buttons & (btn)) == ((btn) & 0xf0))
-#define BTN_HELD_OR_RELEASED(btn)	((_buttons & (btn) & 0xf0))
+/* Helpful defines to handle buttons */
+#define BTN_IDLE(btn)               (!(_buttons.##btn##_cur || _buttons.btn##_prev))
+#define BTN_PRESSED(btn)            (_buttons.btn##_cur && !_buttons.btn##_prev)
+#define BTN_HELD(btn)               (_buttons.btn##_cur && _buttons.btn##_prev)
+#define BTN_RELEASED(btn)           (!_buttons.btn##_cur && _buttons.btn##_prev)
+#define BTN_HELD_OR_RELEASED(btn)   (_buttons.btn##_prev)
+#define BTN_ANY_RELEASED()          (!(_buttons.raw & 0x0f) && (_buttons.raw & 0xf0))
+#define BTN_ANY_ACTIVITY()          (_buttons.raw)
 
 #ifndef OVBSC
 	/* Help to convert menu item number and config item number to an EEPROM config address */
@@ -239,7 +250,7 @@ static unsigned char config_item=0, m_countdown=0;
 static unsigned char menu_item=0, config_item=0, m_countdown=0;
 #endif
 static int config_value;
-static unsigned char _buttons = 0;
+static buttons_t _buttons = { 0 };
 
 /* This is the button input and menu handling function.
  * arguments: none
@@ -259,10 +270,11 @@ void button_menu_fsm(){
 		LATB = 0b00000000; // Turn off LED's
 		TRISC = 0b11011000; // Enable input for buttons
 
-		_buttons = (_buttons << 1) | RC7; // pwr
-		_buttons = (_buttons << 1) | RC4; // s
-		_buttons = (_buttons << 1) | RC6; // up
-		_buttons = (_buttons << 1) | RC3; // down
+		_buttons.raw <<= 4;
+		if (RC7) _buttons.BTN_PWR_cur = 1;
+		if (RC4) _buttons.BTN_S_cur = 1;
+		if (RC6) _buttons.BTN_UP_cur = 1;
+		if (RC3) _buttons.BTN_DOWN_cur = 1;
 
 		// Restore registers
 		LATB = latb;
@@ -279,7 +291,7 @@ void button_menu_fsm(){
 	switch(menustate){
 	case menu_idle:
 #if defined(OVBSC)
-		if(ALARM && ((_buttons & 0x0f) == 0) && ((_buttons & 0xf0) !=0)){
+		if(ALARM && (BTN_ANY_RELEASED())){
 			ALARM = 0;
 		} else if(BTN_RELEASED(BTN_PWR)){
 			PAUSE = !PAUSE;
@@ -293,9 +305,9 @@ void button_menu_fsm(){
 		if(BTN_PRESSED(BTN_PWR)){
 			m_countdown = 27; // 3 sec
 			menustate = menu_power_down_wait;
-		} else if(_buttons && eeprom_read_config(EEADR_POWER_ON)){
+		} else if(BTN_ANY_ACTIVITY() && eeprom_read_config(EEADR_POWER_ON)){
 #endif
-			if (BTN_PRESSED(BTN_UP | BTN_DOWN)) {
+			if (BTN_PRESSED(BTN_UP) || BTN_PRESSED(BTN_DOWN)){
 				menustate = menu_show_version;
 			} else if(BTN_PRESSED(BTN_UP)){
 				menustate = menu_show_state_up;
@@ -317,7 +329,7 @@ void button_menu_fsm(){
 		led_10.decimal = 0;
 		led_e.e_deg = 1;
 		led_e.e_c = 1;
-		if(!BTN_HELD(BTN_UP | BTN_DOWN)){
+		if (!(BTN_HELD(BTN_UP) || (BTN_HELD(BTN_DOWN)))){
 			menustate=menu_idle;
 		}
 		break;
