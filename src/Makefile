@@ -78,7 +78,8 @@ eedata_celsius_rh: VFLAGS := -DRH
 eedata_fahrenheit_rh: VFLAGS := -DFAHRENHEIT -DRH
 stc1000p_rh: stc1000p_celsius_rh stc1000p_fahrenheit_rh eedata_celsius_rh eedata_fahrenheit_rh
 
-all: stc1000p stc1000p_probe2 stc1000p_com stc1000p_fo433 stc1000p_minute stc1000p_minute_probe2 stc1000p_minute_com stc1000p_minute_fo433 stc1000p_ovbsc stc1000p_rh
+#all: stc1000p stc1000p_probe2 stc1000p_com stc1000p_fo433 stc1000p_minute stc1000p_minute_probe2 stc1000p_minute_com stc1000p_minute_fo433 stc1000p_ovbsc stc1000p_rh
+all: stc1000p_com
 
 .PHONY: clean stc1000p stc1000p_probe2 stc1000p_com stc1000p_fo433 stc1000p_minute stc1000p_minute_probe2 stc1000p_minute_com stc1000p_minute_fo433 stc1000p_ovbsc stc1000p_rh
 

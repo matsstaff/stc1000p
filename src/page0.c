@@ -45,7 +45,11 @@ union {
 	unsigned char raw;
 	struct {
 		unsigned ad_badrange       : 1;  // used for adc range checking
+#if defined(COM)
+		unsigned com_write         : 1;
+#else
 		unsigned                   : 1;
+#endif
 		unsigned bool              : 1;  // a generic single-bit flag for local function use
 		unsigned                   : 1;
 		unsigned                   : 1;
@@ -66,11 +70,24 @@ static int thermostat_output=0;
 #if defined(PB2)
 static int temperature2=0;
 #elif defined(COM)
+typedef union {
+	unsigned char raw;
+	struct {
+		unsigned com_recv_addr      : 1;
+		unsigned com_recv_data1     : 1;
+		unsigned com_recv_data2     : 1;
+		unsigned com_recv_checksum  : 1;
+		unsigned com_trans_data1    : 1;
+		unsigned com_trans_data2    : 1;
+		unsigned com_trans_checksum : 1;
+		unsigned com_trans_ack      : 1;
+	};
+} com_states_t;
+
 static volatile unsigned char com_data=0;
-static volatile unsigned char com_write=0;
 static volatile unsigned char com_tmout=0;
 static volatile unsigned char com_count=0;
-static volatile unsigned char com_state=0;
+static volatile com_states_t com_state = { 0 };
 #elif defined(FO433)
 static volatile unsigned char fo433_data=0;
 static unsigned char fo433_state=0;
@@ -754,7 +771,7 @@ static void interrupt_service_routine(void) __interrupt 0 {
 		IOCAP1 = 0;
 
 		/* If sending a '1' bit */
-		if(com_write && (com_data & 0x80)){
+		if(state_flags.com_write && (com_data & 0x80)){
 			TRISA1 = 0;
 			LATA1 = 1;
 		}
@@ -785,7 +802,7 @@ static void interrupt_service_routine(void) __interrupt 0 {
 		com_count++;
 
 		/* If receive '1' */
-		if(!com_write && RA1){
+		if(!state_flags.com_write && RA1){
 			com_data |= 1;
 		}
 
@@ -869,9 +886,9 @@ static void interrupt_service_routine(void) __interrupt 0 {
 		if(com_tmout){
 			com_tmout--;
 		} else {
-			com_state = 0;
+			com_state.raw = 0;
 			com_count = 0;
-			com_write = 0;
+			state_flags.com_write = 0;
 		}
 #endif // COM
 
@@ -1016,85 +1033,80 @@ static void control_rh(){
 #endif // RH
 
 #if defined(COM)
-enum com_states {
-	com_idle = 0,
-	com_recv_addr,
-	com_recv_data1,
-	com_recv_data2,
-	com_recv_checksum,
-	com_trans_data1,
-	com_trans_data2,
-	com_trans_checksum,
-	com_trans_ack
-};
+
 
 /* State machine to handle rx/tx protocol */
 static void handle_com(unsigned const char rxdata){
 	static unsigned char command;
 	static unsigned char xorsum;
-	static unsigned int data;
 	static unsigned char addr;
-
+	static word_lo_hi_t data;
+	
 	xorsum ^= rxdata;
 
-	com_write = 0;
+	state_flags.com_write = 0;
 
-	if(com_state == com_idle){
+	// note below that compound states can exist, but only the most recent state bit is handled
+	if(!com_state.raw){
 		command = rxdata;
 		xorsum = rxdata;
 		addr = 0;
 		if(command == COM_READ_EEPROM || command == COM_WRITE_EEPROM){
-			com_state = com_recv_addr;
+			com_state.com_recv_addr = 1;
 		} else if(rxdata == COM_READ_TEMP){
-			data = temperature;
-			com_state = com_trans_data1;
+			data.word = temperature;
+			com_state.com_trans_data1 = 1;
 		} else if(rxdata == COM_READ_COOLING){
-			data = LATA4;
-			com_state = com_trans_data1;
+			data.lo = LATA4;
+			data.hi = 0;
+			com_state.com_trans_data1 = 1;
 		} else if(rxdata == COM_READ_HEATING){
-			data = LATA5;
-			com_state = com_trans_data1;
-		}
-	} else if(com_state == com_recv_addr){
-		addr = rxdata;
-		if(command == COM_WRITE_EEPROM){
-			com_state = com_recv_data1;
-		} else {
-			data = (unsigned int)eeprom_read_config(addr);
-			com_state = com_trans_data1;
-		}			
-	} else if(com_state == com_recv_data1 || com_state == com_recv_data2){
-		data = (data << 8) | rxdata;
-		com_state++;
-	} else if(com_state == com_recv_checksum){
+			data.lo = LATA5;
+			data.hi = 0;
+			com_state.com_trans_data1 = 1;
+		} // else timeout?
+	} else if(com_state.com_recv_checksum){
+		com_state.raw = 0;
 		if(xorsum == 0){
-			eeprom_write_config(addr, (int)data);
+			eeprom_write_config(addr, data.word);
 			com_data = COM_ACK;
 		} else {
 			com_data = COM_NACK;
 		}
-		com_write = 1;
-		com_state = com_idle;
-	} else if(com_state == com_trans_data2){
-		com_data = (unsigned char) data; 
-		com_write = 1;
-		com_state = com_trans_checksum;
-	} else if(com_state == com_trans_checksum){
-		com_data = command ^ addr ^ ((unsigned char)(data >> 8)) ^ ((unsigned char) data);
-		com_write = 1;
-		com_state = com_trans_ack;
-	} else if(com_state == com_trans_ack){
+		state_flags.com_write = 1;
+	} else if(com_state.com_recv_data2) {
+		com_state.com_recv_checksum = 1;
+		data.lo = rxdata;
+	} else if(com_state.com_recv_data1) {
+		com_state.com_recv_data2 = 1;
+		data.hi = rxdata;
+	} else if(com_state.com_trans_ack){
+		com_state.raw = 0;
 		com_data = COM_ACK;
-		com_write = 1;
-		com_state = com_idle;
+		state_flags.com_write = 1;
+	} else if(com_state.com_trans_checksum){
+		com_state.com_trans_ack = 1;
+		com_data = command ^ addr ^ data.hi ^ data.lo;
+		state_flags.com_write = 1;
+	} else if(com_state.com_trans_data2){
+		com_state.com_trans_checksum = 1;
+		com_data = data.lo;
+		state_flags.com_write = 1;
+	} else if(com_state.com_recv_addr){
+		addr = rxdata;
+		if(command == COM_WRITE_EEPROM){
+			com_state.com_recv_data1 = 1;
+		} else {
+			com_state.com_trans_data1 = 1;
+			data.word = eeprom_read_config(addr);
+		}	
 	}
 
-	if(com_state == com_trans_data1 || com_state == com_trans_data2){
-		com_data = (data >> 8);
-		com_write = 1;
-		com_state++;
+	if(com_state.com_trans_data1){
+		com_data = data.hi;
+		state_flags.com_write = 1;
+		com_state.com_trans_data2 = 1;
 	}
-
 }
 
 #elif defined(FO433)
