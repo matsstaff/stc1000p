@@ -146,18 +146,15 @@ bool read_cooling(int *cooling){
 
 /* From here example implementation begins, this can be exchanged for your specific needs */
 enum set_menu_enum {
-	hysteresis,			// hy (hysteresis)
-	hysteresis2,			// hy2 (hysteresis probe 2)
-	temperature_correction,		// tc (temperature correction)
-	temperature_correction2,	// tc2 (temperature correction probe 2)
-	setpoint_alarm,			// SA (setpoint alarm)
 	setpoint,			// SP (setpoint)
+	hysteresis,			// hy (hysteresis)
+	temperature_correction,		// tc (temperature correction)
+	setpoint_alarm,			// SA (setpoint alarm)
 	step,				// St (current running profile step)	
 	duration,			// dh (current running profile step duration in hours)
 	cooling_delay,			// cd (cooling delay minutes)
 	heating_delay,			// hd (heating delay minutes)
 	ramping,			// rP (0=disable, 1=enable ramping)
-	probe2,				// Pb (0=disable, 1=enable probe2 for regulation)
 	run_mode			// rn (0-5 run profile, 6=thermostat)
 };
 
@@ -169,18 +166,15 @@ enum set_menu_enum {
 #define EEADR_POWER_ON				127
 
 const char menu_opt[][4] = {
-	"hy",
-	"hy2",
-	"tc",
-	"tc2",
-	"SA",
 	"SP",
+	"hy",
+	"tc",
+	"SA",
 	"St",
 	"dh",
 	"cd",
 	"hd",
 	"rP",
-	"Pb2",
 	"rn"
 };
 
@@ -241,7 +235,7 @@ void print_config_value(unsigned char address, int value){
 			} else {
 				Serial.println("th");
 			}
-		} else if(address <= EEADR_SET_MENU_ITEM(setpoint)){
+		} else if(address <= EEADR_SET_MENU_ITEM(setpoint_alarm)){
 			print_temperature(value);
 		} else {
 			Serial.println(value);
@@ -345,7 +339,7 @@ unsigned char parse_config_value(const char *cmd, int address, bool pretty, int 
 			if((address & 1) == 0){
 				return parse_temperature(cmd, data);
 			}
-		} else if(address <= EEADR_SET_MENU_ITEM(setpoint)){
+		} else if(address <= EEADR_SET_MENU_ITEM(setpoint_alarm)){
 			return parse_temperature(cmd, data);
 		} else if(address == EEADR_SET_MENU_ITEM(run_mode)) {
 			if(!strncmp(cmd, "Pr", 2)){
