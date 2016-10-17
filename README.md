@@ -15,7 +15,7 @@ Quick start
 -----------
 
 You'd need an Arduino board (like the Arduino UNO) and an STC\-1000 thermostat with the proper hardware version (A400_P). The correct STC\-1000 can be bought [here](http://www.aliexpress.com/store/product/temperature-controller-STC-1000/1305777_2004466302.html).
-Go to the [profile editor and sketch generator](http://goo.gl/z1KEoi), select the firmware version you want (more on the different version below), optionally make the changes you want to the settings and press 'Download sketch'.
+Go to the [profile editor and sketch generator](https://goo.gl/qdxLXd), select the firmware version you want (more on the different version below), optionally make the changes you want to the settings and press 'Download sketch'.
 Open the sketch with the Arduino IDE and upload it to the Arduino board. Connect the Arduino to the STC\-1000 (how to do that is described later on). Open the serial monitor in the Arduino IDE and follow the instructions.
 
 Introduction
