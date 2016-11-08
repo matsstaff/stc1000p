@@ -7,6 +7,10 @@ STC\-1000+ is an open source implementation of firmware(s) for the STC\-1000 dua
 
 The main purpose of this project is provide firmwares that add features that are desirable for brewing beer, but the usage is not limited to this.
 
+Good NEWS everybody!
+====================
+For those that have got an STC-1000 that has an STM8 microcontroller, Emile is working on an awesome replacement firmware targeted at that architecture. Check it out at [https://github.com/Emile666/stc1000_stm8](https://github.com/Emile666/stc1000_stm8)!
+
 Questions?
 ----------
 Please don't open github issues for general questions. Ask freely [in the Homebrewtalk STC\-1000+ thread](http://www.homebrewtalk.com/showthread.php?t=464348). Only open an issue if you discovered an actual bug or have a (realistic) feature request (or better yet, send a pull request).
