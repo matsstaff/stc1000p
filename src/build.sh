@@ -113,7 +113,7 @@ function build_stc1000p_version {
 
 }
 
-all="vanilla probe2 com fo433 minute minute_probe2 minute_com minute_fo433 ovbsc rh"
+all="vanilla probe2 com fo433 minute minute_probe2 minute_com minute_fo433 minute_looped ovbsc rh"
 targets=""
 
 if [[ $# == 0 ]]; then

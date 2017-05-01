@@ -66,6 +66,12 @@ eedata_celsius_minute_fo433: VFLAGS := -DMINUTE -DFO433
 eedata_fahrenheit_minute_fo433: VFLAGS := -DFAHRENHEIT -DMINUTE -DFO433
 stc1000p_minute_fo433: stc1000p_celsius_minute_fo433 stc1000p_fahrenheit_minute_fo433 eedata_celsius_minute_fo433 eedata_fahrenheit_minute_fo433
 
+stc1000p_celsius_minute_looped: VFLAGS := -DMINUTE -DLOOPED
+stc1000p_fahrenheit_minute_looped: VFLAGS := -DFAHRENHEIT -DMINUTE -DLOOPED
+eedata_celsius_minute_looped: VFLAGS := -DMINUTE -DLOOPED
+eedata_fahrenheit_minute_looped: VFLAGS := -DFAHRENHEIT -DMINUTE -DLOOPED
+stc1000p_minute_looped: stc1000p_celsius_minute_looped stc1000p_fahrenheit_minute_looped eedata_celsius_minute_looped eedata_fahrenheit_minute_looped
+
 stc1000p_celsius_ovbsc: VFLAGS := -DOVBSC
 stc1000p_fahrenheit_ovbsc: VFLAGS := -DFAHRENHEIT -DOVBSC
 eedata_celsius_ovbsc: VFLAGS := -DOVBSC
@@ -78,9 +84,9 @@ eedata_celsius_rh: VFLAGS := -DRH
 eedata_fahrenheit_rh: VFLAGS := -DFAHRENHEIT -DRH
 stc1000p_rh: stc1000p_celsius_rh stc1000p_fahrenheit_rh eedata_celsius_rh eedata_fahrenheit_rh
 
-all: stc1000p stc1000p_probe2 stc1000p_com stc1000p_fo433 stc1000p_minute stc1000p_minute_probe2 stc1000p_minute_com stc1000p_minute_fo433 stc1000p_ovbsc stc1000p_rh
+all: stc1000p stc1000p_probe2 stc1000p_com stc1000p_fo433 stc1000p_minute stc1000p_minute_probe2 stc1000p_minute_com stc1000p_minute_fo433 stc1000p_minute_looped stc1000p_ovbsc stc1000p_rh
 
-.PHONY: clean stc1000p stc1000p_probe2 stc1000p_com stc1000p_fo433 stc1000p_minute stc1000p_minute_probe2 stc1000p_minute_com stc1000p_minute_fo433 stc1000p_ovbsc stc1000p_rh
+.PHONY: clean stc1000p stc1000p_probe2 stc1000p_com stc1000p_fo433 stc1000p_minute stc1000p_minute_probe2 stc1000p_minute_com stc1000p_minute_fo433 stc1000p_minute_looped stc1000p_ovbsc stc1000p_rh
 
 clean:
 	rm -f $(OUTDIR)/*.o *~ core $(OUTDIR)/*.asm $(OUTDIR)/*.lst $(OUTDIR)/*.cod

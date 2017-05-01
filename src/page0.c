@@ -509,16 +509,20 @@ static void update_profile(){
 			setpoint = profile_next_step_sp;
 #endif
 			eeprom_write_config(EEADR_MENU_ITEM(SP), profile_next_step_sp);
+			// Update step
+			curr_step++;
 			// Is this the last step (next step is number 9 or next step duration is 0)?
-			if (curr_step == 8 || eeprom_read_config(profile_step_eeaddr + 3) == 0) {
+			if (curr_step >= 9 || eeprom_read_config(profile_step_eeaddr + 3) == 0) {
+#if defined LOOP
+				curr_step=0;
+#else
 				// Switch to thermostat mode.
 				eeprom_write_config(EEADR_MENU_ITEM(rn), THERMOSTAT_MODE);
 				return; // Fastest way out...
+#endif
 			}
 			// Reset duration
 			curr_dur = 0;
-			// Update step
-			curr_step++;
 			eeprom_write_config(EEADR_MENU_ITEM(St), curr_step);
 		} else if(eeprom_read_config(EEADR_MENU_ITEM(rP))) { // Is ramping enabled?
 			int profile_step_sp = eeprom_read_config(profile_step_eeaddr);
