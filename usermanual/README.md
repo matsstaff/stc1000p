@@ -16,6 +16,7 @@ Mats Staffansson
 2014-09-04:	Changed setpoint alarm functionality<br>
 2015-04-21:	Added info on cummunication and 433Mhz firmwares<br>
 2015-09-15:	Edited for v1.09 release<br>
+2017-05-04:	Added info on minute version<br>
 
 # Features
 
@@ -225,6 +226,14 @@ This firmware provides an easy and cheap way of transmitting the temperature fro
 *Fig 19: 433MHz RF transmitter*
 
 This has been verified to work with a [Tellstick Duo](http://www.telldus.se/products/tellstick_duo), but it would probably work with RFXtrx as well.
+
+## Minute timebase versions
+
+The firmwares are also available with the same feature sets, but where the timebase is changed to use minutes instead of hours. There is one other significant difference though, to avoid wearing out the EEPROM from saving state at each 'tick' (that is each minute), 
+state is instead only saved after each step is complete when running a profile.
+
+There is also one specialized version of the minute based firmware called _looped_, this version will restart the profile at the end of it, rather than switching to thermostat mode.
+
 
 ## Additional features
 
